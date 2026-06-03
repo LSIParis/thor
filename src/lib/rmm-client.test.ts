@@ -5,21 +5,33 @@ vi.mock('axios')
 
 import { fetchRmmClients } from './rmm-client'
 
+const CLIENTS = [{ id: 1, name: 'Client A' }, { id: 2, name: 'Client B' }]
+const NOT_FOUND = Object.assign(new Error('404'), { response: { status: 404 } })
+
+beforeEach(() => vi.resetAllMocks())
+
 describe('fetchRmmClients', () => {
-  it('calls RMM API with correct headers and returns clients', async () => {
-    vi.mocked(axios.get).mockResolvedValue({
-      data: [{ id: 1, name: 'Client A' }, { id: 2, name: 'Client B' }],
-    })
+  it('succeeds on first path /api/v3/clients/', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: CLIENTS })
     const result = await fetchRmmClients('https://rmm.example.com', 'my-key')
     expect(axios.get).toHaveBeenCalledWith(
       'https://rmm.example.com/api/v3/clients/',
-      { headers: { 'X-API-KEY': 'my-key' } }
+      expect.objectContaining({ headers: { 'X-API-KEY': 'my-key' } })
     )
-    expect(result).toEqual([{ id: 1, name: 'Client A' }, { id: 2, name: 'Client B' }])
+    expect(result).toEqual(CLIENTS)
   })
 
-  it('throws on network error', async () => {
-    vi.mocked(axios.get).mockRejectedValue(new Error('Network error'))
-    await expect(fetchRmmClients('https://rmm.example.com', 'key')).rejects.toThrow()
+  it('falls back to /clients/ when /api/v3/clients/ returns 404', async () => {
+    vi.mocked(axios.get)
+      .mockRejectedValueOnce(NOT_FOUND)
+      .mockResolvedValueOnce({ data: CLIENTS })
+    const result = await fetchRmmClients('https://rmm.example.com', 'key')
+    expect(result).toEqual(CLIENTS)
+    expect(vi.mocked(axios.get).mock.calls[1][0]).toBe('https://rmm.example.com/clients/')
+  })
+
+  it('throws on non-404 network error', async () => {
+    vi.mocked(axios.get).mockRejectedValue(new Error('ECONNREFUSED'))
+    await expect(fetchRmmClients('https://rmm.example.com', 'key')).rejects.toThrow('ECONNREFUSED')
   })
 })
