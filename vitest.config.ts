@@ -9,7 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.ts',
     env: {
-      ENCRYPTION_KEY: 'test-encryption-key-32-chars-long',
+      ENCRYPTION_KEY: '0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20',
     },
   },
   resolve: {

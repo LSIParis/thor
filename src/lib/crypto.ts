@@ -4,8 +4,8 @@ const ALGORITHM = 'aes-256-cbc'
 
 function getKey(): Buffer {
   const hex = process.env.ENCRYPTION_KEY
-  if (!hex || hex.length < 32) throw new Error('ENCRYPTION_KEY must be at least 32 chars')
-  return Buffer.from(hex.slice(0, 32), 'utf8')
+  if (!hex || hex.length < 64) throw new Error('ENCRYPTION_KEY must be a 64-char hex string (openssl rand -hex 32)')
+  return Buffer.from(hex, 'hex')
 }
 
 export function encrypt(text: string): string {
