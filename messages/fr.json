@@ -39,7 +39,9 @@
     "edit": "Modifier",
     "addContact": "Ajouter un contact",
     "addEquipment": "Ajouter un équipement",
-    "addLicense": "Ajouter une licence"
+    "addLicense": "Ajouter une licence",
+    "rmmImport": "Importer depuis RMM",
+    "rmmImporting": "Import en cours..."
   },
   "contacts": {
     "firstName": "Prénom",

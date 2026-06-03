@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientList } from '@/components/clients/client-list'
+import { RmmImportButton } from '@/components/clients/rmm-import-button'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
@@ -24,9 +25,12 @@ export default async function ClientsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
         {session.user.role === 'ADMIN' && (
-          <Button asChild>
-            <Link href="/clients/new">{t('new')}</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <RmmImportButton />
+            <Button asChild>
+              <Link href="/clients/new">{t('new')}</Link>
+            </Button>
+          </div>
         )}
       </div>
       <ClientList clients={clients} />
