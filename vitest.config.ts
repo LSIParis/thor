@@ -8,6 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    env: {
+      ENCRYPTION_KEY: 'test-encryption-key-32-chars-long',
+    },
   },
   resolve: {
     alias: { '@': resolve(__dirname, './src') },
