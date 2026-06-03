@@ -34,6 +34,7 @@ model Client {
   contacts      Contact[]
   equipment     Equipment[]
   licenses      License[]
+  m365Tenants   M365Tenant[]
 }
 
 model UserClient {
@@ -87,4 +88,38 @@ model AppSetting {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+model M365Tenant {
+  id          String        @id @default(cuid())
+  clientId    String
+  tenantId    String?
+  displayName String
+  notes       String?
+  createdAt   DateTime      @default(now())
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  domains     M365Domain[]
+  accounts    M365Account[]
+}
+
+model M365Domain {
+  id        String     @id @default(cuid())
+  tenantId  String
+  domain    String
+  isDefault Boolean    @default(false)
+  notes     String?
+  createdAt DateTime   @default(now())
+  tenant    M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model M365Account {
+  id                String     @id @default(cuid())
+  tenantId          String
+  displayName       String
+  userPrincipalName String
+  jobTitle          String?
+  licensed          Boolean    @default(true)
+  notes             String?
+  createdAt         DateTime   @default(now())
+  tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }

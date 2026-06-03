@@ -24,6 +24,13 @@ export default async function ClientDetailPage({ params }: Props) {
       contacts: { orderBy: { lastName: 'asc' } },
       equipment: { orderBy: { type: 'asc' } },
       licenses: { orderBy: { name: 'asc' } },
+      m365Tenants: {
+        orderBy: { displayName: 'asc' },
+        include: {
+          domains: { orderBy: { isDefault: 'desc' } },
+          accounts: { orderBy: { displayName: 'asc' } },
+        },
+      },
     },
   })
   if (!client) notFound()
@@ -55,6 +62,7 @@ export default async function ClientDetailPage({ params }: Props) {
         contacts={client.contacts}
         equipment={client.equipment}
         licenses={client.licenses}
+        m365Tenants={client.m365Tenants}
         canEdit={isAdmin}
       />
     </AppLayout>
