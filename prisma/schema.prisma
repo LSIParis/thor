@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TECH
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(TECH)
+  createdAt    DateTime     @default(now())
+  clients      UserClient[]
+}
+
+model Client {
+  id            String       @id @default(cuid())
+  name          String
+  tacticalRmmId String?      @unique
+  address       String?
+  phone         String?
+  email         String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  users         UserClient[]
+  contacts      Contact[]
+  equipment     Equipment[]
+  licenses      License[]
+}
+
+model UserClient {
+  userId   String
+  clientId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@id([userId, clientId])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  clientId  String
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  role      String?
+  notes     String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Equipment {
+  id           String   @id @default(cuid())
+  clientId     String
+  type         String
+  brand        String?
+  model        String?
+  serialNumber String?
+  ipAddress    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model License {
+  id         String    @id @default(cuid())
+  clientId   String
+  name       String
+  publisher  String?
+  expiryDate DateTime?
+  seats      Int?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model AppSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
