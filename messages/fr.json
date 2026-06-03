@@ -1,0 +1,117 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "clients": "Clients",
+    "admin": "Administration",
+    "logout": "Déconnexion",
+    "profile": "Mon profil"
+  },
+  "login": {
+    "title": "Connexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "error": "Email ou mot de passe incorrect"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "clients": "Clients",
+    "contacts": "Contacts",
+    "equipment": "Équipements",
+    "expiringSoon": "Licences expirant dans 30 jours"
+  },
+  "clients": {
+    "title": "Clients",
+    "new": "Nouveau client",
+    "search": "Rechercher un client...",
+    "noResults": "Aucun client trouvé",
+    "contacts": "Contacts",
+    "equipment": "Équipements",
+    "licences": "Licences",
+    "name": "Nom",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "email": "Email",
+    "notes": "Notes",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "addContact": "Ajouter un contact",
+    "addEquipment": "Ajouter un équipement",
+    "addLicense": "Ajouter une licence"
+  },
+  "contacts": {
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "role": "Fonction",
+    "notes": "Notes",
+    "new": "Nouveau contact",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer"
+  },
+  "equipment": {
+    "type": "Type",
+    "brand": "Marque",
+    "model": "Modèle",
+    "serialNumber": "N° de série",
+    "ipAddress": "Adresse IP",
+    "notes": "Notes",
+    "types": {
+      "Serveur": "Serveur",
+      "PC": "PC",
+      "Imprimante": "Imprimante",
+      "Switch": "Switch",
+      "Autre": "Autre"
+    },
+    "new": "Nouvel équipement",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer"
+  },
+  "licenses": {
+    "name": "Nom du logiciel",
+    "publisher": "Éditeur",
+    "expiryDate": "Date d'expiration",
+    "seats": "Nb de postes",
+    "notes": "Notes",
+    "new": "Nouvelle licence",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "expired": "Expirée",
+    "expiringSoon": "Expire bientôt"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Utilisateurs",
+    "settings": "Paramètres RMM",
+    "import": "Importer depuis RMM",
+    "newUser": "Nouvel utilisateur",
+    "name": "Nom",
+    "email": "Email",
+    "role": "Rôle",
+    "password": "Mot de passe",
+    "assignedClients": "Clients assignés",
+    "rmmUrl": "URL Tactical RMM",
+    "rmmApiKey": "API Key RMM",
+    "saveSettings": "Enregistrer les paramètres",
+    "importClients": "Importer les clients",
+    "importing": "Import en cours...",
+    "importResult": "{created} créés · {updated} mis à jour · {unchanged} inchangés",
+    "roles": {
+      "ADMIN": "Administrateur",
+      "TECH": "Technicien"
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "confirmDelete": "Confirmer la suppression ?",
+    "yes": "Oui",
+    "no": "Non"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "admin": "Administration",
+    "logout": "Logout",
+    "profile": "My profile"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Incorrect email or password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "clients": "Clients",
+    "contacts": "Contacts",
+    "equipment": "Equipment",
+    "expiringSoon": "Licenses expiring within 30 days"
+  },
+  "clients": {
+    "title": "Clients",
+    "new": "New client",
+    "search": "Search clients...",
+    "noResults": "No clients found",
+    "contacts": "Contacts",
+    "equipment": "Equipment",
+    "licences": "Licenses",
+    "name": "Name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "notes": "Notes",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "addContact": "Add contact",
+    "addEquipment": "Add equipment",
+    "addLicense": "Add license"
+  },
+  "contacts": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "notes": "Notes",
+    "new": "New contact",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "equipment": {
+    "type": "Type",
+    "brand": "Brand",
+    "model": "Model",
+    "serialNumber": "Serial number",
+    "ipAddress": "IP address",
+    "notes": "Notes",
+    "types": {
+      "Serveur": "Server",
+      "PC": "PC",
+      "Imprimante": "Printer",
+      "Switch": "Switch",
+      "Autre": "Other"
+    },
+    "new": "New equipment",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "licenses": {
+    "name": "Software name",
+    "publisher": "Publisher",
+    "expiryDate": "Expiry date",
+    "seats": "Seats",
+    "notes": "Notes",
+    "new": "New license",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "expired": "Expired",
+    "expiringSoon": "Expiring soon"
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Users",
+    "settings": "RMM Settings",
+    "import": "Import from RMM",
+    "newUser": "New user",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "password": "Password",
+    "assignedClients": "Assigned clients",
+    "rmmUrl": "Tactical RMM URL",
+    "rmmApiKey": "RMM API Key",
+    "saveSettings": "Save settings",
+    "importClients": "Import clients",
+    "importing": "Importing...",
+    "importResult": "{created} created · {updated} updated · {unchanged} unchanged",
+    "roles": {
+      "ADMIN": "Administrator",
+      "TECH": "Technician"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "confirmDelete": "Confirm deletion?",
+    "yes": "Yes",
+    "no": "No"
+  }
+}
