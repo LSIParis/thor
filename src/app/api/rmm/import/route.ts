@@ -24,8 +24,16 @@ export async function POST() {
   let rmmClients
   try {
     rmmClients = await fetchRmmClients(urlSetting.value, apiKey)
-  } catch {
-    return NextResponse.json({ error: 'Failed to reach Tactical RMM' }, { status: 502 })
+    if (!Array.isArray(rmmClients)) {
+      return NextResponse.json({ error: "L'URL RMM renvoie une page HTML — vérifiez l'URL (doit être le domaine api., ex: https://api.lsiparis.tech)" }, { status: 502 })
+    }
+  } catch (err: any) {
+    const detail = err?.response?.status
+      ? `HTTP ${err.response.status} — ${err.response.statusText}`
+      : err?.code
+      ? err.code
+      : err?.message ?? 'Unknown error'
+    return NextResponse.json({ error: `Tactical RMM unreachable: ${detail}` }, { status: 502 })
   }
 
   let created = 0
