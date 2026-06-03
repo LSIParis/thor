@@ -2,15 +2,34 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Badge } from '@/components/ui/badge'
+import { Contact, Monitor, Key, LayoutGrid } from 'lucide-react'
 import type { Client } from '@prisma/client'
 
 interface ClientWithCounts extends Client {
-  _count: { contacts: number; equipment: number; licenses: number }
+  _count: { contacts: number; equipment: number; licenses: number; m365Tenants: number }
 }
 
 interface ClientListProps {
   clients: ClientWithCounts[]
+}
+
+function Stat({ icon: Icon, value, title, active = true }: {
+  icon: React.ElementType
+  value: number
+  title: string
+  active?: boolean
+}) {
+  return (
+    <div
+      title={`${value} ${title}`}
+      className={`flex items-center gap-1 text-xs tabular-nums ${
+        active && value > 0 ? 'text-foreground' : 'text-muted-foreground/50'
+      }`}
+    >
+      <Icon size={13} className={active && value > 0 ? 'text-primary' : ''} />
+      <span>{value}</span>
+    </div>
+  )
 }
 
 export function ClientList({ clients }: ClientListProps) {
@@ -21,24 +40,20 @@ export function ClientList({ clients }: ClientListProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {clients.map((client) => (
         <Link
           key={client.id}
           href={`/clients/${client.id}`}
-          className="block p-4 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors"
+          className="flex items-center justify-between px-4 py-3 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors"
         >
-          <div className="flex items-center justify-between">
-            <span className="font-medium">{client.name}</span>
-            <div className="flex gap-2">
-              <Badge variant="secondary">{client._count.contacts} contacts</Badge>
-              <Badge variant="secondary">{client._count.equipment} équip.</Badge>
-              <Badge variant="secondary">{client._count.licenses} lic.</Badge>
-            </div>
+          <span className="font-medium text-sm">{client.name}</span>
+          <div className="flex items-center gap-4">
+            <Stat icon={Contact}    value={client._count.contacts}    title="contacts" />
+            <Stat icon={Monitor}    value={client._count.equipment}   title="équipements" />
+            <Stat icon={Key}        value={client._count.licenses}    title="licences" />
+            <Stat icon={LayoutGrid} value={client._count.m365Tenants} title="tenants M365" />
           </div>
-          {client.phone && (
-            <p className="text-muted-foreground text-sm mt-1">{client.phone}</p>
-          )}
         </Link>
       ))}
     </div>
