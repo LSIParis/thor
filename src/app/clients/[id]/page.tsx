@@ -4,6 +4,7 @@ import { requireAuth, canAccessClient } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientDetailTabs } from '@/components/clients/client-detail-tabs'
+import { ClientStats } from '@/components/clients/client-stats'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { deleteClient } from '@/actions/clients'
@@ -50,6 +51,15 @@ export default async function ClientDetailPage({ params }: Props) {
   const isAdmin = session.user.role === 'ADMIN'
   const deleteWithId = deleteClient.bind(null, id)
 
+  const now = Date.now()
+  const in30Days = now + 30 * 24 * 60 * 60 * 1000
+  const licensesExpiringSoon = client.licenses.filter(
+    (l) => l.expiryDate && l.expiryDate.getTime() >= now && l.expiryDate.getTime() <= in30Days
+  ).length
+  const m365AccountsCount = client.m365Tenants.reduce((sum, t) => sum + t.accounts.length, 0)
+  const nextcloudServersCount = client.nextcloudServices.reduce((sum, s) => sum + s.servers.length, 0)
+  const voipExtensionsCount = client.voipServices.reduce((sum, s) => sum + s.extensions.length, 0)
+
   return (
     <AppLayout>
       <div className="flex items-center justify-between mb-6">
@@ -69,6 +79,18 @@ export default async function ClientDetailPage({ params }: Props) {
           </div>
         )}
       </div>
+      <ClientStats
+        contactsCount={client.contacts.length}
+        equipmentCount={client.equipment.length}
+        licensesCount={client.licenses.length}
+        licensesExpiringSoon={licensesExpiringSoon}
+        m365TenantsCount={client.m365Tenants.length}
+        m365AccountsCount={m365AccountsCount}
+        nextcloudServicesCount={client.nextcloudServices.length}
+        nextcloudServersCount={nextcloudServersCount}
+        voipServicesCount={client.voipServices.length}
+        voipExtensionsCount={voipExtensionsCount}
+      />
       <ClientDetailTabs
         clientId={id}
         contacts={client.contacts}
