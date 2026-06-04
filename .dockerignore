@@ -1,0 +1,16 @@
+.git
+.gitignore
+.next
+node_modules
+.env
+.env.local
+.env*.local
+.superpowers
+public/uploads
+docs
+*.md
+!DEPLOY.md
+playwright-report
+test-results
+scripts/seed-*.js
+public/screen-*.png
