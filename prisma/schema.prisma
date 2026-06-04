@@ -36,6 +36,7 @@ model Client {
   licenses      License[]
   m365Tenants       M365Tenant[]
   nextcloudServices NextcloudService[]
+  voipServices      VoipService[]
 }
 
 model UserClient {
@@ -146,4 +147,55 @@ model NextcloudServer {
   notes        String?
   createdAt    DateTime         @default(now())
   service      NextcloudService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model VoipService {
+  id         String          @id @default(cuid())
+  clientId   String
+  name       String
+  provider   String?
+  notes      String?
+  createdAt  DateTime        @default(now())
+  client     Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  equipment  VoipEquipment[]
+  trunks     VoipTrunk[]
+  extensions VoipExtension[]
+}
+
+model VoipEquipment {
+  id         String      @id @default(cuid())
+  serviceId  String
+  type       String
+  brand      String?
+  model      String?
+  macAddress String?
+  ipAddress  String?
+  notes      String?
+  createdAt  DateTime    @default(now())
+  service    VoipService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model VoipTrunk {
+  id        String      @id @default(cuid())
+  serviceId String
+  name      String
+  provider  String?
+  sipServer String?
+  sipUser   String?
+  channels  Int?
+  notes     String?
+  createdAt DateTime    @default(now())
+  service   VoipService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model VoipExtension {
+  id        String      @id @default(cuid())
+  serviceId String
+  number    String
+  name      String?
+  type      String?
+  device    String?
+  notes     String?
+  createdAt DateTime    @default(now())
+  service   VoipService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }

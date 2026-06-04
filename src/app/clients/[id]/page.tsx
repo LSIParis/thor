@@ -33,8 +33,14 @@ export default async function ClientDetailPage({ params }: Props) {
       },
       nextcloudServices: {
         orderBy: { name: 'asc' },
+        include: { servers: { orderBy: { createdAt: 'asc' } } },
+      },
+      voipServices: {
+        orderBy: { name: 'asc' },
         include: {
-          servers: { orderBy: { createdAt: 'asc' } },
+          equipment: { orderBy: { type: 'asc' } },
+          trunks: { orderBy: { name: 'asc' } },
+          extensions: { orderBy: { number: 'asc' } },
         },
       },
     },
@@ -70,6 +76,7 @@ export default async function ClientDetailPage({ params }: Props) {
         licenses={client.licenses}
         m365Tenants={client.m365Tenants}
         nextcloudServices={client.nextcloudServices}
+        voipServices={client.voipServices}
         canEdit={isAdmin}
       />
     </AppLayout>

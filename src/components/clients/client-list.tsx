@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Contact, Monitor, Key, LayoutGrid, Cloud } from 'lucide-react'
+import { Contact, Monitor, Key, LayoutGrid, Cloud, Phone } from 'lucide-react'
 import type { Client } from '@prisma/client'
 
 interface ClientWithCounts extends Client {
-  _count: { contacts: number; equipment: number; licenses: number; m365Tenants: number; nextcloudServices: number }
+  _count: { contacts: number; equipment: number; licenses: number; m365Tenants: number; nextcloudServices: number; voipServices: number }
 }
 
 interface ClientListProps {
@@ -54,6 +54,7 @@ export function ClientList({ clients }: ClientListProps) {
             <Stat icon={Key}        value={client._count.licenses}          title="licences" />
             <Stat icon={LayoutGrid} value={client._count.m365Tenants}       title="tenants M365" />
             <Stat icon={Cloud}      value={client._count.nextcloudServices} title="services Nextcloud" />
+            <Stat icon={Phone}      value={client._count.voipServices}      title="services VoIP" />
           </div>
         </Link>
       ))}
