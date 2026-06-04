@@ -14,7 +14,7 @@ import type {
   M365Tenant, M365Domain, M365Account,
   NextcloudService, NextcloudServer,
   VoipService, VoipEquipment, VoipTrunk, VoipExtension,
-  DnsZone, DnsRecord, SslCertificate, Hosting,
+  DnsZone, DnsRecord, SslCertificate, Hosting, OvhConfig,
 } from '@prisma/client'
 
 type TenantWithRelations = M365Tenant & { domains: M365Domain[]; accounts: M365Account[] }
@@ -35,13 +35,14 @@ interface ClientDetailTabsProps {
   dnsZones: ZoneWithRecords[]
   sslCerts: SslCertificate[]
   hostings: Hosting[]
+  ovhConfig: OvhConfig | null
   canEdit: boolean
 }
 
 export function ClientDetailTabs({
   clientId, contacts, equipment,
   m365Tenants, nextcloudServices, voipServices,
-  dnsZones, sslCerts, hostings,
+  dnsZones, sslCerts, hostings, ovhConfig,
   canEdit,
 }: ClientDetailTabsProps) {
   const t = useTranslations('clients')
@@ -72,6 +73,7 @@ export function ClientDetailTabs({
           zones={dnsZones}
           certs={sslCerts}
           hostings={hostings}
+          ovhConfig={ovhConfig}
           canEdit={canEdit}
         />
       </TabsContent>

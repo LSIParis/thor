@@ -12,7 +12,9 @@ import {
   createHosting, deleteHosting,
 } from '@/actions/dns'
 import { Globe, Shield, Server, Trash2, Plus, ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react'
-import type { DnsZone, DnsRecord, SslCertificate, Hosting } from '@prisma/client'
+import { OvhConnectBanner } from './ovh-connect-banner'
+import { OvhStatusBanner } from './ovh-status-banner'
+import type { DnsZone, DnsRecord, SslCertificate, Hosting, OvhConfig } from '@prisma/client'
 
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
 
@@ -22,6 +24,7 @@ interface DnsPanelProps {
   certs: SslCertificate[]
   hostings: Hosting[]
   canEdit: boolean
+  ovhConfig: OvhConfig | null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -103,7 +106,14 @@ function DnsZonesTab({ clientId, zones, canEdit }: { clientId: string; zones: Zo
         <p className="text-muted-foreground text-sm">Aucune zone DNS configurée.</p>
       )}
 
-      {zones.map(zone => <ZoneSection key={zone.id} zone={zone} clientId={clientId} canEdit={canEdit} />)}
+      {zones.map(zone => (
+        <ZoneSection
+          key={zone.id}
+          zone={zone}
+          clientId={clientId}
+          canEdit={canEdit && zone.source !== 'ovh'}
+        />
+      ))}
     </div>
   )
 }
@@ -141,6 +151,10 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <Globe size={14} className="text-primary" />
           <span className="font-mono">{zone.domain}</span>
+          {zone.source === 'ovh'
+            ? <Badge variant="default" className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground">OVH</Badge>
+            : <Badge variant="outline" className="text-[10px] h-4 px-1.5">Manuel</Badge>
+          }
           {zone.registrar && <span className="text-xs text-muted-foreground font-normal">— {zone.registrar}</span>}
           {zone.nameservers && <span className="text-xs text-muted-foreground font-mono font-normal hidden xl:inline">{zone.nameservers}</span>}
           <ExpiryBadge date={zone.expiryDate} />
@@ -447,17 +461,33 @@ function HostingTab({ clientId, hostings, canEdit }: { clientId: string; hosting
 
 // ── Panel principal ───────────────────────────────────────────────────────────
 
-export function DnsPanel({ clientId, zones, certs, hostings, canEdit }: DnsPanelProps) {
+export function DnsPanel({ clientId, zones, certs, hostings, canEdit, ovhConfig }: DnsPanelProps) {
+  const ovhZonesCount   = zones.filter(z => z.source === 'ovh').length
+  const ovhRecordsCount = zones.filter(z => z.source === 'ovh').reduce((s, z) => s + z.records.length, 0)
+
   return (
-    <Tabs defaultValue="zones">
-      <TabsList className="mb-4">
-        <TabsTrigger value="zones"><Globe size={13} className="mr-1.5" />Zones DNS ({zones.length})</TabsTrigger>
-        <TabsTrigger value="ssl"><Shield size={13} className="mr-1.5" />Certificats SSL ({certs.length})</TabsTrigger>
-        <TabsTrigger value="hosting"><Server size={13} className="mr-1.5" />Hébergements ({hostings.length})</TabsTrigger>
-      </TabsList>
-      <TabsContent value="zones"><DnsZonesTab clientId={clientId} zones={zones} canEdit={canEdit} /></TabsContent>
-      <TabsContent value="ssl"><SslTab clientId={clientId} certs={certs} canEdit={canEdit} /></TabsContent>
-      <TabsContent value="hosting"><HostingTab clientId={clientId} hostings={hostings} canEdit={canEdit} /></TabsContent>
-    </Tabs>
+    <div>
+      {canEdit && !ovhConfig && (
+        <OvhConnectBanner clientId={clientId} />
+      )}
+      {ovhConfig && (
+        <OvhStatusBanner
+          clientId={clientId}
+          config={ovhConfig}
+          zonesCount={ovhZonesCount}
+          recordsCount={ovhRecordsCount}
+        />
+      )}
+      <Tabs defaultValue="zones">
+        <TabsList className="mb-4">
+          <TabsTrigger value="zones"><Globe size={13} className="mr-1.5" />Zones DNS ({zones.length})</TabsTrigger>
+          <TabsTrigger value="ssl"><Shield size={13} className="mr-1.5" />Certificats SSL ({certs.length})</TabsTrigger>
+          <TabsTrigger value="hosting"><Server size={13} className="mr-1.5" />Hébergements ({hostings.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="zones"><DnsZonesTab clientId={clientId} zones={zones} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="ssl"><SslTab clientId={clientId} certs={certs} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="hosting"><HostingTab clientId={clientId} hostings={hostings} canEdit={canEdit} /></TabsContent>
+      </Tabs>
+    </div>
   )
 }
