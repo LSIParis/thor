@@ -17,7 +17,7 @@ export default async function ClientsPage() {
         ? undefined
         : { users: { some: { userId: session.user.id } } },
     orderBy: { name: 'asc' },
-    include: { _count: { select: { contacts: true, equipment: true, licenses: true, m365Tenants: true } } },
+    include: { _count: { select: { contacts: true, equipment: true, licenses: true, m365Tenants: true, nextcloudServices: true } } },
   })
 
   return (

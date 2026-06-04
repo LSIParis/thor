@@ -34,7 +34,8 @@ model Client {
   contacts      Contact[]
   equipment     Equipment[]
   licenses      License[]
-  m365Tenants   M365Tenant[]
+  m365Tenants       M365Tenant[]
+  nextcloudServices NextcloudService[]
 }
 
 model UserClient {
@@ -122,4 +123,27 @@ model M365Account {
   notes             String?
   createdAt         DateTime   @default(now())
   tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model NextcloudService {
+  id        String            @id @default(cuid())
+  clientId  String
+  name      String
+  notes     String?
+  createdAt DateTime          @default(now())
+  client    Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  servers   NextcloudServer[]
+}
+
+model NextcloudServer {
+  id           String           @id @default(cuid())
+  serviceId    String
+  url          String
+  version      String?
+  adminUser    String?
+  storageTotal String?
+  userCount    Int?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  service      NextcloudService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }

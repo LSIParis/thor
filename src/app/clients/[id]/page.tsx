@@ -31,6 +31,12 @@ export default async function ClientDetailPage({ params }: Props) {
           accounts: { orderBy: { displayName: 'asc' } },
         },
       },
+      nextcloudServices: {
+        orderBy: { name: 'asc' },
+        include: {
+          servers: { orderBy: { createdAt: 'asc' } },
+        },
+      },
     },
   })
   if (!client) notFound()
@@ -63,6 +69,7 @@ export default async function ClientDetailPage({ params }: Props) {
         equipment={client.equipment}
         licenses={client.licenses}
         m365Tenants={client.m365Tenants}
+        nextcloudServices={client.nextcloudServices}
         canEdit={isAdmin}
       />
     </AppLayout>
