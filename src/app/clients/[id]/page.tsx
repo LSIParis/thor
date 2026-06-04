@@ -24,7 +24,6 @@ export default async function ClientDetailPage({ params }: Props) {
     include: {
       contacts: { orderBy: { lastName: 'asc' } },
       equipment: { orderBy: { type: 'asc' }, include: { assignedTo: true } },
-      licenses: { orderBy: { name: 'asc' } },
       m365Tenants: {
         orderBy: { displayName: 'asc' },
         include: {
@@ -44,6 +43,12 @@ export default async function ClientDetailPage({ params }: Props) {
           extensions: { orderBy: { number: 'asc' } },
         },
       },
+      dnsZones: {
+        orderBy: { domain: 'asc' },
+        include: { records: { orderBy: { type: 'asc' } } },
+      },
+      sslCertificates: { orderBy: { domain: 'asc' } },
+      hostings: { orderBy: { name: 'asc' } },
     },
   })
   if (!client) notFound()
@@ -53,12 +58,15 @@ export default async function ClientDetailPage({ params }: Props) {
 
   const now = Date.now()
   const in30Days = now + 30 * 24 * 60 * 60 * 1000
-  const licensesExpiringSoon = client.licenses.filter(
-    (l) => l.expiryDate && l.expiryDate.getTime() >= now && l.expiryDate.getTime() <= in30Days
-  ).length
   const m365AccountsCount = client.m365Tenants.reduce((sum, t) => sum + t.accounts.length, 0)
   const nextcloudServersCount = client.nextcloudServices.reduce((sum, s) => sum + s.servers.length, 0)
   const voipExtensionsCount = client.voipServices.reduce((sum, s) => sum + s.extensions.length, 0)
+  const certsExpiringSoon = client.sslCertificates.filter(
+    (c) => c.expiryDate && c.expiryDate.getTime() >= now && c.expiryDate.getTime() <= in30Days
+  ).length
+  const domainsExpiringSoon = client.dnsZones.filter(
+    (z) => z.expiryDate && z.expiryDate.getTime() >= now && z.expiryDate.getTime() <= in30Days
+  ).length
 
   return (
     <AppLayout>
@@ -82,8 +90,11 @@ export default async function ClientDetailPage({ params }: Props) {
       <ClientStats
         contactsCount={client.contacts.length}
         equipmentCount={client.equipment.length}
-        licensesCount={client.licenses.length}
-        licensesExpiringSoon={licensesExpiringSoon}
+        dnsZonesCount={client.dnsZones.length}
+        sslCertsCount={client.sslCertificates.length}
+        hostingsCount={client.hostings.length}
+        certsExpiringSoon={certsExpiringSoon}
+        domainsExpiringSoon={domainsExpiringSoon}
         m365TenantsCount={client.m365Tenants.length}
         m365AccountsCount={m365AccountsCount}
         nextcloudServicesCount={client.nextcloudServices.length}
@@ -95,10 +106,12 @@ export default async function ClientDetailPage({ params }: Props) {
         clientId={id}
         contacts={client.contacts}
         equipment={client.equipment}
-        licenses={client.licenses}
         m365Tenants={client.m365Tenants}
         nextcloudServices={client.nextcloudServices}
         voipServices={client.voipServices}
+        dnsZones={client.dnsZones}
+        sslCerts={client.sslCertificates}
+        hostings={client.hostings}
         canEdit={isAdmin}
       />
     </AppLayout>

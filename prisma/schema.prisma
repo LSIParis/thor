@@ -37,6 +37,9 @@ model Client {
   m365Tenants       M365Tenant[]
   nextcloudServices NextcloudService[]
   voipServices      VoipService[]
+  dnsZones          DnsZone[]
+  sslCertificates   SslCertificate[]
+  hostings          Hosting[]
 }
 
 model UserClient {
@@ -207,4 +210,62 @@ model VoipExtension {
   notes     String?
   createdAt DateTime    @default(now())
   service   VoipService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+// ── DNS / Certificats / Hébergement ───────────────────────────────────────────
+
+model DnsZone {
+  id               String      @id @default(cuid())
+  clientId         String
+  domain           String
+  registrar        String?
+  registrationDate DateTime?
+  expiryDate       DateTime?
+  autoRenew        Boolean     @default(false)
+  notes            String?
+  createdAt        DateTime    @default(now())
+  client           Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  records          DnsRecord[]
+}
+
+model DnsRecord {
+  id        String   @id @default(cuid())
+  zoneId    String
+  type      String
+  name      String
+  value     String
+  ttl       Int?
+  priority  Int?
+  notes     String?
+  createdAt DateTime @default(now())
+  zone      DnsZone  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+}
+
+model SslCertificate {
+  id         String    @id @default(cuid())
+  clientId   String
+  domain     String
+  issuer     String?
+  type       String?
+  issuedDate DateTime?
+  expiryDate DateTime?
+  autoRenew  Boolean   @default(false)
+  notes      String?
+  createdAt  DateTime  @default(now())
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Hosting {
+  id          String    @id @default(cuid())
+  clientId    String
+  name        String
+  type        String?
+  provider    String?
+  url         String?
+  ipAddress   String?
+  plan        String?
+  renewalDate DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
