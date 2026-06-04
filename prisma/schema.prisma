@@ -40,6 +40,7 @@ model Client {
   dnsZones          DnsZone[]
   sslCertificates   SslCertificate[]
   hostings          Hosting[]
+  ovhConfig         OvhConfig?
 }
 
 model UserClient {
@@ -223,10 +224,14 @@ model DnsZone {
   registrationDate DateTime?
   expiryDate       DateTime?
   autoRenew        Boolean     @default(false)
+  source           String      @default("manual")
+  ovhZoneName      String?
   notes            String?
   createdAt        DateTime    @default(now())
   client           Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   records          DnsRecord[]
+
+  @@unique([ovhZoneName, clientId])
 }
 
 model DnsRecord {
@@ -269,4 +274,16 @@ model Hosting {
   notes       String?
   createdAt   DateTime  @default(now())
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model OvhConfig {
+  id                String    @id @default(cuid())
+  clientId          String    @unique
+  endpoint          String    @default("ovh-eu")
+  applicationKey    String
+  applicationSecret String
+  consumerKey       String
+  lastSyncAt        DateTime?
+  createdAt         DateTime  @default(now())
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
