@@ -49,7 +49,7 @@ export default async function ClientDetailPage({ params }: Props) {
       },
       sslCertificates: { orderBy: { domain: 'asc' } },
       hostings: { orderBy: { name: 'asc' } },
-      ovhConfig: true,
+      registrarConfigs: true,
     },
   })
   if (!client) notFound()
@@ -113,7 +113,7 @@ export default async function ClientDetailPage({ params }: Props) {
         dnsZones={client.dnsZones}
         sslCerts={client.sslCertificates}
         hostings={client.hostings}
-        ovhConfig={client.ovhConfig ?? null}
+        registrarConfigs={client.registrarConfigs}
         canEdit={isAdmin}
       />
     </AppLayout>

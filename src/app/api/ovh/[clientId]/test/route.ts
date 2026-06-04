@@ -14,22 +14,23 @@ export async function GET(
   }
 
   const { clientId } = await params
-  const config = await prisma.ovhConfig.findUnique({ where: { clientId } })
+  const config = await prisma.registrarConfig.findUnique({
+    where: { clientId_provider: { clientId, provider: 'ovh' } },
+  })
   if (!config) return NextResponse.json({ error: 'OVH non configuré' }, { status: 400 })
 
-  const appSecret   = decrypt(config.applicationSecret)
-  const consumerKey = decrypt(config.consumerKey)
-  const ovh         = new OvhClient(config.endpoint, config.applicationKey, appSecret, consumerKey)
+  const appSecret   = config.apiSecret ? decrypt(config.apiSecret) : ''
+  const consumerKey = config.apiToken  ? decrypt(config.apiToken)  : ''
+  const ovh         = new OvhClient(config.login ?? 'ovh-eu', config.apiKey ?? '', appSecret, consumerKey)
 
   try {
-    // /me is the lightest authenticated endpoint
     const me = await ovh.get<{ nichandle: string; firstname: string; name: string }>('/me')
     return NextResponse.json({ ok: true, account: me.nichandle, name: `${me.firstname} ${me.name}` })
   } catch (err: any) {
     const status = err?.response?.status
-    const ovhMsg = err?.response?.data?.message ?? ''
-    if (status === 401) return NextResponse.json({ error: `401 — Application Key ou signature invalide. ${ovhMsg}` }, { status: 401 })
-    if (status === 403) return NextResponse.json({ error: `403 — Consumer Key sans droits sur /me. Ajoutez GET /me lors de la génération. ${ovhMsg}` }, { status: 403 })
+    const msg    = err?.response?.data?.message ?? ''
+    if (status === 401) return NextResponse.json({ error: `401 — Application Key ou signature invalide. ${msg}` }, { status: 401 })
+    if (status === 403) return NextResponse.json({ error: `403 — Consumer Key refusée. ${msg}` }, { status: 403 })
     return NextResponse.json({ error: `OVH inaccessible : ${err?.code ?? err?.message}` }, { status: 502 })
   }
 }

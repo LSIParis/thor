@@ -40,7 +40,7 @@ model Client {
   dnsZones          DnsZone[]
   sslCertificates   SslCertificate[]
   hostings          Hosting[]
-  ovhConfig         OvhConfig?
+  registrarConfigs  RegistrarConfig[]
 }
 
 model UserClient {
@@ -276,14 +276,25 @@ model Hosting {
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
-model OvhConfig {
-  id                String    @id @default(cuid())
-  clientId          String    @unique
-  endpoint          String    @default("ovh-eu")
-  applicationKey    String
-  applicationSecret String
-  consumerKey       String
-  lastSyncAt        DateTime?
-  createdAt         DateTime  @default(now())
-  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+// ── Registrar / DNS provider config (OVH, Gandi, LWS) ───────────────────────
+// provider   = "ovh" | "gandi" | "lws"
+// login      = OVH endpoint (ovh-eu) | LWS client ID | unused for Gandi
+// apiKey     = OVH App Key (plaintext) | unused for Gandi/LWS
+// apiSecret  = OVH App Secret (encrypted) | unused for Gandi/LWS
+// apiToken   = OVH Consumer Key (enc) | Gandi API key (enc) | LWS API key (enc)
+// extra      = JSON — LWS: {"domains":["lsiparis.fr",...]}
+model RegistrarConfig {
+  id         String    @id @default(cuid())
+  clientId   String
+  provider   String
+  login      String?
+  apiKey     String?
+  apiSecret  String?
+  apiToken   String?
+  extra      String?
+  lastSyncAt DateTime?
+  createdAt  DateTime  @default(now())
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, provider])
 }

@@ -12,9 +12,8 @@ import {
   createHosting, deleteHosting,
 } from '@/actions/dns'
 import { Globe, Shield, Server, Trash2, Plus, ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react'
-import { OvhConnectBanner } from './ovh-connect-banner'
-import { OvhStatusBanner } from './ovh-status-banner'
-import type { DnsZone, DnsRecord, SslCertificate, Hosting, OvhConfig } from '@prisma/client'
+import { RegistrarBanner } from './registrar-banner'
+import type { DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig } from '@prisma/client'
 
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
 
@@ -24,7 +23,7 @@ interface DnsPanelProps {
   certs: SslCertificate[]
   hostings: Hosting[]
   canEdit: boolean
-  ovhConfig: OvhConfig | null
+  registrarConfigs: RegistrarConfig[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -111,7 +110,7 @@ function DnsZonesTab({ clientId, zones, canEdit }: { clientId: string; zones: Zo
           key={zone.id}
           zone={zone}
           clientId={clientId}
-          canEdit={canEdit && zone.source !== 'ovh'}
+          canEdit={canEdit && zone.source === 'manual'}
         />
       ))}
     </div>
@@ -151,8 +150,8 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <Globe size={14} className="text-primary" />
           <span className="font-mono">{zone.domain}</span>
-          {zone.source === 'ovh'
-            ? <Badge variant="default" className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground">OVH</Badge>
+          {zone.source !== 'manual'
+            ? <Badge variant="default" className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground uppercase">{zone.source}</Badge>
             : <Badge variant="outline" className="text-[10px] h-4 px-1.5">Manuel</Badge>
           }
           {zone.registrar && <span className="text-xs text-muted-foreground font-normal">— {zone.registrar}</span>}
@@ -461,21 +460,15 @@ function HostingTab({ clientId, hostings, canEdit }: { clientId: string; hosting
 
 // ── Panel principal ───────────────────────────────────────────────────────────
 
-export function DnsPanel({ clientId, zones, certs, hostings, canEdit, ovhConfig }: DnsPanelProps) {
-  const ovhZonesCount   = zones.filter(z => z.source === 'ovh').length
-  const ovhRecordsCount = zones.filter(z => z.source === 'ovh').reduce((s, z) => s + z.records.length, 0)
-
+export function DnsPanel({ clientId, zones, certs, hostings, canEdit, registrarConfigs }: DnsPanelProps) {
   return (
     <div>
-      {canEdit && !ovhConfig && (
-        <OvhConnectBanner clientId={clientId} />
-      )}
-      {ovhConfig && (
-        <OvhStatusBanner
+      {(canEdit || registrarConfigs.length > 0) && (
+        <RegistrarBanner
           clientId={clientId}
-          config={ovhConfig}
-          zonesCount={ovhZonesCount}
-          recordsCount={ovhRecordsCount}
+          configs={registrarConfigs}
+          dnsZones={zones}
+          canEdit={canEdit}
         />
       )}
       <Tabs defaultValue="zones">
