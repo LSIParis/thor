@@ -9,7 +9,19 @@ import Link from 'next/link'
 
 interface Props { params: Promise<{ id: string }> }
 
-const EQUIPMENT_TYPES = ['Serveur', 'PC', 'Imprimante', 'Switch', 'Autre']
+const EQUIPMENT_TYPES = [
+  'Serveur',
+  'PC Fixe',
+  'PC Portable',
+  'Mac Fixe',
+  'Mac Portable',
+  'Switch',
+  'Routeur / Firewall',
+  'Imprimante Personnelle',
+  'Imprimante Départementale',
+  'Box Internet',
+  'Autre',
+]
 
 export default async function NewEquipmentPage({ params }: Props) {
   const { id } = await params

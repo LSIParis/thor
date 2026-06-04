@@ -64,9 +64,15 @@
     "notes": "Notes",
     "types": {
       "Serveur": "Serveur",
-      "PC": "PC",
-      "Imprimante": "Imprimante",
+      "PC Fixe": "PC Fixe",
+      "PC Portable": "PC Portable",
+      "Mac Fixe": "Mac Fixe",
+      "Mac Portable": "Mac Portable",
       "Switch": "Switch",
+      "Routeur / Firewall": "Routeur / Firewall",
+      "Imprimante Personnelle": "Imprimante Personnelle",
+      "Imprimante Départementale": "Imprimante Départementale",
+      "Box Internet": "Box Internet",
       "Autre": "Autre"
     },
     "new": "Nouvel équipement",

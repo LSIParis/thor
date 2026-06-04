@@ -64,9 +64,15 @@
     "notes": "Notes",
     "types": {
       "Serveur": "Server",
-      "PC": "PC",
-      "Imprimante": "Printer",
+      "PC Fixe": "Desktop PC",
+      "PC Portable": "Laptop PC",
+      "Mac Fixe": "Desktop Mac",
+      "Mac Portable": "Laptop Mac",
       "Switch": "Switch",
+      "Routeur / Firewall": "Router / Firewall",
+      "Imprimante Personnelle": "Personal Printer",
+      "Imprimante Départementale": "Department Printer",
+      "Box Internet": "Internet Box",
       "Autre": "Other"
     },
     "new": "New equipment",
