@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
+import { encrypt } from '@/lib/crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -32,12 +33,16 @@ export async function deleteNextcloudService(serviceId: string, clientId: string
 export async function createNextcloudServer(serviceId: string, clientId: string, formData: FormData) {
   await requireAdmin()
   const userCountRaw = formData.get('userCount') as string
+  const rawPassword = formData.get('adminPassword') as string
+  const adminPassword = rawPassword ? encrypt(rawPassword) : null
+
   await prisma.nextcloudServer.create({
     data: {
       serviceId,
       url: formData.get('url') as string,
       version: (formData.get('version') as string) || null,
       adminUser: (formData.get('adminUser') as string) || null,
+      adminPassword,
       storageTotal: (formData.get('storageTotal') as string) || null,
       userCount: userCountRaw ? parseInt(userCountRaw, 10) : null,
       notes: (formData.get('notes') as string) || null,

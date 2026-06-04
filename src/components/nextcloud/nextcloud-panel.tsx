@@ -9,6 +9,7 @@ import {
   createNextcloudServer, deleteNextcloudServer,
 } from '@/actions/nextcloud'
 import { ChevronDown, ChevronRight, Server, Cloud, Trash2, Plus, ExternalLink } from 'lucide-react'
+import { NextcloudUsers } from './nextcloud-users'
 import type { NextcloudService, NextcloudServer } from '@prisma/client'
 
 type ServiceWithServers = NextcloudService & { servers: NextcloudServer[] }
@@ -85,6 +86,10 @@ function ServiceSection({ service, clientId, canEdit }: {
                   <Input id={`s-admin-${service.id}`} name="adminUser" placeholder="admin" className="h-7 text-sm" />
                 </div>
                 <div className="space-y-1">
+                  <Label htmlFor={`s-pass-${service.id}`} className="text-xs">Mot de passe admin</Label>
+                  <Input id={`s-pass-${service.id}`} name="adminPassword" type="password" className="h-7 text-sm" placeholder="Chiffré AES-256" />
+                </div>
+                <div className="space-y-1">
                   <Label htmlFor={`s-storage-${service.id}`} className="text-xs">Stockage total</Label>
                   <Input id={`s-storage-${service.id}`} name="storageTotal" placeholder="500 Go" className="h-7 text-sm" />
                 </div>
@@ -107,52 +112,45 @@ function ServiceSection({ service, clientId, canEdit }: {
           {service.servers.length === 0 ? (
             <p className="text-muted-foreground text-xs italic">Aucun serveur configuré</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs text-muted-foreground font-medium py-1.5 pr-4">URL</th>
-                  <th className="text-left text-xs text-muted-foreground font-medium py-1.5 pr-4">Version</th>
-                  <th className="text-left text-xs text-muted-foreground font-medium py-1.5 pr-4">Admin</th>
-                  <th className="text-left text-xs text-muted-foreground font-medium py-1.5 pr-4">Stockage</th>
-                  <th className="text-left text-xs text-muted-foreground font-medium py-1.5">Utilisateurs</th>
-                  {canEdit && <th className="w-8" />}
-                </tr>
-              </thead>
-              <tbody>
-                {service.servers.map((srv) => {
-                  const deleteServer = deleteNextcloudServer.bind(null, srv.id, clientId)
-                  return (
-                    <tr key={srv.id} className="border-b border-border/50 last:border-0">
-                      <td className="py-2 pr-4">
+            <div className="space-y-4">
+              {service.servers.map((srv) => {
+                const deleteServer = deleteNextcloudServer.bind(null, srv.id, clientId)
+                return (
+                  <div key={srv.id} className="rounded-md border border-border/60 p-3 bg-secondary/20">
+                    {/* Infos serveur */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
                         <a
                           href={srv.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
-                          onClick={(e) => e.stopPropagation()}
                         >
-                          {srv.url}
-                          <ExternalLink size={10} />
+                          {srv.url} <ExternalLink size={10} />
                         </a>
-                      </td>
-                      <td className="py-2 pr-4 text-xs text-muted-foreground">{srv.version ?? '—'}</td>
-                      <td className="py-2 pr-4 text-xs font-mono text-muted-foreground">{srv.adminUser ?? '—'}</td>
-                      <td className="py-2 pr-4 text-xs text-muted-foreground">{srv.storageTotal ?? '—'}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{srv.userCount ?? '—'}</td>
+                        <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
+                          {srv.version && <span>v{srv.version}</span>}
+                          {srv.adminUser && <span>Admin : <span className="font-mono">{srv.adminUser}</span></span>}
+                          {srv.storageTotal && <span>Stockage : {srv.storageTotal}</span>}
+                        </div>
+                      </div>
                       {canEdit && (
-                        <td>
-                          <form action={deleteServer}>
-                            <Button variant="ghost" size="sm" type="submit" className="h-6 w-6 p-0 text-destructive">
-                              <Trash2 size={11} />
-                            </Button>
-                          </form>
-                        </td>
+                        <form action={deleteServer} className="flex-shrink-0">
+                          <Button variant="ghost" size="sm" type="submit" className="h-6 w-6 p-0 text-destructive">
+                            <Trash2 size={11} />
+                          </Button>
+                        </form>
                       )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                    </div>
+                    {/* Utilisateurs Nextcloud via API */}
+                    <NextcloudUsers
+                      serverId={srv.id}
+                      hasCredentials={!!(srv.adminUser && srv.adminPassword)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
           )}
           {service.notes && (
             <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-2">{service.notes}</p>

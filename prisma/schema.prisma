@@ -149,9 +149,10 @@ model NextcloudServer {
   serviceId    String
   url          String
   version      String?
-  adminUser    String?
-  storageTotal String?
-  userCount    Int?
+  adminUser     String?
+  adminPassword String?
+  storageTotal  String?
+  userCount     Int?
   notes        String?
   createdAt    DateTime         @default(now())
   service      NextcloudService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
