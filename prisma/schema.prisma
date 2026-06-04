@@ -62,16 +62,20 @@ model Contact {
 }
 
 model Equipment {
-  id           String   @id @default(cuid())
-  clientId     String
-  type         String
-  brand        String?
-  model        String?
-  serialNumber String?
-  ipAddress    String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id               String    @id @default(cuid())
+  clientId         String
+  type             String
+  brand            String?
+  model            String?
+  serialNumber     String?
+  ipAddress        String?
+  ipType           String?
+  purchaseDate     DateTime?
+  warrantyDuration String?
+  photoPath        String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model License {

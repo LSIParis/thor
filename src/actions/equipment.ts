@@ -4,9 +4,27 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { writeFile, mkdir } from 'fs/promises'
+import { join, extname } from 'path'
+import { randomUUID } from 'crypto'
+
+async function savePhoto(photo: File | null): Promise<string | null> {
+  if (!photo || photo.size === 0) return null
+  const ext = extname(photo.name) || '.jpg'
+  const filename = `${randomUUID()}${ext}`
+  const uploadDir = join(process.cwd(), 'public', 'uploads', 'equipment')
+  await mkdir(uploadDir, { recursive: true })
+  const buffer = Buffer.from(await photo.arrayBuffer())
+  await writeFile(join(uploadDir, filename), buffer)
+  return `/uploads/equipment/${filename}`
+}
 
 export async function createEquipment(clientId: string, formData: FormData) {
   await requireAdmin()
+  const purchaseRaw = formData.get('purchaseDate') as string
+  const photo = formData.get('photo') as File | null
+  const photoPath = await savePhoto(photo)
+
   await prisma.equipment.create({
     data: {
       clientId,
@@ -15,6 +33,10 @@ export async function createEquipment(clientId: string, formData: FormData) {
       model: (formData.get('model') as string) || null,
       serialNumber: (formData.get('serialNumber') as string) || null,
       ipAddress: (formData.get('ipAddress') as string) || null,
+      ipType: (formData.get('ipType') as string) || null,
+      purchaseDate: purchaseRaw ? new Date(purchaseRaw) : null,
+      warrantyDuration: (formData.get('warrantyDuration') as string) || null,
+      photoPath,
       notes: (formData.get('notes') as string) || null,
     },
   })

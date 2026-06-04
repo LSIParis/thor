@@ -23,6 +23,8 @@ const EQUIPMENT_TYPES = [
   'Autre',
 ]
 
+const IP_TYPES = ['DHCP', 'Statique', 'Publique', 'Lien-local (APIPA)', 'Autre']
+
 export default async function NewEquipmentPage({ params }: Props) {
   const { id } = await params
   await requireAdmin()
@@ -32,23 +34,25 @@ export default async function NewEquipmentPage({ params }: Props) {
 
   return (
     <AppLayout>
-      <div className="max-w-lg">
+      <div className="max-w-2xl">
         <h1 className="text-2xl font-semibold mb-6">{t('new')}</h1>
-        <form action={createWithClientId} className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="type">{t('type')} *</Label>
-            <select
-              id="type"
-              name="type"
-              required
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              {EQUIPMENT_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+        <form action={createWithClientId} encType="multipart/form-data" className="space-y-5">
+
+          {/* Type + Marque + Modèle */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="type">{t('type')} *</Label>
+              <select
+                id="type"
+                name="type"
+                required
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {EQUIPMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-1">
               <Label htmlFor="brand">{t('brand')}</Label>
               <Input id="brand" name="brand" />
@@ -58,14 +62,64 @@ export default async function NewEquipmentPage({ params }: Props) {
               <Input id="model" name="model" />
             </div>
           </div>
+
+          {/* N° de série */}
           <div className="space-y-1">
             <Label htmlFor="serialNumber">{t('serialNumber')}</Label>
-            <Input id="serialNumber" name="serialNumber" />
+            <Input id="serialNumber" name="serialNumber" className="font-mono" />
           </div>
+
+          {/* IP */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="ipAddress">{t('ipAddress')}</Label>
+              <Input id="ipAddress" name="ipAddress" placeholder="192.168.1.x" className="font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ipType">Type d'IP</Label>
+              <select
+                id="ipType"
+                name="ipType"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Non spécifié</option>
+                {IP_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Date d'achat + Garantie */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="purchaseDate">Date d'achat</Label>
+              <Input id="purchaseDate" name="purchaseDate" type="date" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="warrantyDuration">Durée de garantie</Label>
+              <Input
+                id="warrantyDuration"
+                name="warrantyDuration"
+                placeholder="ex: 3 ans, 24 mois"
+              />
+            </div>
+          </div>
+
+          {/* Photo */}
           <div className="space-y-1">
-            <Label htmlFor="ipAddress">{t('ipAddress')}</Label>
-            <Input id="ipAddress" name="ipAddress" placeholder="192.168.1.x" />
+            <Label htmlFor="photo">Photo de l'asset</Label>
+            <Input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/*"
+              className="cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-xs file:text-foreground"
+            />
+            <p className="text-xs text-muted-foreground">JPG, PNG, WEBP — max recommandé 5 Mo</p>
           </div>
+
+          {/* Notes */}
           <div className="space-y-1">
             <Label htmlFor="notes">{t('notes')}</Label>
             <textarea
@@ -74,6 +128,7 @@ export default async function NewEquipmentPage({ params }: Props) {
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
             />
           </div>
+
           <div className="flex gap-2 pt-2">
             <Button type="submit">{t('save')}</Button>
             <Button variant="ghost" asChild>
