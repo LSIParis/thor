@@ -29,6 +29,7 @@ export async function createEquipment(clientId: string, formData: FormData) {
     data: {
       clientId,
       type: formData.get('type') as string,
+      operatingSystem: (formData.get('operatingSystem') as string) || null,
       brand: (formData.get('brand') as string) || null,
       model: (formData.get('model') as string) || null,
       serialNumber: (formData.get('serialNumber') as string) || null,

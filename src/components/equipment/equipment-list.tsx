@@ -56,11 +56,14 @@ export function EquipmentList({ equipment, clientId, canEdit }: EquipmentListPro
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">{item.type}</Badge>
+                {item.operatingSystem && (
+                  <Badge variant="secondary" className="text-xs">{item.operatingSystem}</Badge>
+                )}
                 <span className="font-medium text-sm">
                   {[item.brand, item.model].filter(Boolean).join(' ') || '—'}
                 </span>
                 {item.ipType && (
-                  <Badge variant="secondary" className="text-xs">{item.ipType}</Badge>
+                  <Badge className="text-xs bg-muted text-muted-foreground border border-border">{item.ipType}</Badge>
                 )}
               </div>
 

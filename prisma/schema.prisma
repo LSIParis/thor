@@ -65,6 +65,7 @@ model Equipment {
   id               String    @id @default(cuid())
   clientId         String
   type             String
+  operatingSystem  String?
   brand            String?
   model            String?
   serialNumber     String?

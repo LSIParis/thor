@@ -25,6 +25,16 @@ const EQUIPMENT_TYPES = [
 
 const IP_TYPES = ['DHCP', 'Statique', 'Publique', 'Lien-local (APIPA)', 'Autre']
 
+const OS_LIST = [
+  'Windows Client',
+  'Windows Server',
+  'Linux Ubuntu',
+  'Linux Debian',
+  'Linux Fedora',
+  'Mac OS',
+  'Autre',
+]
+
 export default async function NewEquipmentPage({ params }: Props) {
   const { id } = await params
   await requireAdmin()
@@ -38,8 +48,8 @@ export default async function NewEquipmentPage({ params }: Props) {
         <h1 className="text-2xl font-semibold mb-6">{t('new')}</h1>
         <form action={createWithClientId} encType="multipart/form-data" className="space-y-5">
 
-          {/* Type + Marque + Modèle */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Type + OS */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label htmlFor="type">{t('type')} *</Label>
               <select
@@ -53,6 +63,23 @@ export default async function NewEquipmentPage({ params }: Props) {
                 ))}
               </select>
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="operatingSystem">Système d'exploitation</Label>
+              <select
+                id="operatingSystem"
+                name="operatingSystem"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Non spécifié</option>
+                {OS_LIST.map((os) => (
+                  <option key={os} value={os}>{os}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Marque + Modèle */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label htmlFor="brand">{t('brand')}</Label>
               <Input id="brand" name="brand" />
