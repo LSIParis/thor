@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { deleteContact } from '@/actions/contacts'
+import { Pencil } from 'lucide-react'
 import type { Contact } from '@prisma/client'
 
 interface ContactListProps {
@@ -39,15 +40,22 @@ export function ContactList({ contacts, clientId, canEdit }: ContactListProps) {
                 <div className="text-muted-foreground text-xs">{contact.role}</div>
               )}
               <div className="text-muted-foreground text-xs">
-                {contact.email} {contact.phone && `· ${contact.phone}`}
+                {contact.email}{contact.phone && ` · ${contact.phone}`}
               </div>
             </div>
             {canEdit && (
-              <form action={deleteWithIds}>
-                <Button variant="ghost" size="sm" type="submit" className="text-destructive">
-                  {t('delete')}
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                  <Link href={`/clients/${clientId}/contacts/${contact.id}/edit`}>
+                    <Pencil size={14} />
+                  </Link>
                 </Button>
-              </form>
+                <form action={deleteWithIds}>
+                  <Button variant="ghost" size="sm" type="submit" className="text-destructive">
+                    {t('delete')}
+                  </Button>
+                </form>
+              </div>
             )}
           </div>
         )
