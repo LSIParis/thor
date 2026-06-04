@@ -21,16 +21,32 @@ interface RecordRow {
   priority: number | null
 }
 
-async function resolveNsToIps(nsHostnames: string[]): Promise<string[]> {
-  const defaultResolver = new Resolver()
+/**
+ * Découvre les NS autoritaires réels d'un domaine via un résolveur public (8.8.8.8).
+ * Gère les délégations : si le domaine est délégué à Cloudflare, AWS Route53, etc.,
+ * on récupère ces NS-là, pas ceux configurés chez OVH.
+ */
+async function discoverAuthoritativeNs(domain: string): Promise<string[]> {
+  const publicResolver = new Resolver()
+  publicResolver.setServers(['8.8.8.8', '1.1.1.1'])
+  try {
+    return await publicResolver.resolveNs(domain)
+  } catch {
+    return []
+  }
+}
+
+async function resolveNsHostnamesToIps(nsHostnames: string[]): Promise<string[]> {
+  const publicResolver = new Resolver()
+  publicResolver.setServers(['8.8.8.8', '1.1.1.1'])
   const ips: string[] = []
   await Promise.allSettled(
     nsHostnames.map(async (ns) => {
       try {
-        const addrs = await defaultResolver.resolve4(ns)
+        const addrs = await publicResolver.resolve4(ns)
         ips.push(...addrs)
       } catch {
-        // unresolvable NS — skip
+        // unresolvable NS hostname — skip
       }
     })
   )
@@ -141,19 +157,27 @@ export async function POST(
   await Promise.allSettled(
     zoneNames.map(async (zoneName) => {
       try {
-        const zoneInfo  = await ovh.get<OvhZoneInfo>(`/domain/zone/${zoneName}`)
-        const nsHostnames = zoneInfo.nameServers ?? []
-        const nsIps     = await resolveNsToIps(nsHostnames)
-        const records   = await queryRecordsFromNs(zoneName, nsIps)
+        const zoneInfo = await ovh.get<OvhZoneInfo>(`/domain/zone/${zoneName}`)
+        const ovhNs    = zoneInfo.nameServers ?? []
+
+        // Découvrir les NS autoritaires réels via DNS public
+        // Gère les délégations vers Cloudflare, Route53, etc.
+        const realNs   = await discoverAuthoritativeNs(zoneName)
+        const nsToUse  = realNs.length > 0 ? realNs : ovhNs
+        const nsIps    = await resolveNsHostnamesToIps(nsToUse)
+        const records  = await queryRecordsFromNs(zoneName, nsIps)
+
+        // Stocker les NS réels (pas ceux d'OVH si délégué)
+        const nsDisplay = nsToUse.join(', ')
 
         const zone = await prisma.dnsZone.upsert({
           where:  { ovhZoneName_clientId: { ovhZoneName: zoneName, clientId } },
-          update: { domain: zoneName, nameservers: nsHostnames.join(', '), source: 'ovh' },
+          update: { domain: zoneName, nameservers: nsDisplay, source: 'ovh' },
           create: {
             clientId,
             domain:      zoneName,
             ovhZoneName: zoneName,
-            nameservers: nsHostnames.join(', '),
+            nameservers: nsDisplay,
             source:      'ovh',
           },
         })
