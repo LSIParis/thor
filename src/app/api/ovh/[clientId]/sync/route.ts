@@ -116,8 +116,16 @@ export async function POST(
     zoneNames = await ovh.get<string[]>('/domain/zone')
   } catch (err: any) {
     const status = err?.response?.status
-    if (status === 401 || status === 403) {
-      return NextResponse.json({ error: 'Credentials OVH invalides (401/403)' }, { status: 401 })
+    const ovhMsg = err?.response?.data?.message ?? ''
+    if (status === 401) {
+      return NextResponse.json({
+        error: `Application Key ou signature invalide (401). Vérifiez votre Application Key et Application Secret. Détail OVH : ${ovhMsg || 'INVALID_CREDENTIAL'}`,
+      }, { status: 401 })
+    }
+    if (status === 403) {
+      return NextResponse.json({
+        error: `Consumer Key refusée (403) — droits insuffisants. La CK doit avoir GET sur /domain/zone et /domain/zone/*. Regénérez une CK avec les bons droits sur https://eu.api.ovh.com/createToken. Détail OVH : ${ovhMsg || 'NOT_GRANTED_CALL'}`,
+      }, { status: 403 })
     }
     return NextResponse.json(
       { error: `OVH inaccessible : ${err?.code ?? err?.message ?? 'unknown'}` },

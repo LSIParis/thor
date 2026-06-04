@@ -57,9 +57,17 @@ export function OvhConnectBanner({ clientId }: { clientId: string }) {
               <Input id="ovh-ck" name="consumerKey" type="password" required className="h-8 text-sm" />
             </div>
           </div>
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center gap-3 pt-1 flex-wrap">
             <Button type="submit" size="sm">Connecter &amp; Synchroniser</Button>
-            <p className="text-xs text-muted-foreground">Secrets chiffrés AES-256.</p>
+            <a
+              href="https://eu.api.ovh.com/createToken?GET=/me&GET=/domain/zone&GET=/domain/zone/*&GET=/domain/zone/*/record&GET=/domain/zone/*/record/*"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary underline"
+            >
+              Générer une Consumer Key OVH ↗
+            </a>
+            <p className="text-xs text-muted-foreground">Droits requis : GET /me · GET /domain/zone · GET /domain/zone/*</p>
           </div>
         </form>
       )}
