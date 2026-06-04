@@ -21,11 +21,12 @@ type ServiceWithServers = NextcloudService & { servers: NextcloudServer[] }
 type VoipServiceWithChildren = VoipService & {
   equipment: VoipEquipment[]; trunks: VoipTrunk[]; extensions: VoipExtension[]
 }
+type EquipmentWithContact = Equipment & { assignedTo: Contact | null }
 
 interface ClientDetailTabsProps {
   clientId: string
   contacts: Contact[]
-  equipment: Equipment[]
+  equipment: EquipmentWithContact[]
   licenses: License[]
   m365Tenants: TenantWithRelations[]
   nextcloudServices: ServiceWithServers[]

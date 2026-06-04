@@ -22,7 +22,7 @@ export default async function ClientDetailPage({ params }: Props) {
     where: { id },
     include: {
       contacts: { orderBy: { lastName: 'asc' } },
-      equipment: { orderBy: { type: 'asc' } },
+      equipment: { orderBy: { type: 'asc' }, include: { assignedTo: true } },
       licenses: { orderBy: { name: 'asc' } },
       m365Tenants: {
         orderBy: { displayName: 'asc' },

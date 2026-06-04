@@ -6,11 +6,13 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { deleteEquipment } from '@/actions/equipment'
-import { CalendarDays, ShieldCheck } from 'lucide-react'
-import type { Equipment } from '@prisma/client'
+import { CalendarDays, ShieldCheck, UserRound } from 'lucide-react'
+import type { Equipment, Contact } from '@prisma/client'
+
+type EquipmentWithContact = Equipment & { assignedTo: Contact | null }
 
 interface EquipmentListProps {
-  equipment: Equipment[]
+  equipment: EquipmentWithContact[]
   clientId: string
   canEdit: boolean
 }
@@ -84,6 +86,13 @@ export function EquipmentList({ equipment, clientId, canEdit }: EquipmentListPro
                     </span>
                   )}
                 </div>
+                {item.assignedTo && (
+                  <span className="flex items-center gap-1 mt-1">
+                    <UserRound size={11} />
+                    {item.assignedTo.firstName} {item.assignedTo.lastName}
+                    {item.assignedTo.role && ` — ${item.assignedTo.role}`}
+                  </span>
+                )}
                 {item.notes && <div className="italic">{item.notes}</div>}
               </div>
             </div>

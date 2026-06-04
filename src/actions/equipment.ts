@@ -38,6 +38,7 @@ export async function createEquipment(clientId: string, formData: FormData) {
       purchaseDate: purchaseRaw ? new Date(purchaseRaw) : null,
       warrantyDuration: (formData.get('warrantyDuration') as string) || null,
       photoPath,
+      assignedToId: (formData.get('assignedToId') as string) || null,
       notes: (formData.get('notes') as string) || null,
     },
   })

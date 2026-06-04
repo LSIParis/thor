@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { requireAdmin } from '@/lib/access'
+import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { createEquipment } from '@/actions/equipment'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,11 @@ export default async function NewEquipmentPage({ params }: Props) {
   const { id } = await params
   await requireAdmin()
   const t = await getTranslations('equipment')
+
+  const contacts = await prisma.contact.findMany({
+    where: { clientId: id },
+    orderBy: { lastName: 'asc' },
+  })
 
   const createWithClientId = createEquipment.bind(null, id)
 
@@ -90,10 +96,30 @@ export default async function NewEquipmentPage({ params }: Props) {
             </div>
           </div>
 
-          {/* N° de série */}
-          <div className="space-y-1">
-            <Label htmlFor="serialNumber">{t('serialNumber')}</Label>
-            <Input id="serialNumber" name="serialNumber" className="font-mono" />
+          {/* N° de série + Attribué à */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="serialNumber">{t('serialNumber')}</Label>
+              <Input id="serialNumber" name="serialNumber" className="font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="assignedToId">Attribué à</Label>
+              <select
+                id="assignedToId"
+                name="assignedToId"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Non attribué</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}{c.role ? ` (${c.role})` : ''}
+                  </option>
+                ))}
+              </select>
+              {contacts.length === 0 && (
+                <p className="text-xs text-muted-foreground">Aucun contact — <Link href={`/clients/${id}/contacts/new`} className="underline">en créer un</Link></p>
+              )}
+            </div>
           </div>
 
           {/* IP */}

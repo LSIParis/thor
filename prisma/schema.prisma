@@ -57,8 +57,9 @@ model Contact {
   phone     String?
   role      String?
   notes     String?
-  createdAt DateTime @default(now())
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  equipment Equipment[]
 }
 
 model Equipment {
@@ -74,9 +75,11 @@ model Equipment {
   purchaseDate     DateTime?
   warrantyDuration String?
   photoPath        String?
+  assignedToId     String?
   notes            String?
   createdAt        DateTime  @default(now())
   client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedTo       Contact?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 }
 
 model License {
