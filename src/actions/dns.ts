@@ -16,6 +16,7 @@ export async function createDnsZone(clientId: string, formData: FormData) {
       clientId,
       domain: formData.get('domain') as string,
       registrar: (formData.get('registrar') as string) || null,
+      nameservers: (formData.get('nameservers') as string) || null,
       registrationDate: reg ? new Date(reg) : null,
       expiryDate: exp ? new Date(exp) : null,
       autoRenew: formData.get('autoRenew') === 'on',

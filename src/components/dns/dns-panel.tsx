@@ -11,7 +11,7 @@ import {
   createSslCertificate, deleteSslCertificate,
   createHosting, deleteHosting,
 } from '@/actions/dns'
-import { Globe, Shield, Server, Trash2, Plus, ChevronDown, ChevronRight, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Globe, Shield, Server, Trash2, Plus, ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react'
 import type { DnsZone, DnsRecord, SslCertificate, Hosting } from '@prisma/client'
 
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
@@ -72,6 +72,10 @@ function DnsZonesTab({ clientId, zones, canEdit }: { clientId: string; zones: Zo
               <Input name="registrar" placeholder="OVH, Gandi..." className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
+              <Label className="text-xs">NS (nameservers)</Label>
+              <Input name="nameservers" placeholder="ns1.ovh.net, ns2.ovh.net" className="h-8 text-sm font-mono" />
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs">Date d'enregistrement</Label>
               <Input name="registrationDate" type="date" className="h-8 text-sm" />
             </div>
@@ -107,7 +111,28 @@ function DnsZonesTab({ clientId, zones, canEdit }: { clientId: string; zones: Zo
 function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clientId: string; canEdit: boolean }) {
   const [open, setOpen] = useState(true)
   const [showRecordForm, setShowRecordForm] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<string>('')
   const deleteZoneAction = deleteDnsZone.bind(null, zone.id, clientId)
+
+  async function handleImport() {
+    setImporting(true)
+    setImportResult('')
+    try {
+      const res = await fetch(`/api/dns/${zone.id}/import`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setImportResult(`Erreur : ${data.error}`)
+      } else {
+        setImportResult(`${data.imported} enregistrements importés (${data.types?.join(', ')})`)
+        // Refresh page to show new records
+        window.location.reload()
+      }
+    } catch {
+      setImportResult('Erreur réseau')
+    }
+    setImporting(false)
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden mb-3">
@@ -117,6 +142,7 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
           <Globe size={14} className="text-primary" />
           <span className="font-mono">{zone.domain}</span>
           {zone.registrar && <span className="text-xs text-muted-foreground font-normal">— {zone.registrar}</span>}
+          {zone.nameservers && <span className="text-xs text-muted-foreground font-mono font-normal hidden xl:inline">{zone.nameservers}</span>}
           <ExpiryBadge date={zone.expiryDate} />
           {zone.autoRenew && <Badge variant="outline" className="text-[10px] h-4 px-1.5">Auto</Badge>}
         </button>
@@ -131,12 +157,30 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Enregistrements ({zone.records.length})</span>
-            {canEdit && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost" size="sm"
+                className="h-6 px-2 text-xs text-primary hover:text-primary"
+                onClick={handleImport}
+                disabled={importing}
+                title="Récupérer automatiquement les enregistrements DNS via Google DNS"
+              >
+                <RefreshCw size={12} className={`mr-1 ${importing ? 'animate-spin' : ''}`} />
+                {importing ? 'Import...' : 'Importer depuis DNS'}
+              </Button>
+              {canEdit && (
               <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowRecordForm(!showRecordForm)}>
                 <Plus size={12} className="mr-1" /> Ajouter
               </Button>
-            )}
+              )}
+            </div>
           </div>
+
+          {importResult && (
+            <p className={`text-xs mb-2 ${importResult.startsWith('Erreur') ? 'text-destructive' : 'text-primary'}`}>
+              {importResult}
+            </p>
+          )}
 
           {showRecordForm && canEdit && (
             <form action={async (fd) => { await createDnsRecord(zone.id, clientId, fd); setShowRecordForm(false) }}

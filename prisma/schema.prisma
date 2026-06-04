@@ -219,6 +219,7 @@ model DnsZone {
   clientId         String
   domain           String
   registrar        String?
+  nameservers      String?
   registrationDate DateTime?
   expiryDate       DateTime?
   autoRenew        Boolean     @default(false)
