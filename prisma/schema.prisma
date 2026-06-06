@@ -9,6 +9,7 @@ datasource db {
 enum Role {
   ADMIN
   TECH
+  CLIENT
 }
 
 model User {
@@ -28,12 +29,14 @@ model Client {
   address       String?
   phone         String?
   email         String?
+  logoPath      String?
   notes         String?
   createdAt     DateTime     @default(now())
   users         UserClient[]
   contacts      Contact[]
-  equipment     Equipment[]
-  licenses      License[]
+  equipment          Equipment[]
+  licenses           License[]
+  personnelMovements PersonnelMovement[]
   m365Tenants       M365Tenant[]
   nextcloudServices NextcloudService[]
   voipServices      VoipService[]
@@ -81,9 +84,29 @@ model Equipment {
   photoPath        String?
   assignedToId     String?
   notes            String?
+  rmmAgentId       String?   @unique
   createdAt        DateTime  @default(now())
   client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   assignedTo       Contact?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+}
+
+model PersonnelMovement {
+  id               String   @id @default(cuid())
+  clientId         String
+  type             String   // "ENTREE" | "SORTIE"
+  entryType        String?  // "EMPLOI" | "STAGE" (ENTREE only)
+  internshipMonths Int?     // duration in months (STAGE only)
+  firstName        String
+  lastName         String
+  role             String?
+  mobile           String?
+  email            String?
+  accessVPN        Boolean  @default(false)
+  status           String   @default("EN_ATTENTE") // "EN_ATTENTE" | "ACTIF" | "TERMINE"
+  date             DateTime
+  notes            String?
+  createdAt        DateTime @default(now())
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model License {

@@ -38,14 +38,14 @@ export default async function UsersPage() {
                     </Badge>
                   </div>
                   <div className="text-muted-foreground text-sm">{user.email}</div>
-                  {user.role === 'TECH' && user.clients.length > 0 && (
+                  {(user.role === 'TECH' || user.role === 'CLIENT') && user.clients.length > 0 && (
                     <div className="text-muted-foreground text-xs mt-1">
                       {user.clients.map((uc) => uc.client.name).join(', ')}
                     </div>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {user.role === 'TECH' && (
+                  {(user.role === 'TECH' || user.role === 'CLIENT') && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/users/${user.id}`}>{t('assignedClients')}</Link>
                     </Button>

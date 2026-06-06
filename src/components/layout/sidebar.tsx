@@ -5,27 +5,38 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, LogOut, User } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, LogOut, User, ArrowLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   userRole: string
   userName: string
   locale: string
+  linkedClientId?: string | null
 }
 
-export function Sidebar({ userRole, userName, locale }: SidebarProps) {
+export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const t = useTranslations('nav')
 
-  const navItems = [
-    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/clients', label: t('clients'), icon: Users },
-    ...(userRole === 'ADMIN'
-      ? [{ href: '/admin', label: t('admin'), icon: Settings }]
-      : []),
-  ]
+  const navItems =
+    userRole === 'CLIENT'
+      ? [
+          { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+          ...(linkedClientId
+            ? [{ href: `/clients/${linkedClientId}`, label: 'Mon espace', icon: Users }]
+            : []),
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+        ]
+      : [
+          { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+          { href: '/clients', label: t('clients'), icon: Users },
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+          ...(userRole === 'ADMIN'
+            ? [{ href: '/admin', label: t('admin'), icon: Settings }]
+            : []),
+        ]
 
   const switchLocale = () => {
     const next = locale === 'fr' ? 'en' : 'fr'
@@ -84,12 +95,14 @@ export function Sidebar({ userRole, userName, locale }: SidebarProps) {
           {!collapsed && <span>{locale === 'fr' ? 'English' : 'Français'}</span>}
         </button>
 
-        {!collapsed && (
-          <div className="px-3 py-1 text-xs text-muted-foreground truncate flex items-center gap-2">
-            <User size={12} />
-            <span className="truncate">{userName}</span>
-          </div>
-        )}
+        <Link
+          href="/profil"
+          title={collapsed ? 'Mon profil' : undefined}
+          className="flex items-center gap-3 px-3 py-2 text-xs text-muted-foreground hover:text-foreground w-full"
+        >
+          <User size={14} className="flex-shrink-0" />
+          {!collapsed && <span className="truncate">{userName}</span>}
+        </Link>
 
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}

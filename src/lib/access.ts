@@ -18,6 +18,7 @@ export async function getAccessibleClients(userId: string, role: string) {
   if (role === 'ADMIN') {
     return prisma.client.findMany({ orderBy: { name: 'asc' } })
   }
+  // TECH and CLIENT: only assigned clients
   return prisma.client.findMany({
     where: { users: { some: { userId } } },
     orderBy: { name: 'asc' },
@@ -30,4 +31,9 @@ export async function canAccessClient(userId: string, role: string, clientId: st
     where: { userId_clientId: { userId, clientId } },
   })
   return !!link
+}
+
+export async function getClientLinkedToUser(userId: string) {
+  const link = await prisma.userClient.findFirst({ where: { userId } })
+  return link?.clientId ?? null
 }

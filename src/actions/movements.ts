@@ -1,0 +1,93 @@
+'use server'
+
+import { prisma } from '@/lib/db'
+import { requireAuth } from '@/lib/access'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { sendMail, LSI_EMAIL } from '@/lib/mailer'
+
+function parseMovementData(clientId: string, formData: FormData, overrideStatus?: string) {
+  const type = formData.get('type') as string
+  const entryType = type === 'ENTREE' ? ((formData.get('entryType') as string) || null) : null
+  const monthsStr = formData.get('internshipMonths') as string
+  const internshipMonths = entryType === 'STAGE' && monthsStr ? parseInt(monthsStr, 10) : null
+  const dateVal = formData.get('date') as string
+  return {
+    clientId,
+    type,
+    entryType,
+    internshipMonths,
+    firstName: formData.get('firstName') as string,
+    lastName: formData.get('lastName') as string,
+    role: (formData.get('role') as string) || null,
+    mobile: (formData.get('mobile') as string) || null,
+    email: (formData.get('email') as string) || null,
+    accessVPN: formData.get('accessVPN') === 'true',
+    status: overrideStatus ?? ((formData.get('status') as string) || 'EN_ATTENTE'),
+    date: dateVal ? new Date(dateVal) : new Date(),
+    notes: (formData.get('notes') as string) || null,
+  }
+}
+
+function buildEmailHtml(data: ReturnType<typeof parseMovementData>, clientName: string) {
+  const typeLabel =
+    data.type === 'ENTREE'
+      ? data.entryType === 'STAGE'
+        ? `Entrée — Stage${data.internshipMonths ? ` (${data.internshipMonths} mois)` : ''}`
+        : 'Entrée — Emploi'
+      : 'Sortie'
+
+  return `
+    <h2 style="color:#1a1a1a">Nouvelle demande de mouvement de personnel</h2>
+    <p><strong>Client :</strong> ${clientName}</p>
+    <table style="border-collapse:collapse;width:100%;max-width:500px">
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Type</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${typeLabel}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Prénom</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.firstName}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Nom</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.lastName}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Poste</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.role ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Date</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.date.toLocaleDateString('fr-FR')}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Mobile</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.mobile ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Email souhaité</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.email ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Accès VPN</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.accessVPN ? 'Oui' : 'Non'}</td></tr>
+      ${data.notes ? `<tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Notes</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${data.notes}</td></tr>` : ''}
+    </table>
+  `
+}
+
+export async function createMovement(clientId: string, formData: FormData) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') redirect(`/clients/${clientId}?tab=movements`)
+
+  const data = parseMovementData(clientId, formData)
+  await prisma.personnelMovement.create({ data })
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
+export async function transmitMovement(clientId: string, formData: FormData) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') redirect(`/clients/${clientId}?tab=movements`)
+
+  const data = parseMovementData(clientId, formData, 'DEMANDE_EFFECTUEE')
+  await prisma.personnelMovement.create({ data })
+
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } })
+  const clientName = client?.name ?? clientId
+
+  await sendMail({
+    to: LSI_EMAIL,
+    subject: `[Demande] Mouvement de personnel — ${clientName} — ${data.firstName} ${data.lastName}`,
+    html: buildEmailHtml(data, clientName),
+  })
+
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
+export async function deleteMovement(movementId: string, clientId: string) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') return
+  await prisma.personnelMovement.delete({ where: { id: movementId } })
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}

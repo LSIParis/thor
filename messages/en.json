@@ -112,7 +112,8 @@
     "importResult": "{created} created · {updated} updated · {unchanged} unchanged",
     "roles": {
       "ADMIN": "Administrator",
-      "TECH": "Technician"
+      "TECH": "Technician",
+      "CLIENT": "Client"
     }
   },
   "common": {

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { deleteEquipment } from '@/actions/equipment'
 import { CalendarDays, ShieldCheck, UserRound } from 'lucide-react'
+import { RmmAgentsImportButton } from './rmm-agents-import-button'
 import type { Equipment, Contact } from '@prisma/client'
 
 type EquipmentWithContact = Equipment & { assignedTo: Contact | null }
@@ -15,20 +16,24 @@ interface EquipmentListProps {
   equipment: EquipmentWithContact[]
   clientId: string
   canEdit: boolean
+  hasRmmLink?: boolean
 }
 
-export function EquipmentList({ equipment, clientId, canEdit }: EquipmentListProps) {
+export function EquipmentList({ equipment, clientId, canEdit, hasRmmLink }: EquipmentListProps) {
   const t = useTranslations('equipment')
 
   return (
     <div className="space-y-2">
-      {canEdit && (
-        <div className="mb-4">
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {canEdit && (
           <Button asChild size="sm">
             <Link href={`/clients/${clientId}/equipment/new`}>{t('new')}</Link>
           </Button>
-        </div>
-      )}
+        )}
+        {hasRmmLink && (
+          <RmmAgentsImportButton clientId={clientId} />
+        )}
+      </div>
       {equipment.length === 0 && (
         <p className="text-muted-foreground text-sm">—</p>
       )}

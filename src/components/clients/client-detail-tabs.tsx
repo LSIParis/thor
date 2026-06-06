@@ -37,13 +37,14 @@ interface ClientDetailTabsProps {
   hostings: Hosting[]
   registrarConfigs: RegistrarConfig[]
   canEdit: boolean
+  hasRmmLink?: boolean
 }
 
 export function ClientDetailTabs({
   clientId, contacts, equipment,
   m365Tenants, nextcloudServices, voipServices,
   dnsZones, sslCerts, hostings, registrarConfigs,
-  canEdit,
+  canEdit, hasRmmLink,
 }: ClientDetailTabsProps) {
   const t = useTranslations('clients')
   const searchParams = useSearchParams()
@@ -65,7 +66,7 @@ export function ClientDetailTabs({
         <ContactList contacts={contacts} clientId={clientId} canEdit={canEdit} />
       </TabsContent>
       <TabsContent value="equipment" className="mt-4">
-        <EquipmentList equipment={equipment} clientId={clientId} canEdit={canEdit} />
+        <EquipmentList equipment={equipment} clientId={clientId} canEdit={canEdit} hasRmmLink={hasRmmLink} />
       </TabsContent>
       <TabsContent value="dns" className="mt-4">
         <DnsPanel

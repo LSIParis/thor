@@ -1,15 +1,23 @@
 import { getTranslations } from 'next-intl/server'
-import { requireAuth } from '@/lib/access'
+import { requireAuth, getClientLinkedToUser } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientList } from '@/components/clients/client-list'
 import { RmmImportButton } from '@/components/clients/rmm-import-button'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
+import { redirect } from 'next/navigation'
 
 export default async function ClientsPage() {
   const session = await requireAuth()
   const t = await getTranslations('clients')
+
+  // CLIENT users go directly to their client page
+  if (session.user.role === 'CLIENT') {
+    const clientId = await getClientLinkedToUser(session.user.id)
+    if (clientId) redirect(`/clients/${clientId}`)
+    redirect('/dashboard')
+  }
 
   const clients = await prisma.client.findMany({
     where:

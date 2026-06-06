@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { requireAdmin } from '@/lib/access'
+import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { createUser } from '@/actions/users'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import Link from 'next/link'
 export default async function NewUserPage() {
   await requireAdmin()
   const t = await getTranslations('admin')
+  const clients = await prisma.client.findMany({ orderBy: { name: 'asc' } })
 
   return (
     <AppLayout>
@@ -37,6 +39,20 @@ export default async function NewUserPage() {
             >
               <option value="TECH">{t('roles.TECH')}</option>
               <option value="ADMIN">{t('roles.ADMIN')}</option>
+              <option value="CLIENT">Client (accès limité)</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="clientId">Client associé <span className="text-muted-foreground text-xs">(requis pour le rôle Client)</span></Label>
+            <select
+              id="clientId"
+              name="clientId"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">— Aucun —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </div>
           <div className="flex gap-2 pt-2">

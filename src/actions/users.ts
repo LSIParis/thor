@@ -10,14 +10,26 @@ export async function createUser(formData: FormData) {
   await requireAdmin()
   const password = formData.get('password') as string
   const hash = await bcrypt.hash(password, 12)
-  await prisma.user.create({
+  const role = (formData.get('role') as string) || 'TECH'
+  const clientId = formData.get('clientId') as string | null
+
+  const user = await prisma.user.create({
     data: {
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       passwordHash: hash,
-      role: formData.get('role') as 'ADMIN' | 'TECH',
+      role: role as 'ADMIN' | 'TECH' | 'CLIENT',
     },
   })
+
+  if (clientId) {
+    await prisma.userClient.upsert({
+      where: { userId_clientId: { userId: user.id, clientId } },
+      update: {},
+      create: { userId: user.id, clientId },
+    })
+  }
+
   revalidatePath('/admin/users')
   redirect('/admin/users')
 }
