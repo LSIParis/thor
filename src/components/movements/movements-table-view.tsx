@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo, Fragment } from 'react'
+import { useState, useMemo, Fragment, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMovement, transmitMovement, updateMovement, deleteMovement } from '@/actions/movements'
+import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, deleteMovement } from '@/actions/movements'
 import { LogIn, LogOut, Plus, X } from 'lucide-react'
+import { Tip } from '@/components/ui/tip'
 import type { PersonnelMovement } from '@prisma/client'
 
 interface Client {
@@ -51,14 +52,17 @@ function MovementForm({
 }) {
   const [movType, setMovType] = useState('ENTREE')
   const [entryType, setEntryType] = useState('EMPLOI')
+  const [isPending, startTransition] = useTransition()
   const createWithClientId = createMovement.bind(null, clientId)
   const transmitWithClientId = transmitMovement.bind(null, clientId)
 
   return (
     <form
-      action={async (fd) => {
-        await createWithClientId(fd)
-        onClose()
+      action={(fd) => {
+        startTransition(async () => {
+          await createWithClientId(fd)
+          onClose()
+        })
       }}
       className="p-4 rounded-lg border border-border bg-card space-y-3 max-w-2xl mb-4"
     >
@@ -203,13 +207,14 @@ function EditRow({
 }) {
   const [movType, setMovType] = useState(m.type)
   const [entryType, setEntryType] = useState(m.entryType ?? 'EMPLOI')
+  const [isPending, startTransition] = useTransition()
   const updateWithIds = updateMovement.bind(null, m.id, m.clientId)
 
   return (
     <tr className="bg-muted/20">
       <td colSpan={colSpan} className="px-3 py-3">
         <form
-          action={async (fd) => { await updateWithIds(fd); onClose() }}
+          action={(fd) => { startTransition(async () => { await updateWithIds(fd); onClose() }) }}
           className="grid grid-cols-2 gap-2 sm:grid-cols-4"
         >
           <div className="space-y-1">
@@ -333,13 +338,10 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
           </div>
         )}
 
-        {canEdit && !showForm && formClientId && (
+        {canEdit && !showForm && selectedClientId !== 'all' && formClientId && (
           <Button size="sm" onClick={() => setShowForm(true)}>
             <Plus size={14} className="mr-1.5" />
             Nouveau mouvement
-            {selectedClientId === 'all' && clients.length > 1 && (
-              <span className="ml-1 text-xs opacity-70">— {clients.find(c => c.id === formClientId)?.name}</span>
-            )}
           </Button>
         )}
 
@@ -424,17 +426,39 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             {m.status === 'EN_ATTENTE' && (
-                              <Button variant="ghost" size="sm" type="button"
-                                className="h-6 px-2 text-xs"
-                                onClick={() => setEditingId(isEditing ? null : m.id)}>
-                                {isEditing ? 'Annuler' : 'Éditer'}
-                              </Button>
+                              <>
+                                <Tip label={isEditing ? 'Fermer le formulaire d\'édition' : 'Modifier les informations de ce mouvement'}>
+                                  <Button variant="ghost" size="sm" type="button"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => setEditingId(isEditing ? null : m.id)}>
+                                    {isEditing ? 'Fermer' : 'Éditer'}
+                                  </Button>
+                                </Tip>
+                                <form action={sendMovementRequest.bind(null, m.id, m.clientId)}>
+                                  <Tip label="Transmettre la demande à LSI et passer en statut « Demande effectuée »">
+                                    <Button variant="ghost" size="sm" type="submit" className="text-blue-600 h-6 px-2 text-xs">
+                                      Envoyer
+                                    </Button>
+                                  </Tip>
+                                </form>
+                                <form action={deleteWithIds}>
+                                  <Tip label="Supprimer définitivement ce mouvement">
+                                    <Button variant="ghost" size="sm" type="submit" className="text-destructive h-6 px-2 text-xs">
+                                      Suppr.
+                                    </Button>
+                                  </Tip>
+                                </form>
+                              </>
                             )}
-                            <form action={deleteWithIds}>
-                              <Button variant="ghost" size="sm" type="submit" className="text-destructive h-6 px-2 text-xs">
-                                Suppr.
-                              </Button>
-                            </form>
+                            {m.status === 'DEMANDE_EFFECTUEE' && (
+                              <form action={cancelMovementRequest.bind(null, m.id, m.clientId)}>
+                                <Tip label="Annuler la demande et repasser en statut « En attente »">
+                                  <Button variant="ghost" size="sm" type="submit" className="text-amber-600 h-6 px-2 text-xs">
+                                    Annuler la demande
+                                  </Button>
+                                </Tip>
+                              </form>
+                            )}
                           </div>
                         </td>
                       )}

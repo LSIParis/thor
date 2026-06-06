@@ -84,6 +84,67 @@ export async function transmitMovement(clientId: string, formData: FormData) {
   revalidatePath('/mouvements')
 }
 
+export async function sendMovementRequest(movementId: string, clientId: string) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') return
+
+  const m = await prisma.personnelMovement.findUnique({
+    where: { id: movementId, status: 'EN_ATTENTE' },
+    include: { client: { select: { name: true } } },
+  })
+  if (!m) return
+
+  await prisma.personnelMovement.update({
+    where: { id: movementId },
+    data: { status: 'DEMANDE_EFFECTUEE' },
+  })
+
+  const clientName = m.client.name
+  const typeLabel =
+    m.type === 'ENTREE'
+      ? m.entryType === 'STAGE'
+        ? `Entrée — Stage${m.internshipMonths ? ` (${m.internshipMonths} mois)` : ''}`
+        : 'Entrée — Emploi'
+      : 'Sortie'
+
+  const html = `
+    <h2 style="color:#1a1a1a">Nouvelle demande de mouvement de personnel</h2>
+    <p><strong>Client :</strong> ${clientName}</p>
+    <table style="border-collapse:collapse;width:100%;max-width:500px">
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Type</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${typeLabel}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Prénom</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.firstName}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Nom</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.lastName}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Poste</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.role ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Date</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${new Date(m.date).toLocaleDateString('fr-FR')}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Mobile</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.mobile ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Email souhaité</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.email ?? '—'}</td></tr>
+      <tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Accès VPN</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.accessVPN ? 'Oui' : 'Non'}</td></tr>
+      ${m.notes ? `<tr><td style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5"><strong>Notes</strong></td><td style="padding:6px 12px;border:1px solid #ddd">${m.notes}</td></tr>` : ''}
+    </table>
+  `
+
+  await sendMail({
+    to: LSI_EMAIL,
+    subject: `[Demande] Mouvement de personnel — ${clientName} — ${m.firstName} ${m.lastName}`,
+    html,
+  })
+
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
+export async function cancelMovementRequest(movementId: string, clientId: string) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') return
+
+  await prisma.personnelMovement.update({
+    where: { id: movementId, status: 'DEMANDE_EFFECTUEE' },
+    data: { status: 'EN_ATTENTE' },
+  })
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
 export async function updateMovement(movementId: string, clientId: string, formData: FormData) {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return
