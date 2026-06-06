@@ -285,6 +285,7 @@ function EditRow({
 export function MovementList({ movements, clientId, canEdit, isClient }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
 
   const sorted = [...movements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -327,9 +328,9 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
             <tbody className="divide-y divide-border">
               {sorted.map((m) => {
                 const isEntree = m.type === 'ENTREE'
-                const deleteWithIds = deleteMovement.bind(null, m.id, clientId)
                 const isEditing = editingId === m.id
                 const colSpan = 9 + (canEdit ? 1 : 0) + 1
+                const run = (fn: () => Promise<unknown>) => startTransition(async () => { await fn() })
 
                 return (
                   <Fragment key={m.id}>
@@ -373,30 +374,30 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                                     {isEditing ? 'Fermer' : 'Éditer'}
                                   </Button>
                                 </Tip>
-                                <form action={sendMovementRequest.bind(null, m.id, clientId)}>
-                                  <Tip label="Transmettre la demande à LSI et passer en statut « Demande effectuée »">
-                                    <Button variant="ghost" size="sm" type="submit" className="text-blue-600 h-6 px-2 text-xs">
-                                      Envoyer
-                                    </Button>
-                                  </Tip>
-                                </form>
-                                <form action={deleteWithIds}>
-                                  <Tip label="Supprimer définitivement ce mouvement">
-                                    <Button variant="ghost" size="sm" type="submit" className="text-destructive h-6 px-2 text-xs">
-                                      Suppr.
-                                    </Button>
-                                  </Tip>
-                                </form>
+                                <Tip label="Transmettre la demande à LSI et passer en statut « Demande effectuée »">
+                                  <Button variant="ghost" size="sm" type="button"
+                                    className="text-blue-600 h-6 px-2 text-xs"
+                                    onClick={() => run(() => sendMovementRequest(m.id, clientId))}>
+                                    Envoyer
+                                  </Button>
+                                </Tip>
+                                <Tip label="Supprimer définitivement ce mouvement">
+                                  <Button variant="ghost" size="sm" type="button"
+                                    className="text-destructive h-6 px-2 text-xs"
+                                    onClick={() => run(() => deleteMovement(m.id, clientId))}>
+                                    Suppr.
+                                  </Button>
+                                </Tip>
                               </>
                             )}
                             {m.status === 'DEMANDE_EFFECTUEE' && (
-                              <form action={cancelMovementRequest.bind(null, m.id, clientId)}>
-                                <Tip label="Annuler la demande et repasser en statut « En attente »">
-                                  <Button variant="ghost" size="sm" type="submit" className="text-amber-600 h-6 px-2 text-xs">
-                                    Annuler la demande
-                                  </Button>
-                                </Tip>
-                              </form>
+                              <Tip label="Annuler la demande et repasser en statut « En attente »">
+                                <Button variant="ghost" size="sm" type="button"
+                                  className="text-amber-600 h-6 px-2 text-xs"
+                                  onClick={() => run(() => cancelMovementRequest(m.id, clientId))}>
+                                  Annuler la demande
+                                </Button>
+                              </Tip>
                             )}
                           </div>
                         </td>
