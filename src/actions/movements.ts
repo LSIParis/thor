@@ -3,7 +3,6 @@
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createDesk365Ticket } from '@/lib/desk365'
 
 function parseMovementData(clientId: string, formData: FormData, overrideStatus?: string) {
@@ -93,8 +92,7 @@ function buildEmailHtml(data: ReturnType<typeof parseMovementData>, clientName: 
 }
 
 export async function createMovement(clientId: string, formData: FormData) {
-  const session = await requireAuth()
-  if (session.user.role === 'CLIENT') redirect(`/clients/${clientId}?tab=movements`)
+  await requireAuth()
 
   const data = parseMovementData(clientId, formData)
   await prisma.personnelMovement.create({ data })
@@ -104,7 +102,6 @@ export async function createMovement(clientId: string, formData: FormData) {
 
 export async function transmitMovement(clientId: string, formData: FormData) {
   const session = await requireAuth()
-  if (session.user.role === 'CLIENT') redirect(`/clients/${clientId}?tab=movements`)
 
   const data = parseMovementData(clientId, formData, 'DEMANDE_EFFECTUEE')
   await prisma.personnelMovement.create({ data })

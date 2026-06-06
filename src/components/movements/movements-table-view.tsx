@@ -322,7 +322,9 @@ function EditRow({
 }
 
 export function MovementsTableView({ movements, clients, canEdit, isClient }: Props) {
-  const [selectedClientId, setSelectedClientId] = useState<string>('all')
+  const [selectedClientId, setSelectedClientId] = useState<string>(
+    isClient ? (clients[0]?.id ?? 'all') : 'all'
+  )
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -358,7 +360,7 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
           </div>
         )}
 
-        {canEdit && !showForm && selectedClientId !== 'all' && formClientId && (
+        {(canEdit || isClient) && !showForm && formClientId && (selectedClientId !== 'all' || isClient) && (
           <Button size="sm" onClick={() => setShowForm(true)}>
             <Plus size={14} className="mr-1.5" />
             Nouveau mouvement
