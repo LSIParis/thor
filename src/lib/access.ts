@@ -3,7 +3,12 @@ import { prisma } from './db'
 import { redirect } from 'next/navigation'
 
 export async function requireAuth() {
-  const session = await auth()
+  let session
+  try {
+    session = await auth()
+  } catch {
+    redirect('/login')
+  }
   if (!session) redirect('/login')
   return session
 }

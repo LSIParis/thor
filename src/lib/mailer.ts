@@ -5,7 +5,8 @@ function getClient() {
   const apiKey = process.env.MAILGUN_API_KEY
   if (!apiKey) return null
   const mg = new Mailgun(FormData)
-  return mg.client({ username: 'api', key: apiKey })
+  const url = process.env.MAILGUN_API_URL ?? 'https://api.eu.mailgun.net'
+  return mg.client({ username: 'api', key: apiKey, url })
 }
 
 export const LSI_EMAIL = process.env.LSI_NOTIFY_EMAIL ?? 'contact@lsi-maintenance.fr'
@@ -22,5 +23,9 @@ export async function sendMail(opts: { to: string; subject: string; html: string
     return
   }
   const from = process.env.MAILGUN_FROM ?? `LSI Maintenance <noreply@${domain}>`
-  await client.messages.create(domain, { from, ...opts })
+  try {
+    await client.messages.create(domain, { from, ...opts })
+  } catch (err) {
+    console.error('[mailer] Échec d\'envoi Mailgun:', err)
+  }
 }

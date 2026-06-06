@@ -161,6 +161,17 @@ function MovementForm({
           </select>
         </div>
 
+        <div className="space-y-1">
+          <Label className="text-xs">Accès serveur</Label>
+          <select
+            name="accessServer"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="false">Non</option>
+            <option value="true">Oui</option>
+          </select>
+        </div>
+
         {!isClient && (
           <div className="space-y-1">
             <Label className="text-xs">État</Label>
@@ -270,6 +281,14 @@ function EditRow({
           <div className="space-y-1">
             <Label className="text-xs">Accès VPN</Label>
             <select name="accessVPN" defaultValue={m.accessVPN ? 'true' : 'false'}
+              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
+              <option value="false">Non</option>
+              <option value="true">Oui</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Accès serveur</Label>
+            <select name="accessServer" defaultValue={m.accessServer ? 'true' : 'false'}
               className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
               <option value="false">Non</option>
               <option value="true">Oui</option>

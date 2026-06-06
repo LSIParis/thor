@@ -102,6 +102,7 @@ model PersonnelMovement {
   mobile           String?
   email            String?
   accessVPN        Boolean  @default(false)
+  accessServer     Boolean  @default(false)
   status           String   @default("EN_ATTENTE") // "EN_ATTENTE" | "ACTIF" | "TERMINE"
   date             DateTime
   notes            String?
