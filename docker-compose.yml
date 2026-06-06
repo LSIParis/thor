@@ -26,11 +26,30 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET requis}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY requis}
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN:-}
+      MAILGUN_FROM: ${MAILGUN_FROM:-}
+      LSI_NOTIFY_EMAIL: ${LSI_NOTIFY_EMAIL:-contact@lsi-maintenance.fr}
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET requis}
     volumes:
       - uploads:/app/public/uploads
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - lsi_net
+
+  cron:
+    image: alpine:3.21
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+      APP_URL: http://app:3000
+    # Appel tous les jours à 08h00
+    entrypoint: >
+      sh -c "echo '0 8 * * * wget -qO- \"$$APP_URL/api/cron/check-movements?secret=$$CRON_SECRET\" && echo' | crontab - && crond -f -d 8"
+    depends_on:
+      - app
     networks:
       - lsi_net
 

@@ -84,6 +84,19 @@ export async function transmitMovement(clientId: string, formData: FormData) {
   revalidatePath('/mouvements')
 }
 
+export async function updateMovement(movementId: string, clientId: string, formData: FormData) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') return
+
+  const existing = await prisma.personnelMovement.findUnique({ where: { id: movementId } })
+  if (!existing || existing.status !== 'EN_ATTENTE') return
+
+  const data = parseMovementData(clientId, formData)
+  await prisma.personnelMovement.update({ where: { id: movementId }, data })
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
 export async function deleteMovement(movementId: string, clientId: string) {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return

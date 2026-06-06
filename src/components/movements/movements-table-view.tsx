@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,14 +8,47 @@ import { createMovement, transmitMovement, updateMovement, deleteMovement } from
 import { LogIn, LogOut, Plus, X } from 'lucide-react'
 import type { PersonnelMovement } from '@prisma/client'
 
+interface Client {
+  id: string
+  name: string
+}
+
+interface Movement extends PersonnelMovement {
+  client: { id: string; name: string }
+}
+
 interface Props {
-  movements: PersonnelMovement[]
-  clientId: string
+  movements: Movement[]
+  clients: Client[]
   canEdit: boolean
   isClient?: boolean
 }
 
-function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClose: () => void; isClient?: boolean }) {
+const STATUS_LABEL: Record<string, string> = {
+  EN_ATTENTE: 'En attente',
+  DEMANDE_EFFECTUEE: 'Demande effectuée',
+  ATTENTE_SIGNATURE: 'Attente de signature',
+  ACTIF: 'Actif',
+  TERMINE: 'Terminé',
+}
+
+const STATUS_CLASS: Record<string, string> = {
+  EN_ATTENTE: 'bg-amber-500/20 text-amber-600',
+  DEMANDE_EFFECTUEE: 'bg-blue-500/20 text-blue-600',
+  ATTENTE_SIGNATURE: 'bg-purple-500/20 text-purple-600',
+  ACTIF: 'bg-emerald-500/20 text-emerald-600',
+  TERMINE: 'bg-muted text-muted-foreground',
+}
+
+function MovementForm({
+  clientId,
+  onClose,
+  isClient,
+}: {
+  clientId: string
+  onClose: () => void
+  isClient?: boolean
+}) {
   const [movType, setMovType] = useState('ENTREE')
   const [entryType, setEntryType] = useState('EMPLOI')
   const createWithClientId = createMovement.bind(null, clientId)
@@ -23,7 +56,10 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
 
   return (
     <form
-      action={async (fd) => { await createWithClientId(fd); onClose() }}
+      action={async (fd) => {
+        await createWithClientId(fd)
+        onClose()
+      }}
       className="p-4 rounded-lg border border-border bg-card space-y-3 max-w-2xl mb-4"
     >
       <div className="flex items-center justify-between mb-1">
@@ -154,38 +190,20 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
   )
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  EN_ATTENTE: 'En attente',
-  DEMANDE_EFFECTUEE: 'Demande effectuée',
-  ATTENTE_SIGNATURE: 'Attente de signature',
-  ACTIF: 'Actif',
-  TERMINE: 'Terminé',
-}
-
-const STATUS_CLASS: Record<string, string> = {
-  EN_ATTENTE: 'bg-amber-500/20 text-amber-600',
-  DEMANDE_EFFECTUEE: 'bg-blue-500/20 text-blue-600',
-  ATTENTE_SIGNATURE: 'bg-purple-500/20 text-purple-600',
-  ACTIF: 'bg-emerald-500/20 text-emerald-600',
-  TERMINE: 'bg-muted text-muted-foreground',
-}
-
 function EditRow({
   m,
-  clientId,
   colSpan,
   onClose,
   isClient,
 }: {
-  m: PersonnelMovement
-  clientId: string
+  m: Movement
   colSpan: number
   onClose: () => void
   isClient?: boolean
 }) {
   const [movType, setMovType] = useState(m.type)
   const [entryType, setEntryType] = useState(m.entryType ?? 'EMPLOI')
-  const updateWithIds = updateMovement.bind(null, m.id, clientId)
+  const updateWithIds = updateMovement.bind(null, m.id, m.clientId)
 
   return (
     <tr className="bg-muted/20">
@@ -279,35 +297,75 @@ function EditRow({
   )
 }
 
-export function MovementList({ movements, clientId, canEdit, isClient }: Props) {
+export function MovementsTableView({ movements, clients, canEdit, isClient }: Props) {
+  const [selectedClientId, setSelectedClientId] = useState<string>('all')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const sorted = [...movements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const filtered = useMemo(() => {
+    const base = selectedClientId === 'all'
+      ? movements
+      : movements.filter((m) => m.clientId === selectedClientId)
+    return [...base].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [movements, selectedClientId])
+
+  const formClientId = selectedClientId !== 'all' ? selectedClientId : clients[0]?.id
+
+  const showClientCol = !isClient && clients.length > 1
 
   return (
-    <div className="space-y-3">
-      {canEdit && (
-        <div>
-          {!showForm ? (
-            <Button size="sm" onClick={() => setShowForm(true)}>
-              <Plus size={14} className="mr-1.5" /> Nouveau mouvement
-            </Button>
-          ) : (
-            <MovementForm clientId={clientId} onClose={() => setShowForm(false)} isClient={isClient} />
-          )}
-        </div>
+    <div className="space-y-4">
+      {/* Barre de filtres */}
+      <div className="flex flex-wrap items-center gap-3">
+        {!isClient && clients.length > 1 && (
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Client :</Label>
+            <select
+              value={selectedClientId}
+              onChange={(e) => { setSelectedClientId(e.target.value); setShowForm(false) }}
+              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm min-w-[200px]"
+            >
+              <option value="all">Tous les clients</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {canEdit && !showForm && formClientId && (
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus size={14} className="mr-1.5" />
+            Nouveau mouvement
+            {selectedClientId === 'all' && clients.length > 1 && (
+              <span className="ml-1 text-xs opacity-70">— {clients.find(c => c.id === formClientId)?.name}</span>
+            )}
+          </Button>
+        )}
+
+        <span className="text-xs text-muted-foreground ml-auto">
+          {filtered.length} mouvement{filtered.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Formulaire de saisie */}
+      {showForm && formClientId && (
+        <MovementForm
+          clientId={formClientId}
+          onClose={() => setShowForm(false)}
+          isClient={isClient}
+        />
       )}
 
-      {sorted.length === 0 && (
-        <p className="text-muted-foreground text-sm">Aucun mouvement enregistré</p>
-      )}
-
-      {sorted.length > 0 && (
+      {/* Tableau */}
+      {filtered.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Aucun mouvement enregistré.</p>
+      ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wide">
+                {showClientCol && <th className="px-3 py-2 text-left font-medium">Client</th>}
                 <th className="px-3 py-2 text-left font-medium">Date</th>
                 <th className="px-3 py-2 text-left font-medium">Type</th>
                 <th className="px-3 py-2 text-left font-medium">Prénom</th>
@@ -322,15 +380,19 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {sorted.map((m) => {
+              {filtered.map((m) => {
                 const isEntree = m.type === 'ENTREE'
-                const deleteWithIds = deleteMovement.bind(null, m.id, clientId)
+                const deleteWithIds = deleteMovement.bind(null, m.id, m.clientId)
+                const colSpan = (showClientCol ? 1 : 0) + 9 + (canEdit ? 1 : 0) + 1
                 const isEditing = editingId === m.id
-                const colSpan = 9 + (canEdit ? 1 : 0) + 1
-
                 return (
                   <Fragment key={m.id}>
                     <tr className={`hover:bg-muted/30 transition-colors ${isEditing ? 'bg-muted/20' : ''}`}>
+                      {showClientCol && (
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground text-xs font-medium">
+                          {m.client.name}
+                        </td>
+                      )}
                       <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                         {new Date(m.date).toLocaleDateString('fr-FR')}
                       </td>
@@ -357,7 +419,7 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                           {STATUS_LABEL[m.status] ?? m.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground italic max-w-[200px] truncate">{m.notes ?? ''}</td>
+                      <td className="px-3 py-2 text-muted-foreground italic max-w-[180px] truncate">{m.notes ?? ''}</td>
                       {canEdit && (
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
@@ -380,7 +442,6 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                     {isEditing && (
                       <EditRow
                         m={m}
-                        clientId={clientId}
                         colSpan={colSpan}
                         onClose={() => setEditingId(null)}
                         isClient={isClient}
