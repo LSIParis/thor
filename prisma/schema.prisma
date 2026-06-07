@@ -21,6 +21,8 @@ model User {
   emailVerified           Boolean      @default(false)
   verificationToken       String?      @unique
   verificationTokenExpiry DateTime?
+  passwordResetToken      String?      @unique
+  passwordResetExpiry     DateTime?
   createdAt               DateTime     @default(now())
   clients                 UserClient[]
 }

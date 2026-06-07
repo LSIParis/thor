@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Link from 'next/link'
 
 export function LoginForm() {
   const t = useTranslations('login')
@@ -46,6 +47,11 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading} aria-label="submit">
         {loading ? '...' : t('submit')}
       </Button>
+      <div className="text-center">
+        <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+          Mot de passe oublié ?
+        </Link>
+      </div>
     </form>
   )
 }

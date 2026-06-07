@@ -139,6 +139,54 @@ export async function manuallyVerifyUser(userId: string) {
   redirect(`/admin/users/${userId}`)
 }
 
+export async function requestPasswordReset(formData: FormData) {
+  const email = formData.get('email') as string
+  if (!email) redirect('/forgot-password')
+
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (user && user.emailVerified) {
+    const token = generateToken()
+    const expiry = new Date()
+    expiry.setHours(expiry.getHours() + 1)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: token, passwordResetExpiry: expiry },
+    })
+    const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    const link = `${base}/reset-password/${token}`
+    await sendMail({
+      to: email,
+      subject: 'Réinitialisation de votre mot de passe LSI Portal',
+      html: `
+        <p>Bonjour ${user.name},</p>
+        <p>Vous avez demandé la réinitialisation de votre mot de passe sur le portail LSI Maintenance.</p>
+        <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe (valable 1 heure) :</p>
+        <p><a href="${link}" style="display:inline-block;padding:10px 20px;background:#1a1a1a;color:#fff;border-radius:6px;text-decoration:none">Réinitialiser mon mot de passe</a></p>
+        <p style="color:#888;font-size:12px">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+      `,
+    })
+  }
+  redirect('/forgot-password?sent=1')
+}
+
+export async function resetPassword(token: string, formData: FormData) {
+  const password = formData.get('password') as string
+  if (!password || password.length < 8) redirect(`/reset-password/${token}?error=weak`)
+
+  const user = await prisma.user.findUnique({ where: { passwordResetToken: token } })
+  if (!user) redirect('/login?reset=invalid')
+  if (user.passwordResetExpiry && user.passwordResetExpiry < new Date()) {
+    redirect(`/reset-password/${token}?error=expired`)
+  }
+
+  const hash = await bcrypt.hash(password, 12)
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: hash, passwordResetToken: null, passwordResetExpiry: null },
+  })
+  redirect('/login?reset=1')
+}
+
 export async function activateAccount(token: string, formData: FormData) {
   const password = formData.get('password') as string
   if (!password || password.length < 8) redirect(`/verify/${token}?error=weak`)

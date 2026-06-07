@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label'
 
 interface Props {
   action: (formData: FormData) => Promise<void>
+  submitLabel?: string
 }
 
-export function ActivateForm({ action }: Props) {
+export function ActivateForm({ action, submitLabel = 'Activer mon compte' }: Props) {
   const [error, setError] = useState('')
 
   return (
@@ -44,7 +45,7 @@ export function ActivateForm({ action }: Props) {
           onChange={() => setError('')} />
       </div>
       {error && <p className="text-destructive text-sm">{error}</p>}
-      <Button type="submit" className="w-full">Activer mon compte</Button>
+      <Button type="submit" className="w-full">{submitLabel}</Button>
     </form>
   )
 }
