@@ -97,7 +97,13 @@ export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
     if (all.length >= total || companies.length === 0) break
     page++
   }
-  return all.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+  const seen = new Set<string>()
+  const unique = all.filter((c) => {
+    if (seen.has(c.name)) return false
+    seen.add(c.name)
+    return true
+  })
+  return unique.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
 }
 
 export interface Desk365Contact {
