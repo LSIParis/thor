@@ -323,7 +323,7 @@ function EditRow({
 
 export function MovementsTableView({ movements, clients, canEdit, isClient }: Props) {
   const [selectedClientId, setSelectedClientId] = useState<string>(
-    isClient ? (clients[0]?.id ?? 'all') : 'all'
+    isClient || clients.length === 1 ? (clients[0]?.id ?? 'all') : 'all'
   )
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -398,6 +398,7 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                 <th className="px-3 py-2 text-left font-medium">Mobile</th>
                 <th className="px-3 py-2 text-left font-medium">Email</th>
                 <th className="px-3 py-2 text-left font-medium">VPN</th>
+                <th className="px-3 py-2 text-left font-medium">Serveur</th>
                 <th className="px-3 py-2 text-left font-medium">État</th>
                 <th className="px-3 py-2 text-left font-medium">Notes</th>
                 {canEdit && <th className="px-3 py-2" />}
@@ -406,7 +407,7 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
             <tbody className="divide-y divide-border">
               {filtered.map((m) => {
                 const isEntree = m.type === 'ENTREE'
-                const colSpan = (showClientCol ? 1 : 0) + 9 + (canEdit ? 1 : 0) + 1
+                const colSpan = (showClientCol ? 1 : 0) + 10 + (canEdit ? 1 : 0) + 1
                 const isEditing = editingId === m.id
                 const run = (fn: () => Promise<unknown>) => startTransition(async () => { await fn() })
                 return (
@@ -436,6 +437,11 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                       <td className="px-3 py-2 text-center">
                         <span className={`text-xs font-medium ${m.accessVPN ? 'text-emerald-600' : 'text-muted-foreground'}`}>
                           {m.accessVPN ? 'Oui' : 'Non'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`text-xs font-medium ${m.accessServer ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                          {m.accessServer ? 'Oui' : 'Non'}
                         </span>
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">

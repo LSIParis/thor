@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { Sidebar } from './sidebar'
+import { IdleTimer } from './idle-timer'
 import { getClientLinkedToUser } from '@/lib/access'
 
 export async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
         locale={locale}
         linkedClientId={linkedClientId}
       />
+      <IdleTimer />
       <main className="flex-1 overflow-y-auto bg-background p-6">
         {children}
       </main>
