@@ -25,16 +25,18 @@ export function ReconcileDialog({ onClose }: Props) {
   const [notice, setNotice] = useState<{ ok: boolean; msg: string } | null>(null)
   const [, startTransition] = useTransition()
 
-  useEffect(() => {
-    loadSyncData().then((d) => {
-      setData(d)
-      const init: LinkMap = {}
-      d.localClients.forEach((c) => {
-        init[c.id] = { rmmId: c.tacticalRmmId, desk365Company: c.desk365Company }
-      })
-      setLinks(init)
-      setLoading(false)
+  async function refreshData() {
+    const fresh = await loadSyncData()
+    setData(fresh)
+    const updated: LinkMap = {}
+    fresh.localClients.forEach((c) => {
+      updated[c.id] = { rmmId: c.tacticalRmmId, desk365Company: c.desk365Company }
     })
+    setLinks(updated)
+  }
+
+  useEffect(() => {
+    refreshData().then(() => setLoading(false))
   }, [])
 
   function setRmm(localId: string, rmmId: string | null) {
@@ -51,10 +53,8 @@ export function ReconcileDialog({ onClose }: Props) {
     const res = await createClientInRmm(localClientId, name)
     if (res.error) {
       setNotice({ ok: false, msg: res.error })
-    } else if (res.rmmId) {
-      setLinks((prev) => ({ ...prev, [localClientId]: { ...prev[localClientId], rmmId: res.rmmId } }))
-      const fresh = await loadSyncData()
-      setData(fresh)
+    } else {
+      await refreshData()
     }
     setCreating(null)
   }
@@ -65,10 +65,8 @@ export function ReconcileDialog({ onClose }: Props) {
     const res = await createClientInDesk365(localClientId, name)
     if (res.error) {
       setNotice({ ok: false, msg: res.error })
-    } else if (res.companyName) {
-      setLinks((prev) => ({ ...prev, [localClientId]: { ...prev[localClientId], desk365Company: res.companyName } }))
-      const fresh = await loadSyncData()
-      setData(fresh)
+    } else {
+      await refreshData()
     }
     setCreating(null)
   }
@@ -82,23 +80,16 @@ export function ReconcileDialog({ onClose }: Props) {
       desk365Company: v.desk365Company,
     }))
     await reconcileClients(payload)
+    await refreshData()
     setSaving(false)
     setNotice({ ok: true, msg: 'Liens enregistrés.' })
-    const fresh = await loadSyncData()
-    setData(fresh)
   }
 
   function handleAutoReconcile() {
     startTransition(async () => {
       setNotice(null)
       const result = await autoReconcile()
-      const fresh = await loadSyncData()
-      setData(fresh)
-      const init: LinkMap = {}
-      fresh.localClients.forEach((c) => {
-        init[c.id] = { rmmId: c.tacticalRmmId, desk365Company: c.desk365Company }
-      })
-      setLinks(init)
+      await refreshData()
       setNotice({ ok: true, msg: `${result.linked} lien${result.linked > 1 ? 's' : ''} créé${result.linked > 1 ? 's' : ''}${result.created ? `, ${result.created} client${result.created > 1 ? 's' : ''} ajouté${result.created > 1 ? 's' : ''}` : ''}.` })
     })
   }
