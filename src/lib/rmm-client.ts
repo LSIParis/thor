@@ -31,6 +31,35 @@ const CANDIDATE_PATHS = [
   '/api/v2/clients/',
 ]
 
+export async function renameRmmClient(baseUrl: string, apiKey: string, rmmId: string, newName: string): Promise<{ ok: true } | { error: string }> {
+  const url = baseUrl.replace(/\/$/, '')
+  try {
+    await axios.patch(
+      `${url}/clients/${rmmId}/`,
+      { client: { name: newName } },
+      { headers: { 'X-API-KEY': apiKey }, timeout: 10000 }
+    )
+    return { ok: true }
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 405 || status === 404) {
+      try {
+        await axios.put(
+          `${url}/clients/${rmmId}/`,
+          { client: { name: newName } },
+          { headers: { 'X-API-KEY': apiKey }, timeout: 10000 }
+        )
+        return { ok: true }
+      } catch (err2: unknown) {
+        const msg = (err2 as { message?: string })?.message ?? 'Erreur inconnue'
+        return { error: `Échec renommage RMM: ${msg}` }
+      }
+    }
+    const msg = (err as { message?: string })?.message ?? 'Erreur inconnue'
+    return { error: `Échec renommage RMM: ${msg}` }
+  }
+}
+
 export async function createRmmClient(baseUrl: string, apiKey: string, name: string): Promise<string | null> {
   const url = baseUrl.replace(/\/$/, '')
   try {

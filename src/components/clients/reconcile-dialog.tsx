@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameCompanyInDesk365 } from '@/actions/sync'
+import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm } from '@/actions/sync'
 import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2, Pencil } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
 
@@ -59,10 +59,10 @@ export function ReconcileDialog({ onClose }: Props) {
     setCreating(null)
   }
 
-  async function handleRenameDesk365(localClientId: string, oldName: string, newName: string) {
-    setCreating(`${localClientId}-desk365-rename`)
+  async function handleRenameRmm(localClientId: string, rmmId: string, newName: string) {
+    setCreating(`${localClientId}-rmm-rename`)
     setNotice(null)
-    const res = await renameCompanyInDesk365(localClientId, oldName, newName)
+    const res = await renameClientInRmm(localClientId, rmmId, newName)
     if (res.error) {
       setNotice({ ok: false, msg: res.error })
     } else {
@@ -207,6 +207,25 @@ export function ReconcileDialog({ onClose }: Props) {
                                 : <Plus size={11} />}
                             </button>
                           )}
+                          {(() => {
+                            if (!link.rmmId) return null
+                            const targetName = link.desk365Company ?? client.name
+                            const rmmName = data.rmmClients.find((r) => r.id === link.rmmId)?.name
+                            if (!rmmName || rmmName === targetName) return null
+                            return (
+                              <button
+                                type="button"
+                                title={`Renommer "${rmmName}" → "${targetName}" dans TacticalRMM`}
+                                onClick={() => handleRenameRmm(client.id, link.rmmId!, targetName)}
+                                disabled={!!creating}
+                                className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-amber-400 text-amber-500 hover:border-amber-600 hover:text-amber-700 disabled:opacity-40"
+                              >
+                                {creating === `${client.id}-rmm-rename`
+                                  ? <Loader2 size={11} className="animate-spin" />
+                                  : <Pencil size={11} />}
+                              </button>
+                            )
+                          })()}
                         </div>
                       </td>
 
@@ -241,24 +260,6 @@ export function ReconcileDialog({ onClose }: Props) {
                                 : <Plus size={11} />}
                             </button>
                           )}
-                          {(() => {
-                            if (!link.desk365Company || !link.rmmId) return null
-                            const rmmName = data.rmmClients.find((r) => r.id === link.rmmId)?.name
-                            if (!rmmName || rmmName === link.desk365Company) return null
-                            return (
-                              <button
-                                type="button"
-                                title={`Renommer "${link.desk365Company}" → "${rmmName}" dans Desk365`}
-                                onClick={() => handleRenameDesk365(client.id, link.desk365Company!, rmmName)}
-                                disabled={!!creating}
-                                className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-amber-400 text-amber-500 hover:border-amber-600 hover:text-amber-700 disabled:opacity-40"
-                              >
-                                {creating === `${client.id}-desk365-rename`
-                                  ? <Loader2 size={11} className="animate-spin" />
-                                  : <Pencil size={11} />}
-                              </button>
-                            )
-                          })()}
                         </div>
                       </td>
                     </tr>
