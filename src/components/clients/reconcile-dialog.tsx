@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { loadSyncData, autoReconcile, reconcileClients } from '@/actions/sync'
-import { X, Link2, Save, CheckCircle2, AlertCircle } from 'lucide-react'
+import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365 } from '@/actions/sync'
+import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2 } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
 
 interface Props {
@@ -21,6 +21,7 @@ export function ReconcileDialog({ onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [links, setLinks] = useState<LinkMap>({})
   const [saving, setSaving] = useState(false)
+  const [creating, setCreating] = useState<string | null>(null) // localClientId + source
   const [notice, setNotice] = useState<{ ok: boolean; msg: string } | null>(null)
   const [, startTransition] = useTransition()
 
@@ -42,6 +43,34 @@ export function ReconcileDialog({ onClose }: Props) {
 
   function setDesk365(localId: string, company: string | null) {
     setLinks((prev) => ({ ...prev, [localId]: { ...prev[localId], desk365Company: company } }))
+  }
+
+  async function handleCreateRmm(localClientId: string, name: string) {
+    setCreating(`${localClientId}-rmm`)
+    setNotice(null)
+    const res = await createClientInRmm(localClientId, name)
+    if (res.error) {
+      setNotice({ ok: false, msg: res.error })
+    } else if (res.rmmId) {
+      setLinks((prev) => ({ ...prev, [localClientId]: { ...prev[localClientId], rmmId: res.rmmId } }))
+      const fresh = await loadSyncData()
+      setData(fresh)
+    }
+    setCreating(null)
+  }
+
+  async function handleCreateDesk365(localClientId: string, name: string) {
+    setCreating(`${localClientId}-desk365`)
+    setNotice(null)
+    const res = await createClientInDesk365(localClientId, name)
+    if (res.error) {
+      setNotice({ ok: false, msg: res.error })
+    } else if (res.companyName) {
+      setLinks((prev) => ({ ...prev, [localClientId]: { ...prev[localClientId], desk365Company: res.companyName } }))
+      const fresh = await loadSyncData()
+      setData(fresh)
+    }
+    setCreating(null)
   }
 
   async function handleSave() {
@@ -146,40 +175,70 @@ export function ReconcileDialog({ onClose }: Props) {
 
                       {/* RMM select */}
                       <td className="px-4 py-2">
-                        <select
-                          value={link.rmmId ?? ''}
-                          onChange={(e) => setRmm(client.id, e.target.value || null)}
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-sm"
-                        >
-                          <option value="">— aucun —</option>
-                          {data.rmmClients.map((r) => {
-                            const takenByOther = usedRmmIds.has(r.id) && link.rmmId !== r.id
-                            return (
-                              <option key={r.id} value={r.id} disabled={takenByOther}>
-                                {r.name}{takenByOther ? ' (déjà lié)' : ''}
-                              </option>
-                            )
-                          })}
-                        </select>
+                        <div className="flex gap-1.5 items-center">
+                          <select
+                            value={link.rmmId ?? ''}
+                            onChange={(e) => setRmm(client.id, e.target.value || null)}
+                            className="flex-1 min-w-0 rounded border border-input bg-background px-2 py-1 text-sm"
+                          >
+                            <option value="">— aucun —</option>
+                            {data.rmmClients.map((r) => {
+                              const takenByOther = usedRmmIds.has(r.id) && link.rmmId !== r.id
+                              return (
+                                <option key={r.id} value={r.id} disabled={takenByOther}>
+                                  {r.name}{takenByOther ? ' (déjà lié)' : ''}
+                                </option>
+                              )
+                            })}
+                          </select>
+                          {!link.rmmId && !data.rmmError && (
+                            <button
+                              type="button"
+                              title={`Créer "${client.name}" dans TacticalRMM`}
+                              onClick={() => handleCreateRmm(client.id, client.name)}
+                              disabled={!!creating}
+                              className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-muted-foreground/50 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-40"
+                            >
+                              {creating === `${client.id}-rmm`
+                                ? <Loader2 size={11} className="animate-spin" />
+                                : <Plus size={11} />}
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       {/* Desk365 select */}
                       <td className="px-4 py-2">
-                        <select
-                          value={link.desk365Company ?? ''}
-                          onChange={(e) => setDesk365(client.id, e.target.value || null)}
-                          className="w-full rounded border border-input bg-background px-2 py-1 text-sm"
-                        >
-                          <option value="">— aucun —</option>
-                          {data.desk365Companies.map((c) => {
-                            const takenByOther = usedDesk365.has(c.name) && link.desk365Company !== c.name
-                            return (
-                              <option key={c.name} value={c.name} disabled={takenByOther}>
-                                {c.name}{takenByOther ? ' (déjà lié)' : ''}
-                              </option>
-                            )
-                          })}
-                        </select>
+                        <div className="flex gap-1.5 items-center">
+                          <select
+                            value={link.desk365Company ?? ''}
+                            onChange={(e) => setDesk365(client.id, e.target.value || null)}
+                            className="flex-1 min-w-0 rounded border border-input bg-background px-2 py-1 text-sm"
+                          >
+                            <option value="">— aucun —</option>
+                            {data.desk365Companies.map((c) => {
+                              const takenByOther = usedDesk365.has(c.name) && link.desk365Company !== c.name
+                              return (
+                                <option key={c.name} value={c.name} disabled={takenByOther}>
+                                  {c.name}{takenByOther ? ' (déjà lié)' : ''}
+                                </option>
+                              )
+                            })}
+                          </select>
+                          {!link.desk365Company && (
+                            <button
+                              type="button"
+                              title={`Créer "${client.name}" dans Desk365`}
+                              onClick={() => handleCreateDesk365(client.id, client.name)}
+                              disabled={!!creating}
+                              className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-muted-foreground/50 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-40"
+                            >
+                              {creating === `${client.id}-desk365`
+                                ? <Loader2 size={11} className="animate-spin" />
+                                : <Plus size={11} />}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

@@ -31,6 +31,23 @@ const CANDIDATE_PATHS = [
   '/api/v2/clients/',
 ]
 
+export async function createRmmClient(baseUrl: string, apiKey: string, name: string): Promise<string | null> {
+  const url = baseUrl.replace(/\/$/, '')
+  try {
+    await axios.post(
+      `${url}/clients/`,
+      { client: { name }, site: { name: 'Default' } },
+      { headers: { 'X-API-KEY': apiKey }, timeout: 10000 }
+    )
+    // Fetch clients to find the new ID
+    const clients = await fetchRmmClients(baseUrl, apiKey)
+    const found = clients.find((c) => c.name === name)
+    return found ? String(found.id) : null
+  } catch {
+    return null
+  }
+}
+
 export async function fetchRmmClients(baseUrl: string, apiKey: string): Promise<RmmClient[]> {
   const url = baseUrl.replace(/\/$/, '')
   let lastError: any

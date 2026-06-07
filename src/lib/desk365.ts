@@ -8,6 +8,22 @@ export interface Desk365Company {
   name: string
 }
 
+export async function createDesk365Company(name: string): Promise<string | null> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return null
+
+  const res = await fetch(`${base}/companies/create`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, custom_fields: { cf_tenant_365: true } }),
+    cache: 'no-store',
+  })
+  if (!res.ok) return null
+  const json = await res.json() as { name?: string }
+  return json.name ?? name
+}
+
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
