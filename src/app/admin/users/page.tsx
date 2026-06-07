@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { deleteUser } from '@/actions/users'
+import { MailCheck, MailX } from 'lucide-react'
 
 export default async function UsersPage() {
   await requireAdmin()
@@ -31,11 +32,15 @@ export default async function UsersPage() {
             <div key={user.id} className="p-4 rounded-lg bg-card border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{user.name}</span>
                     <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
                       {t(`roles.${user.role}`)}
                     </Badge>
+                    {user.emailVerified
+                      ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><MailCheck size={12} /> Vérifié</span>
+                      : <span className="inline-flex items-center gap-1 text-xs text-amber-500"><MailX size={12} /> En attente</span>
+                    }
                   </div>
                   <div className="text-muted-foreground text-sm">{user.email}</div>
                   {(user.role === 'TECH' || user.role === 'CLIENT') && user.clients.length > 0 && (

@@ -2,13 +2,14 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
-import { assignClientToUser, unassignClientFromUser, updateUser, changePassword } from '@/actions/users'
+import { assignClientToUser, unassignClientFromUser, updateUser, changePassword, resendVerificationEmail, manuallyVerifyUser } from '@/actions/users'
 import { PasswordChangeForm } from '@/components/admin/password-change-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import { MailCheck, MailX } from 'lucide-react'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -32,6 +33,8 @@ export default async function UserDetailPage({ params }: Props) {
   const assignWithUserId = assignClientToUser.bind(null, id)
   const updateWithId = updateUser.bind(null, id)
   const changePasswordWithId = changePassword.bind(null, id)
+  const resendWithId = resendVerificationEmail.bind(null, id)
+  const manualVerifyWithId = manuallyVerifyUser.bind(null, id)
 
   return (
     <AppLayout>
@@ -41,11 +44,15 @@ export default async function UserDetailPage({ params }: Props) {
             <Link href="/admin/users">← Retour</Link>
           </Button>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-semibold">{user.name}</h1>
               <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
                 {ROLE_LABELS[user.role]}
               </Badge>
+              {user.emailVerified
+                ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><MailCheck size={13} /> Email vérifié</span>
+                : <span className="inline-flex items-center gap-1 text-xs text-amber-500"><MailX size={13} /> En attente d'activation</span>
+              }
             </div>
             <p className="text-muted-foreground text-sm">{user.email}</p>
           </div>
@@ -75,6 +82,24 @@ export default async function UserDetailPage({ params }: Props) {
             <Button type="submit" size="sm">Sauvegarder</Button>
           </form>
         </div>
+
+        {/* Vérification email */}
+        {!user.emailVerified && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-5 space-y-3">
+            <h2 className="font-medium text-sm text-amber-700 dark:text-amber-400">Compte non activé</h2>
+            <p className="text-xs text-amber-600 dark:text-amber-500">
+              L'utilisateur n'a pas encore activé son compte via l'email d'activation.
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <form action={resendWithId}>
+                <Button type="submit" size="sm" variant="outline">Renvoyer l'email d'activation</Button>
+              </form>
+              <form action={manualVerifyWithId}>
+                <Button type="submit" size="sm" variant="ghost">Vérifier manuellement</Button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Mot de passe */}
         <PasswordChangeForm action={changePasswordWithId} />
