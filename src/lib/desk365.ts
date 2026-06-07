@@ -216,3 +216,53 @@ export async function createDesk365Ticket(opts: Desk365TicketOpts) {
     console.error('[desk365] Erreur réseau:', err)
   }
 }
+
+export interface Desk365Ticket {
+  ticket_number: number
+  subject: string
+  status: string
+  priority: number
+  type: string | null
+  company_name: string | null
+  assigned_to: string | null
+  contact_name: string | null
+  contact_email: string | null
+  created_on: string
+  updated_on: string
+  resolved_on: string | null
+  closed_on: string | null
+  category: string | null
+  subcategory: string | null
+  group: string | null
+  conversation_count: number
+}
+
+export async function fetchDesk365Tickets(): Promise<{ tickets: Desk365Ticket[]; total: number }> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return { tickets: [], total: 0 }
+
+  const all: Desk365Ticket[] = []
+  let page = 1
+  let total = 0
+  let prevSig = ''
+
+  while (true) {
+    const res = await fetch(`${base}/tickets?page=${page}&per_page=100`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      next: { revalidate: 300 }, // cache 5 min
+    })
+    if (!res.ok) break
+    const json = await res.json() as { count?: number; tickets?: Desk365Ticket[] }
+    if (page === 1) total = json.count ?? 0
+    const batch = json.tickets ?? []
+    if (batch.length === 0) break
+    const sig = JSON.stringify(batch)
+    if (sig === prevSig) break
+    prevSig = sig
+    all.push(...batch)
+    page++
+  }
+
+  return { tickets: all, total }
+}
