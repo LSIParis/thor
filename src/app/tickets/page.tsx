@@ -79,7 +79,7 @@ export default async function TicketsPage() {
     .slice(0, 30)
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px]">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Tickets</h1>
         <p className="text-sm text-muted-foreground">{total} tickets au total dans Desk365</p>
