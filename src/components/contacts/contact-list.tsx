@@ -66,9 +66,12 @@ export function ContactList({ contacts, clientId, canEdit }: ContactListProps) {
               {contact.role && (
                 <div className="text-muted-foreground text-xs">{contact.role}</div>
               )}
-              <div className="text-muted-foreground text-xs">
-                {contact.email}{contact.phone && ` · ${contact.phone}`}
-              </div>
+              {contact.email && (
+                <div className="text-muted-foreground text-xs">{contact.email}</div>
+              )}
+              {contact.phone && (
+                <div className="text-muted-foreground text-xs">{contact.phone}</div>
+              )}
             </div>
             {canEdit && (
               <div className="flex items-center gap-1">
