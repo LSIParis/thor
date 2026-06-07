@@ -76,43 +76,49 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
   return { error: "L'API Desk365 ne permet pas de renommer une société (aucun endpoint accepté)" }
 }
 
+async function fetchAllPages<T>(url: string, apiKey: string): Promise<T[]> {
+  const all: T[] = []
+  let page = 1
+  let prevSignature = ''
+  while (true) {
+    const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}page=${page}&per_page=100`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) break
+    const json = await res.json() as { content?: T[] }
+    const items = json.content ?? []
+    if (items.length === 0) break
+    const sig = JSON.stringify(items)
+    if (sig === prevSignature) break  // API repeating same page — stop
+    prevSignature = sig
+    all.push(...items)
+    page++
+  }
+  return all
+}
+
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
 
-  // Desk365 "companies" objects only exist when explicitly created.
-  // Contacts carry a company_name field that is the real source of truth.
-  // We derive the company list from contacts to include everyone.
-  const all: { company_name?: string | null }[] = []
-  let page = 1
-  while (true) {
-    const res = await fetch(`${base}/contacts?page=${page}&per_page=100`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      cache: 'no-store',
-    })
-    if (!res.ok) break
-    const json = await res.json() as { content?: { company_name?: string | null }[] }
-    const contacts = json.content ?? []
-    all.push(...contacts)
-    if (contacts.length === 0) break  // page vide = fin
-    page++
-  }
-
-  console.log(`[desk365] fetchCompanies: ${all.length} contacts fetched`)
-  const allNames = all.map((c) => c.company_name)
-  console.log('[desk365] company_name values (first 50):', JSON.stringify(allNames.slice(0, 50)))
+  // Combine /companies (explicit objects) + company_name from /contacts
+  const [companiesRaw, contactsRaw] = await Promise.all([
+    fetchAllPages<{ name?: string }>(`${base}/companies`, apiKey),
+    fetchAllPages<{ company_name?: string | null }>(`${base}/contacts`, apiKey),
+  ])
 
   const seen = new Set<string>()
-  const unique: Desk365Company[] = []
-  for (const c of all) {
-    const name = c.company_name?.trim()
-    if (name && !seen.has(name)) {
-      seen.add(name)
-      unique.push({ name })
-    }
+  const result: Desk365Company[] = []
+  const add = (name: string | undefined | null) => {
+    const n = name?.trim()
+    if (n && !seen.has(n)) { seen.add(n); result.push({ name: n }) }
   }
-  return unique.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+  for (const c of companiesRaw) add(c.name)
+  for (const c of contactsRaw) add(c.company_name)
+
+  return result.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
 }
 
 export interface Desk365Contact {
@@ -128,22 +134,7 @@ export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
-
-  const all: Desk365Contact[] = []
-  let page = 1
-  while (true) {
-    const res = await fetch(`${base}/contacts?page=${page}&per_page=100`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      cache: 'no-store',
-    })
-    if (!res.ok) break
-    const json = await res.json() as { content?: Desk365Contact[]; count?: number }
-    const contacts = json.content ?? []
-    all.push(...contacts)
-    if (contacts.length === 0) break
-    page++
-  }
-  return all
+  return fetchAllPages<Desk365Contact>(`${base}/contacts`, apiKey)
 }
 
 // Priority values: 1=Low, 5=Medium, 10=High, 20=Urgent
