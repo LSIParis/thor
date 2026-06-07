@@ -99,6 +99,10 @@ export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
     page++
   }
 
+  console.log(`[desk365] fetchCompanies: ${all.length} contacts fetched`)
+  const allNames = all.map((c) => c.company_name)
+  console.log('[desk365] company_name values (first 50):', JSON.stringify(allNames.slice(0, 50)))
+
   const seen = new Set<string>()
   const unique: Desk365Company[] = []
   for (const c of all) {
