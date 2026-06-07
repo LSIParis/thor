@@ -53,9 +53,20 @@ export async function loadSyncData(): Promise<SyncData> {
 
   const desk365Companies = await fetchDesk365Companies()
 
+  // Desk365 API only returns companies with at least one contact.
+  // Merge in any company already linked in the DB so it always appears.
+  const apiNames = new Set(desk365Companies.map((c) => c.name))
+  const extraNames = localClients
+    .map((c) => c.desk365Company)
+    .filter((n): n is string => !!n && !apiNames.has(n))
+  const mergedCompanies = [
+    ...desk365Companies.map((c) => ({ name: c.name })),
+    ...extraNames.map((name) => ({ name })),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+
   return {
     rmmClients,
-    desk365Companies: desk365Companies.map((c) => ({ name: c.name })),
+    desk365Companies: mergedCompanies,
     localClients,
     rmmError,
   }
