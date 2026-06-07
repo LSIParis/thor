@@ -32,7 +32,31 @@ export async function createDesk365Company(name: string): Promise<{ name: string
     }
   }
   const json = JSON.parse(text) as { name?: string }
-  return { name: json.name ?? name }
+  const companyName = json.name ?? name
+
+  // Create a placeholder contact so the company appears in /contacts responses
+  await createDesk365PlaceholderContact(companyName)
+
+  return { name: companyName }
+}
+
+async function createDesk365PlaceholderContact(companyName: string): Promise<void> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return
+
+  const res = await fetch(`${base}/contacts/create`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: companyName, company_name: companyName }),
+    cache: 'no-store',
+  })
+  const text = await res.text()
+  if (!res.ok) {
+    console.warn('[desk365] createPlaceholderContact error', res.status, text.slice(0, 200))
+  } else {
+    console.log('[desk365] placeholder contact created for', companyName)
+  }
 }
 
 export async function renameDesk365Company(oldName: string, newName: string): Promise<{ name: string } | { error: string }> {
