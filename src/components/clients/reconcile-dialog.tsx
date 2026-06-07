@@ -3,7 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm, refreshDesk365Companies } from '@/actions/sync'
-import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2, Pencil } from 'lucide-react'
+import { deleteClient } from '@/actions/clients'
+import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2, Pencil, Trash2 } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
 
 interface Props {
@@ -22,6 +23,7 @@ export function ReconcileDialog({ onClose }: Props) {
   const [links, setLinks] = useState<LinkMap>({})
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState<string | null>(null) // localClientId + source
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // localClientId en attente de confirmation
   const [notice, setNotice] = useState<{ ok: boolean; msg: string } | null>(null)
   const [, startTransition] = useTransition()
 
@@ -56,6 +58,15 @@ export function ReconcileDialog({ onClose }: Props) {
     } else {
       await refreshData()
     }
+    setCreating(null)
+  }
+
+  async function handleDelete(localClientId: string) {
+    setCreating(`${localClientId}-delete`)
+    setNotice(null)
+    await deleteClient(localClientId)
+    setConfirmDelete(null)
+    await refreshData()
     setCreating(null)
   }
 
@@ -172,7 +183,30 @@ export function ReconcileDialog({ onClose }: Props) {
                           {rmmOk && d365Ok
                             ? <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
                             : <span className="w-3 shrink-0" />}
-                          {client.name}
+                          <span className="flex-1 min-w-0 truncate">{client.name}</span>
+                          {confirmDelete === client.id ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(client.id)}
+                                disabled={!!creating}
+                                className="text-xs px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground hover:bg-destructive/80 disabled:opacity-40"
+                              >
+                                {creating === `${client.id}-delete` ? <Loader2 size={10} className="animate-spin" /> : 'Confirmer'}
+                              </button>
+                              <button type="button" onClick={() => setConfirmDelete(null)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              title={`Supprimer "${client.name}"`}
+                              onClick={() => setConfirmDelete(client.id)}
+                              disabled={!!creating}
+                              className="shrink-0 text-muted-foreground/40 hover:text-destructive disabled:opacity-40"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
 
