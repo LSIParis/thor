@@ -81,26 +81,33 @@ export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
 
-  const all: Desk365Company[] = []
+  // Desk365 "companies" objects only exist when explicitly created.
+  // Contacts carry a company_name field that is the real source of truth.
+  // We derive the company list from contacts to include everyone.
+  const all: { company_name?: string | null }[] = []
   let page = 1
   while (true) {
-    const res = await fetch(`${base}/companies?page=${page}&per_page=100`, {
+    const res = await fetch(`${base}/contacts?page=${page}&per_page=100`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       cache: 'no-store',
     })
     if (!res.ok) break
-    const json = await res.json() as { content?: Desk365Company[] }
-    const companies = json.content ?? []
-    all.push(...companies)
-    if (companies.length < 100) break
+    const json = await res.json() as { content?: { company_name?: string | null }[] }
+    const contacts = json.content ?? []
+    all.push(...contacts)
+    if (contacts.length < 100) break
     page++
   }
+
   const seen = new Set<string>()
-  const unique = all.filter((c) => {
-    if (seen.has(c.name)) return false
-    seen.add(c.name)
-    return true
-  })
+  const unique: Desk365Company[] = []
+  for (const c of all) {
+    const name = c.company_name?.trim()
+    if (name && !seen.has(name)) {
+      seen.add(name)
+      unique.push({ name })
+    }
+  }
   return unique.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
 }
 
