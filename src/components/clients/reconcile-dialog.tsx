@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { loadSyncData, autoReconcile } from '@/actions/sync'
-import { X, Link2, AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+import { loadSyncData, autoReconcile, reconcileClients } from '@/actions/sync'
+import { X, Link2, Save, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
 
 interface Props {
   onClose: () => void
 }
+
+type LinkMap = Record<string, { rmmId: string | null; desk365Company: string | null }>
 
 function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -17,166 +19,196 @@ function normalize(s: string) {
 export function ReconcileDialog({ onClose }: Props) {
   const [data, setData] = useState<SyncData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [reconcileResult, setReconcileResult] = useState<{ linked: number; created: number } | null>(null)
+  const [links, setLinks] = useState<LinkMap>({})
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<{ ok: boolean; msg: string } | null>(null)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
-    loadSyncData().then((d) => { setData(d); setLoading(false) })
+    loadSyncData().then((d) => {
+      setData(d)
+      const init: LinkMap = {}
+      d.localClients.forEach((c) => {
+        init[c.id] = { rmmId: c.tacticalRmmId, desk365Company: c.desk365Company }
+      })
+      setLinks(init)
+      setLoading(false)
+    })
   }, [])
 
-  function handleReconcile() {
+  function setRmm(localId: string, rmmId: string | null) {
+    setLinks((prev) => ({ ...prev, [localId]: { ...prev[localId], rmmId } }))
+  }
+
+  function setDesk365(localId: string, company: string | null) {
+    setLinks((prev) => ({ ...prev, [localId]: { ...prev[localId], desk365Company: company } }))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setNotice(null)
+    const payload = Object.entries(links).map(([localClientId, v]) => ({
+      localClientId,
+      rmmId: v.rmmId,
+      desk365Company: v.desk365Company,
+    }))
+    await reconcileClients(payload)
+    setSaving(false)
+    setNotice({ ok: true, msg: 'Liens enregistrés.' })
+    const fresh = await loadSyncData()
+    setData(fresh)
+  }
+
+  function handleAutoReconcile() {
     startTransition(async () => {
+      setNotice(null)
       const result = await autoReconcile()
-      setReconcileResult(result)
       const fresh = await loadSyncData()
       setData(fresh)
+      const init: LinkMap = {}
+      fresh.localClients.forEach((c) => {
+        init[c.id] = { rmmId: c.tacticalRmmId, desk365Company: c.desk365Company }
+      })
+      setLinks(init)
+      setNotice({ ok: true, msg: `${result.linked} lien${result.linked > 1 ? 's' : ''} créé${result.linked > 1 ? 's' : ''}${result.created ? `, ${result.created} client${result.created > 1 ? 's' : ''} ajouté${result.created > 1 ? 's' : ''}` : ''}.` })
     })
   }
 
-  const rmmLinked = new Set(data?.localClients.map((c) => c.tacticalRmmId).filter(Boolean))
-  const desk365Linked = new Set(data?.localClients.map((c) => c.desk365Company).filter(Boolean))
+  // RMM ids already used by OTHER local clients (to warn on duplicates)
+  const usedRmmIds = new Set(Object.values(links).map((l) => l.rmmId).filter(Boolean))
+  const usedDesk365 = new Set(Object.values(links).map((l) => l.desk365Company).filter(Boolean))
 
-  const rmmUnlinked = data?.rmmClients.filter((c) => !rmmLinked.has(c.id)) ?? []
-  const desk365Unlinked = data?.desk365Companies.filter((c) => !desk365Linked.has(c.name)) ?? []
-
-  // Auto-match preview: RMM ↔ Desk365 by normalized name
-  const autoMatches: { rmmName: string; desk365Name: string }[] = []
-  if (data) {
-    for (const rmm of rmmUnlinked) {
-      const match = desk365Unlinked.find((d) => normalize(d.name) === normalize(rmm.name))
-      if (match) autoMatches.push({ rmmName: rmm.name, desk365Name: match.name })
-    }
-  }
+  const rmmLinkedCount = Object.values(links).filter((l) => l.rmmId).length
+  const desk365LinkedCount = Object.values(links).filter((l) => l.desk365Company).length
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
             <h2 className="text-lg font-semibold">Réconciliation des sources</h2>
-            <p className="text-xs text-muted-foreground">TacticalRMM · Desk365 · Base locale</p>
+            <p className="text-xs text-muted-foreground">Associez chaque client local à son équivalent RMM et Desk365</p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X size={18} />
           </button>
         </div>
 
+        {/* Stats bar */}
+        {data && !loading && (
+          <div className="flex gap-6 px-6 py-2 border-b border-border bg-muted/30 text-xs text-muted-foreground shrink-0">
+            <span><strong className="text-foreground">{data.localClients.length}</strong> clients locaux</span>
+            <span><strong className="text-emerald-600">{rmmLinkedCount}</strong> / {data.rmmClients.length} liés à RMM</span>
+            <span><strong className="text-blue-600">{desk365LinkedCount}</strong> / {data.desk365Companies.length} liés à Desk365</span>
+            {data.rmmError && (
+              <span className="flex items-center gap-1 text-amber-600">
+                <AlertCircle size={11} /> {data.rmmError}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Body */}
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="flex-1 overflow-auto">
           {loading && (
-            <p className="text-sm text-muted-foreground animate-pulse text-center py-12">
+            <p className="text-sm text-muted-foreground animate-pulse text-center py-16">
               Chargement des données…
             </p>
           )}
 
           {data && !loading && (
-            <>
-              {data.rmmError && (
-                <div className="flex items-center gap-2 text-amber-600 text-sm mb-4 p-3 rounded bg-amber-500/10">
-                  <AlertCircle size={14} />
-                  {data.rmmError}
-                </div>
-              )}
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/60 backdrop-blur-sm z-10">
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2 text-left font-medium">Client local</th>
+                  <th className="px-4 py-2 text-left font-medium">TacticalRMM</th>
+                  <th className="px-4 py-2 text-left font-medium">Desk365</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.localClients.map((client) => {
+                  const link = links[client.id] ?? { rmmId: null, desk365Company: null }
+                  const rmmOk = !!link.rmmId
+                  const d365Ok = !!link.desk365Company
 
-              <div className="grid grid-cols-2 gap-6">
-                {/* TacticalRMM */}
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    TacticalRMM ({data.rmmClients.length})
-                  </h3>
-                  <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1">
-                    {data.rmmClients.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">Aucun client RMM</p>
-                    )}
-                    {data.rmmClients.map((c) => {
-                      const isLinked = rmmLinked.has(c.id)
-                      const local = data.localClients.find((l) => l.tacticalRmmId === c.id)
-                      return (
-                        <div key={c.id} className="flex items-center gap-2 text-sm py-0.5">
-                          {isLinked
-                            ? <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                            : <Circle size={13} className="text-muted-foreground shrink-0" />}
-                          <span className={isLinked ? '' : 'text-muted-foreground'}>{c.name}</span>
-                          {local && (
-                            <span className="text-xs text-muted-foreground">→ {local.name}</span>
-                          )}
+                  return (
+                    <tr key={client.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-2 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {rmmOk && d365Ok
+                            ? <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                            : <span className="w-3 shrink-0" />}
+                          {client.name}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                      </td>
 
-                {/* Desk365 */}
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    Desk365 ({data.desk365Companies.length})
-                  </h3>
-                  <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1">
-                    {data.desk365Companies.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">Aucune société Desk365</p>
-                    )}
-                    {data.desk365Companies.map((c) => {
-                      const isLinked = desk365Linked.has(c.name)
-                      const local = data.localClients.find((l) => l.desk365Company === c.name)
-                      return (
-                        <div key={c.name} className="flex items-center gap-2 text-sm py-0.5">
-                          {isLinked
-                            ? <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                            : <Circle size={13} className="text-muted-foreground shrink-0" />}
-                          <span className={isLinked ? '' : 'text-muted-foreground'}>{c.name}</span>
-                          {local && (
-                            <span className="text-xs text-muted-foreground">→ {local.name}</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
+                      {/* RMM select */}
+                      <td className="px-4 py-2">
+                        <select
+                          value={link.rmmId ?? ''}
+                          onChange={(e) => setRmm(client.id, e.target.value || null)}
+                          className="w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                        >
+                          <option value="">— aucun —</option>
+                          {data.rmmClients.map((r) => {
+                            const takenByOther = usedRmmIds.has(r.id) && link.rmmId !== r.id
+                            return (
+                              <option key={r.id} value={r.id} disabled={takenByOther}>
+                                {r.name}{takenByOther ? ' (déjà lié)' : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </td>
 
-              {/* Summary */}
-              <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-4 text-center text-sm">
-                <div>
-                  <div className="font-semibold text-lg">{data.localClients.length}</div>
-                  <div className="text-xs text-muted-foreground">Clients locaux</div>
-                </div>
-                <div>
-                  <div className="font-semibold text-lg text-emerald-600">{rmmLinked.size}</div>
-                  <div className="text-xs text-muted-foreground">Liés à RMM</div>
-                </div>
-                <div>
-                  <div className="font-semibold text-lg text-blue-600">{desk365Linked.size}</div>
-                  <div className="text-xs text-muted-foreground">Liés à Desk365</div>
-                </div>
-              </div>
-
-              {(rmmUnlinked.length > 0 || desk365Unlinked.length > 0) && (
-                <div className="mt-3 text-xs text-muted-foreground text-center">
-                  {rmmUnlinked.length} RMM non liés · {desk365Unlinked.length} Desk365 non liés
-                  {autoMatches.length > 0 && ` · ${autoMatches.length} correspondance${autoMatches.length > 1 ? 's' : ''} automatique${autoMatches.length > 1 ? 's' : ''} détectée${autoMatches.length > 1 ? 's' : ''}`}
-                </div>
-              )}
-
-              {reconcileResult && (
-                <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-emerald-600">
-                  <CheckCircle2 size={14} />
-                  {reconcileResult.linked} lien{reconcileResult.linked > 1 ? 's' : ''} créé{reconcileResult.linked > 1 ? 's' : ''}
-                  {reconcileResult.created > 0 && `, ${reconcileResult.created} client${reconcileResult.created > 1 ? 's' : ''} ajouté${reconcileResult.created > 1 ? 's' : ''}`}
-                </div>
-              )}
-            </>
+                      {/* Desk365 select */}
+                      <td className="px-4 py-2">
+                        <select
+                          value={link.desk365Company ?? ''}
+                          onChange={(e) => setDesk365(client.id, e.target.value || null)}
+                          className="w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                        >
+                          <option value="">— aucun —</option>
+                          {data.desk365Companies.map((c) => {
+                            const takenByOther = usedDesk365.has(c.name) && link.desk365Company !== c.name
+                            return (
+                              <option key={c.name} value={c.name} disabled={takenByOther}>
+                                {c.name}{takenByOther ? ' (déjà lié)' : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
-          <Button variant="outline" size="sm" onClick={handleReconcile} disabled={loading || !data}>
-            <Link2 size={14} className="mr-1.5" />
-            Rapprocher automatiquement
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onClose}>Fermer</Button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={handleAutoReconcile} disabled={loading || !data}>
+              <Link2 size={14} className="mr-1.5" />
+              Rapprocher automatiquement
+            </Button>
+            {notice && (
+              <span className={`text-xs ${notice.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+                {notice.msg}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose}>Annuler</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving || loading || !data}>
+              <Save size={14} className="mr-1.5" />
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

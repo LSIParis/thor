@@ -70,8 +70,8 @@ export async function reconcileClients(
     await prisma.client.update({
       where: { id: link.localClientId },
       data: {
-        tacticalRmmId: link.rmmId ?? undefined,
-        desk365Company: link.desk365Company ?? undefined,
+        tacticalRmmId: link.rmmId,
+        desk365Company: link.desk365Company,
       },
     })
   }
