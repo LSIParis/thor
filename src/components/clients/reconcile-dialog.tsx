@@ -177,7 +177,7 @@ export function ReconcileDialog({ onClose }: Props) {
                   const d365Ok = !!link.desk365Company
 
                   return (
-                    <tr key={client.id} className="hover:bg-muted/20">
+                    <tr key={client.id} className="hover:bg-muted/20 group">
                       <td className="px-4 py-2 font-medium">
                         <div className="flex items-center gap-1.5">
                           {rmmOk && d365Ok
@@ -202,7 +202,7 @@ export function ReconcileDialog({ onClose }: Props) {
                               title={`Supprimer "${client.name}"`}
                               onClick={() => setConfirmDelete(client.id)}
                               disabled={!!creating}
-                              className="shrink-0 text-muted-foreground/40 hover:text-destructive disabled:opacity-40"
+                              className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity disabled:opacity-40"
                             >
                               <Trash2 size={13} />
                             </button>
