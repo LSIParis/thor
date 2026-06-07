@@ -61,3 +61,23 @@ export async function unassignClientFromUser(userId: string, clientId: string) {
   revalidatePath('/admin/users')
   redirect(`/admin/users/${userId}`)
 }
+
+export async function updateUser(userId: string, formData: FormData) {
+  await requireAdmin()
+  const name = formData.get('name') as string
+  const email = formData.get('email') as string
+  const role = (formData.get('role') as string) as 'ADMIN' | 'TECH' | 'CLIENT'
+  await prisma.user.update({ where: { id: userId }, data: { name, email, role } })
+  revalidatePath('/admin/users')
+  redirect(`/admin/users/${userId}`)
+}
+
+export async function changePassword(userId: string, formData: FormData) {
+  await requireAdmin()
+  const password = formData.get('password') as string
+  if (!password || password.length < 8) redirect(`/admin/users/${userId}`)
+  const hash = await bcrypt.hash(password, 12)
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash: hash } })
+  revalidatePath('/admin/users')
+  redirect(`/admin/users/${userId}`)
+}

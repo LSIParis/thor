@@ -45,11 +45,9 @@ export default async function UsersPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {(user.role === 'TECH' || user.role === 'CLIENT') && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/admin/users/${user.id}`}>{t('assignedClients')}</Link>
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/users/${user.id}`}>Gérer</Link>
+                  </Button>
                   <form action={deleteWithId}>
                     <Button variant="destructive" size="sm" type="submit">
                       Supprimer
