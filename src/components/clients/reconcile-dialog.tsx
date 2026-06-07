@@ -229,10 +229,12 @@ export function ReconcileDialog({ onClose }: Props) {
                         </div>
                       </td>
 
-                      {/* Desk365 select */}
+                      {/* Desk365 — combobox libre (datalist) */}
                       <td className="px-4 py-2">
                         <div className="flex gap-1.5 items-center">
-                          <select
+                          <input
+                            type="text"
+                            list={`desk365-list-${client.id}`}
                             value={link.desk365Company ?? ''}
                             onChange={(e) => setDesk365(client.id, e.target.value || null)}
                             onFocus={() => {
@@ -240,18 +242,14 @@ export function ReconcileDialog({ onClose }: Props) {
                                 setData((prev) => prev ? { ...prev, desk365Companies: fresh } : prev)
                               )
                             }}
+                            placeholder="— aucun —"
                             className="flex-1 min-w-0 rounded border border-input bg-background px-2 py-1 text-sm"
-                          >
-                            <option value="">— aucun —</option>
-                            {data.desk365Companies.map((c) => {
-                              const takenByOther = usedDesk365.has(c.name) && link.desk365Company !== c.name
-                              return (
-                                <option key={c.name} value={c.name} disabled={takenByOther}>
-                                  {c.name}{takenByOther ? ' (déjà lié)' : ''}
-                                </option>
-                              )
-                            })}
-                          </select>
+                          />
+                          <datalist id={`desk365-list-${client.id}`}>
+                            {data.desk365Companies.map((c) => (
+                              <option key={c.name} value={c.name} />
+                            ))}
+                          </datalist>
                           {!link.desk365Company && (
                             <button
                               type="button"
