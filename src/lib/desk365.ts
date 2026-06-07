@@ -95,7 +95,7 @@ export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
     const json = await res.json() as { content?: { company_name?: string | null }[] }
     const contacts = json.content ?? []
     all.push(...contacts)
-    if (contacts.length < 100) break
+    if (contacts.length === 0) break  // page vide = fin
     page++
   }
 
@@ -140,7 +140,7 @@ export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
     const json = await res.json() as { content?: Desk365Contact[]; count?: number }
     const contacts = json.content ?? []
     all.push(...contacts)
-    if (contacts.length < 100) break
+    if (contacts.length === 0) break
     page++
   }
   return all
