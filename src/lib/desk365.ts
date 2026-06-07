@@ -4,6 +4,37 @@ const BASE_URL = () => {
   return `https://${sub}.desk365.io/apis/v3`
 }
 
+export interface Desk365Contact {
+  id: number
+  name: string
+  email?: string | null
+  mobile?: string | null
+  work_phone?: string | null
+  job_title?: string | null
+}
+
+export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return []
+
+  const all: Desk365Contact[] = []
+  let page = 1
+  while (true) {
+    const res = await fetch(`${base}/contacts?page=${page}&per_page=100`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) break
+    const json = await res.json() as { contacts?: Desk365Contact[] }
+    const contacts = json.contacts ?? []
+    all.push(...contacts)
+    if (contacts.length < 100) break
+    page++
+  }
+  return all
+}
+
 // Priority values: 1=Low, 5=Medium, 10=High, 20=Urgent
 const PRIORITY = { low: 1, medium: 5, high: 10, urgent: 20 } as const
 

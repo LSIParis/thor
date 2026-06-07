@@ -1,10 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
-import { deleteContact } from '@/actions/contacts'
-import { Pencil } from 'lucide-react'
+import { deleteContact, importContactsFromDesk365 } from '@/actions/contacts'
+import { Pencil, Download } from 'lucide-react'
 import type { Contact } from '@prisma/client'
 
 interface ContactListProps {
@@ -15,14 +16,40 @@ interface ContactListProps {
 
 export function ContactList({ contacts, clientId, canEdit }: ContactListProps) {
   const t = useTranslations('contacts')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; error?: string } | null>(null)
+
+  async function handleImport() {
+    setImporting(true)
+    setImportResult(null)
+    const result = await importContactsFromDesk365(clientId)
+    setImportResult(result ?? null)
+    setImporting(false)
+  }
 
   return (
     <div className="space-y-2">
       {canEdit && (
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Button asChild size="sm">
             <Link href={`/clients/${clientId}/contacts/new`}>{t('new')}</Link>
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleImport}
+            disabled={importing}
+          >
+            <Download size={14} className="mr-1.5" />
+            {importing ? 'Import en cours…' : 'Importer depuis Desk365'}
+          </Button>
+          {importResult && (
+            <span className={`text-xs ${importResult.error ? 'text-destructive' : 'text-emerald-600'}`}>
+              {importResult.error
+                ? importResult.error
+                : `${importResult.created} créé${importResult.created !== 1 ? 's' : ''}, ${importResult.updated} mis à jour`}
+            </span>
+          )}
         </div>
       )}
       {contacts.length === 0 && (
