@@ -5,6 +5,7 @@ import { createClient } from '@/actions/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PhoneInput } from '@/components/ui/phone-input'
 import Link from 'next/link'
 
 export default async function NewClientPage() {
@@ -25,8 +26,8 @@ export default async function NewClientPage() {
             <Input id="address" name="address" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="phone">{t('phone')}</Label>
-            <Input id="phone" name="phone" type="tel" />
+            <Label>{t('phone')}</Label>
+            <PhoneInput name="phone" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">{t('email')}</Label>

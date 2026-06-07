@@ -5,6 +5,7 @@ import { createContact } from '@/actions/contacts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PhoneInput } from '@/components/ui/phone-input'
 import Link from 'next/link'
 
 interface Props { params: Promise<{ id: string }> }
@@ -40,8 +41,8 @@ export default async function NewContactPage({ params }: Props) {
             <Input id="email" name="email" type="email" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="phone">{t('phone')}</Label>
-            <Input id="phone" name="phone" type="tel" />
+            <Label>{t('phone')}</Label>
+            <PhoneInput name="phone" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="notes">{t('notes')}</Label>

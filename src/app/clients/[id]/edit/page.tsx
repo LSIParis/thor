@@ -7,6 +7,7 @@ import { updateClient } from '@/actions/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PhoneInput } from '@/components/ui/phone-input'
 import Link from 'next/link'
 
 interface Props { params: Promise<{ id: string }> }
@@ -35,8 +36,8 @@ export default async function EditClientPage({ params }: Props) {
             <Input id="address" name="address" defaultValue={client.address ?? ''} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="phone">{t('phone')}</Label>
-            <Input id="phone" name="phone" defaultValue={client.phone ?? ''} />
+            <Label>{t('phone')}</Label>
+            <PhoneInput name="phone" defaultValue={client.phone ?? ''} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">{t('email')}</Label>

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, deleteMovement } from '@/actions/movements'
 import { LogIn, LogOut, Plus, X } from 'lucide-react'
 import { Tip } from '@/components/ui/tip'
+import { PhoneInput } from '@/components/ui/phone-input'
 import type { PersonnelMovement } from '@prisma/client'
 
 interface Props {
@@ -86,7 +87,7 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
 
         <div className="space-y-1">
           <Label className="text-xs">N° de mobile</Label>
-          <Input name="mobile" type="tel" className="h-8 text-sm" />
+          <PhoneInput name="mobile" />
         </div>
 
         <div className="space-y-1">
@@ -215,7 +216,7 @@ function EditRow({ m, clientId, colSpan, onClose, isClient }: {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Mobile</Label>
-            <Input name="mobile" type="tel" defaultValue={m.mobile ?? ''} className="h-8 text-sm" />
+            <PhoneInput name="mobile" defaultValue={m.mobile ?? ''} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email souhaité</Label>
