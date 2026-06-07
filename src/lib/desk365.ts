@@ -8,10 +8,10 @@ export interface Desk365Company {
   name: string
 }
 
-export async function createDesk365Company(name: string): Promise<string | null> {
+export async function createDesk365Company(name: string): Promise<{ name: string } | { error: string }> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
-  if (!base || !apiKey) return null
+  if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
   const res = await fetch(`${base}/companies/create`, {
     method: 'POST',
@@ -19,9 +19,19 @@ export async function createDesk365Company(name: string): Promise<string | null>
     body: JSON.stringify({ name, custom_fields: { cf_tenant_365: true } }),
     cache: 'no-store',
   })
-  if (!res.ok) return null
-  const json = await res.json() as { name?: string }
-  return json.name ?? name
+  const text = await res.text()
+  if (!res.ok) {
+    console.error('[desk365] createCompany error', res.status, text)
+    try {
+      const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
+      const msg = json.errors?.[0]?.message ?? json.description ?? `HTTP ${res.status}`
+      return { error: msg }
+    } catch {
+      return { error: `HTTP ${res.status}` }
+    }
+  }
+  const json = JSON.parse(text) as { name?: string }
+  return { name: json.name ?? name }
 }
 
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {

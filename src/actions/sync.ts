@@ -102,11 +102,11 @@ export async function createClientInDesk365(
   name: string
 ): Promise<{ companyName: string | null; error?: string }> {
   await requireAdmin()
-  const companyName = await createDesk365Company(name)
-  if (!companyName) return { companyName: null, error: 'Échec création Desk365' }
-  await prisma.client.update({ where: { id: localClientId }, data: { desk365Company: companyName } })
+  const result = await createDesk365Company(name)
+  if ('error' in result) return { companyName: null, error: result.error }
+  await prisma.client.update({ where: { id: localClientId }, data: { desk365Company: result.name } })
   revalidatePath('/clients')
-  return { companyName }
+  return { companyName: result.name }
 }
 
 export async function autoReconcile(): Promise<{ linked: number; created: number }> {
