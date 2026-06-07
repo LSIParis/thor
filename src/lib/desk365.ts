@@ -89,12 +89,10 @@ export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
       cache: 'no-store',
     })
     if (!res.ok) break
-    const json = await res.json() as { content?: Desk365Company[]; count?: number }
+    const json = await res.json() as { content?: Desk365Company[] }
     const companies = json.content ?? []
-    const total = json.count ?? 0
     all.push(...companies)
-    console.log(`[desk365] fetchCompanies page=${page} got=${companies.length} total=${total} accumulated=${all.length}`)
-    if (all.length >= total || companies.length === 0) break
+    if (companies.length < 100) break
     page++
   }
   const seen = new Set<string>()
