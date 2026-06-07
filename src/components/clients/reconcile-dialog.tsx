@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { loadSyncData, autoReconcile } from '@/actions/sync'
 import { X, Link2, AlertCircle, CheckCircle2, Circle } from 'lucide-react'
@@ -16,14 +16,13 @@ function normalize(s: string) {
 
 export function ReconcileDialog({ onClose }: Props) {
   const [data, setData] = useState<SyncData | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [reconcileResult, setReconcileResult] = useState<{ linked: number; created: number } | null>(null)
   const [, startTransition] = useTransition()
 
-  if (!data && !loading) {
-    setLoading(true)
+  useEffect(() => {
     loadSyncData().then((d) => { setData(d); setLoading(false) })
-  }
+  }, [])
 
   function handleReconcile() {
     startTransition(async () => {
