@@ -34,6 +34,33 @@ export async function createDesk365Company(name: string): Promise<{ name: string
   return { name: json.name ?? name }
 }
 
+export async function renameDesk365Company(oldName: string, newName: string): Promise<{ name: string } | { error: string }> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+
+  const encoded = encodeURIComponent(oldName)
+  const res = await fetch(`${base}/companies/${encoded}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName }),
+    cache: 'no-store',
+  })
+  const text = await res.text()
+  if (!res.ok) {
+    console.error('[desk365] renameCompany error', res.status, text)
+    try {
+      const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
+      const msg = json.errors?.[0]?.message ?? json.description ?? `HTTP ${res.status}`
+      return { error: msg }
+    } catch {
+      return { error: `HTTP ${res.status}` }
+    }
+  }
+  const json = JSON.parse(text) as { name?: string }
+  return { name: json.name ?? newName }
+}
+
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY

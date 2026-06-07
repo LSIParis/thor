@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
-import { fetchDesk365Companies, createDesk365Company } from '@/lib/desk365'
+import { fetchDesk365Companies, createDesk365Company, renameDesk365Company } from '@/lib/desk365'
 import { fetchRmmClients, createRmmClient } from '@/lib/rmm-client'
 import { decrypt } from '@/lib/crypto'
 import { revalidatePath } from 'next/cache'
@@ -107,6 +107,19 @@ export async function createClientInDesk365(
   await prisma.client.update({ where: { id: localClientId }, data: { desk365Company: result.name } })
   revalidatePath('/clients')
   return { companyName: result.name }
+}
+
+export async function renameCompanyInDesk365(
+  localClientId: string,
+  oldName: string,
+  newName: string
+): Promise<{ name: string | null; error?: string }> {
+  await requireAdmin()
+  const result = await renameDesk365Company(oldName, newName)
+  if ('error' in result) return { name: null, error: result.error }
+  await prisma.client.update({ where: { id: localClientId }, data: { desk365Company: result.name } })
+  revalidatePath('/clients')
+  return { name: result.name }
 }
 
 export async function autoReconcile(): Promise<{ linked: number; created: number }> {
