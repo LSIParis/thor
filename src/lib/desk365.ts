@@ -5,6 +5,7 @@ const BASE_URL = () => {
 }
 
 export interface Desk365Company {
+  id?: number
   name: string
 }
 
@@ -39,25 +40,37 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
-  const res = await fetch(`${base}/companies/update`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: oldName, new_name: newName }),
-    cache: 'no-store',
-  })
-  const text = await res.text()
-  console.log('[desk365] renameCompany', res.status, text)
-  if (!res.ok) {
-    try {
-      const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
-      const msg = json.errors?.[0]?.message ?? json.description ?? `HTTP ${res.status}`
-      return { error: msg }
-    } catch {
-      return { error: `HTTP ${res.status}: ${text.slice(0, 200)}` }
+  // Fetch company list to get numeric id
+  const companies = await fetchDesk365Companies()
+  const company = companies.find((c) => c.name === oldName)
+  console.log('[desk365] renameCompany: found company', company)
+  if (!company?.id) return { error: `Société "${oldName}" introuvable dans Desk365` }
+
+  const methods = ['PATCH', 'PUT'] as const
+  for (const method of methods) {
+    const res = await fetch(`${base}/companies/${company.id}`, {
+      method,
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+      cache: 'no-store',
+    })
+    const text = await res.text()
+    console.log(`[desk365] renameCompany ${method} /companies/${company.id}:`, res.status, text.slice(0, 300))
+    if (res.status === 405) continue
+    if (!res.ok) {
+      try {
+        const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
+        const msg = json.errors?.[0]?.message ?? json.description ?? `HTTP ${res.status}`
+        return { error: msg }
+      } catch {
+        return { error: `HTTP ${res.status}: ${text.slice(0, 200)}` }
+      }
     }
+    const json = JSON.parse(text) as { name?: string }
+    return { name: json.name ?? newName }
   }
-  const json = JSON.parse(text) as { name?: string }
-  return { name: json.name ?? newName }
+
+  return { error: 'Aucune méthode HTTP acceptée par Desk365 pour la mise à jour' }
 }
 
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
