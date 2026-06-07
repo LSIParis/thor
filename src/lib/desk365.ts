@@ -40,7 +40,7 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
   const res = await fetch(`${base}/companies/update`, {
-    method: 'PUT',
+    method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: oldName, new_name: newName }),
     cache: 'no-store',
