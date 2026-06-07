@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm } from '@/actions/sync'
+import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm, refreshDesk365Companies } from '@/actions/sync'
 import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2, Pencil } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
 
@@ -235,6 +235,11 @@ export function ReconcileDialog({ onClose }: Props) {
                           <select
                             value={link.desk365Company ?? ''}
                             onChange={(e) => setDesk365(client.id, e.target.value || null)}
+                            onFocus={() => {
+                              refreshDesk365Companies().then((fresh) =>
+                                setData((prev) => prev ? { ...prev, desk365Companies: fresh } : prev)
+                              )
+                            }}
                             className="flex-1 min-w-0 rounded border border-input bg-background px-2 py-1 text-sm"
                           >
                             <option value="">— aucun —</option>

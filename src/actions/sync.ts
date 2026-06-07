@@ -72,6 +72,22 @@ export async function loadSyncData(): Promise<SyncData> {
   }
 }
 
+export async function refreshDesk365Companies(): Promise<{ name: string }[]> {
+  await requireAdmin()
+  const [companies, localClients] = await Promise.all([
+    fetchDesk365Companies(),
+    prisma.client.findMany({ select: { desk365Company: true } }),
+  ])
+  const apiNames = new Set(companies.map((c) => c.name))
+  const extras = localClients
+    .map((c) => c.desk365Company)
+    .filter((n): n is string => !!n && !apiNames.has(n))
+  return [
+    ...companies.map((c) => ({ name: c.name })),
+    ...extras.map((name) => ({ name })),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+}
+
 export async function reconcileClients(
   links: { localClientId: string; rmmId: string | null; desk365Company: string | null }[]
 ) {
