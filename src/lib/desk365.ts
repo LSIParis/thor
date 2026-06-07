@@ -40,22 +40,30 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
-  // Fetch company list to get numeric id
-  const companies = await fetchDesk365Companies()
-  const company = companies.find((c) => c.name === oldName)
-  console.log('[desk365] renameCompany: found company', company)
-  if (!company?.id) return { error: `Société "${oldName}" introuvable dans Desk365` }
+  // Fetch raw company list to inspect structure and find id
+  const res0 = await fetch(`${base}/companies?page=1&per_page=100`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    cache: 'no-store',
+  })
+  const raw0 = await res0.json() as { content?: Record<string, unknown>[] }
+  const rawCompanies = raw0.content ?? []
+  console.log('[desk365] renameCompany: first company raw =', JSON.stringify(rawCompanies[0]))
+  const company = rawCompanies.find((c) => c['name'] === oldName)
+  console.log('[desk365] renameCompany: found =', JSON.stringify(company))
+  if (!company) return { error: `Société "${oldName}" introuvable dans Desk365 (${rawCompanies.length} sociétés récupérées)` }
+  const companyId = company['id'] ?? company['company_id'] ?? company['handle']
+  if (!companyId) return { error: `Champ id introuvable pour "${oldName}" — structure: ${Object.keys(company).join(', ')}` }
 
   const methods = ['PATCH', 'PUT'] as const
   for (const method of methods) {
-    const res = await fetch(`${base}/companies/${company.id}`, {
+    const res = await fetch(`${base}/companies/${companyId}`, {
       method,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newName }),
       cache: 'no-store',
     })
     const text = await res.text()
-    console.log(`[desk365] renameCompany ${method} /companies/${company.id}:`, res.status, text.slice(0, 300))
+    console.log(`[desk365] renameCompany ${method} /companies/${companyId}:`, res.status, text.slice(0, 300))
     if (res.status === 405) continue
     if (!res.ok) {
       try {
