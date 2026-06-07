@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientDetailTabs } from '@/components/clients/client-detail-tabs'
 import { ClientStats } from '@/components/clients/client-stats'
+import { SyncButton } from '@/components/clients/sync-button'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { deleteClient } from '@/actions/clients'
@@ -80,16 +81,19 @@ export default async function ClientDetailPage({ params }: Props) {
           {client.phone && <p className="text-muted-foreground text-sm">{client.phone}</p>}
           {client.email && <p className="text-muted-foreground text-sm">{client.email}</p>}
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`/clients/${id}/edit`}>{t('edit')}</Link>
-            </Button>
-            <form action={deleteWithId}>
-              <Button variant="destructive" type="submit">{t('delete')}</Button>
-            </form>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && <SyncButton clientId={id} />}
+          {isAdmin && (
+            <>
+              <Button variant="outline" asChild>
+                <Link href={`/clients/${id}/edit`}>{t('edit')}</Link>
+              </Button>
+              <form action={deleteWithId}>
+                <Button variant="destructive" type="submit">{t('delete')}</Button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
       <ClientStats
         contactsCount={client.contacts.length}
