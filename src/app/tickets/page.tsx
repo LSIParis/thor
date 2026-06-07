@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/access'
 import { fetchDesk365Tickets } from '@/lib/desk365'
-import { AlertCircle, CheckCircle2, Clock, Inbox, AlertTriangle, Zap, Minus, ChevronUp } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock, Inbox, AlertTriangle, Zap, Minus, ChevronUp, ExternalLink } from 'lucide-react'
+import { AddTicketDialog } from '@/components/tickets/add-ticket-dialog'
 
 const PRIORITY_LABEL: Record<number, string> = { 1: 'Faible', 5: 'Moyen', 10: 'Élevé', 20: 'Urgent' }
 const PRIORITY_COLOR: Record<number, string> = {
@@ -43,6 +44,7 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 export default async function TicketsPage() {
   await requireAuth()
 
+  const subdomain = process.env.DESK365_SUBDOMAIN ?? ''
   const { tickets, total } = await fetchDesk365Tickets()
 
   const byStatus = tickets.reduce<Record<string, number>>((acc, t) => {
@@ -80,9 +82,12 @@ export default async function TicketsPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">Tickets</h1>
-        <p className="text-sm text-muted-foreground">{total} tickets au total dans Desk365</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Tickets</h1>
+          <p className="text-sm text-muted-foreground">{total} tickets au total dans Desk365</p>
+        </div>
+        <AddTicketDialog />
       </div>
 
       {/* Stats par statut */}
@@ -152,6 +157,7 @@ export default async function TicketsPage() {
                 <th className="px-4 py-2 text-left">Priorité</th>
                 <th className="px-4 py-2 text-left">Technicien</th>
                 <th className="px-4 py-2 text-left">Créé le</th>
+                <th className="px-4 py-2" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -174,11 +180,21 @@ export default async function TicketsPage() {
                   </td>
                   <td className="px-4 py-2 text-muted-foreground text-xs">{t.assigned_to?.split('@')[0] ?? '—'}</td>
                   <td className="px-4 py-2 text-muted-foreground text-xs">{fmt(t.created_on)}</td>
+                  <td className="px-4 py-2 shrink-0">
+                    <a
+                      href={`https://${subdomain}.desk365.io/agent/tickets/${t.ticket_number}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary whitespace-nowrap"
+                    >
+                      <ExternalLink size={12} /> Consulter
+                    </a>
+                  </td>
                 </tr>
               ))}
               {recent.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">Aucun ticket ouvert</td>
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Aucun ticket ouvert</td>
                 </tr>
               )}
             </tbody>
