@@ -51,8 +51,13 @@ export async function importContactsFromDesk365(clientId: string) {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return { created: 0, updated: 0, error: 'Accès refusé' }
 
-  const raw = await fetchDesk365Contacts()
-  if (raw.length === 0) return { created: 0, updated: 0, error: 'Aucun contact récupéré depuis Desk365 (vérifiez la configuration)' }
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { desk365Company: true } })
+  const allRaw = await fetchDesk365Contacts()
+  const raw = client?.desk365Company
+    ? allRaw.filter((c) => c.company_name === client.desk365Company)
+    : allRaw
+
+  if (raw.length === 0) return { created: 0, updated: 0, error: client?.desk365Company ? `Aucun contact pour la société "${client.desk365Company}" dans Desk365` : 'Aucun contact récupéré depuis Desk365 (vérifiez la configuration)' }
 
   let created = 0
   let updated = 0

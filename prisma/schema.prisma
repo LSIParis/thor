@@ -30,8 +30,9 @@ model User {
 model Client {
   id            String       @id @default(cuid())
   name          String
-  tacticalRmmId String?      @unique
-  address       String?
+  tacticalRmmId  String?      @unique
+  desk365Company String?
+  address        String?
   phone         String?
   email         String?
   logoPath      String?

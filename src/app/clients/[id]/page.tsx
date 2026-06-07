@@ -82,7 +82,7 @@ export default async function ClientDetailPage({ params }: Props) {
           {client.email && <p className="text-muted-foreground text-sm">{client.email}</p>}
         </div>
         <div className="flex items-center gap-2">
-          {canEdit && <SyncButton clientId={id} />}
+          {canEdit && <SyncButton />}
           {isAdmin && (
             <>
               <Button variant="outline" asChild>

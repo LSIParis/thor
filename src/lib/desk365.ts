@@ -4,13 +4,39 @@ const BASE_URL = () => {
   return `https://${sub}.desk365.io/apis/v3`
 }
 
+export interface Desk365Company {
+  name: string
+}
+
+export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return []
+
+  const all: Desk365Company[] = []
+  let page = 1
+  while (true) {
+    const res = await fetch(`${base}/companies?page=${page}&per_page=100`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) break
+    const json = await res.json() as { content?: Desk365Company[]; count?: number }
+    const companies = json.content ?? []
+    all.push(...companies)
+    if (companies.length < 100) break
+    page++
+  }
+  return all
+}
+
 export interface Desk365Contact {
   name: string
   primary_email?: string | null
   mobile?: string | null
   phone?: string | null
   title?: string | null
-  company_name?: string | null
+  company_name?: string | null  // société dans Desk365
 }
 
 export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
