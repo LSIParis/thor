@@ -5,12 +5,12 @@ const BASE_URL = () => {
 }
 
 export interface Desk365Contact {
-  id: number
   name: string
-  email?: string | null
+  primary_email?: string | null
   mobile?: string | null
-  work_phone?: string | null
-  job_title?: string | null
+  phone?: string | null
+  title?: string | null
+  company_name?: string | null
 }
 
 export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
@@ -26,8 +26,8 @@ export async function fetchDesk365Contacts(): Promise<Desk365Contact[]> {
       cache: 'no-store',
     })
     if (!res.ok) break
-    const json = await res.json() as { contacts?: Desk365Contact[] }
-    const contacts = json.contacts ?? []
+    const json = await res.json() as { content?: Desk365Contact[]; count?: number }
+    const contacts = json.content ?? []
     all.push(...contacts)
     if (contacts.length < 100) break
     page++

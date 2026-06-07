@@ -62,9 +62,9 @@ export async function importContactsFromDesk365(clientId: string) {
     const parts = c.name.trim().split(/\s+/)
     const firstName = parts[0]
     const lastName = parts.slice(1).join(' ') || '—'
-    const phone = c.mobile || c.work_phone || null
-    const email = c.email || null
-    const role = c.job_title || null
+    const phone = c.mobile || c.phone || null
+    const email = c.primary_email || null
+    const role = c.title || null
 
     if (email) {
       const existing = await prisma.contact.findFirst({ where: { clientId, email } })
