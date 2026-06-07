@@ -41,8 +41,11 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   )
 }
 
-export default async function TicketsPage() {
+export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireAuth()
+
+  const { tab } = await searchParams
+  const isHistorique = tab === 'historique'
 
   const subdomain = process.env.DESK365_SUBDOMAIN ?? ''
   const { tickets, total } = await fetchDesk365Tickets()
@@ -75,10 +78,16 @@ export default async function TicketsPage() {
       return acc
     }, {})
 
-  const recent = [...tickets]
+  const active = [...tickets]
     .filter((t) => t.status === 'Open' || t.status === 'Pending')
     .sort((a, b) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime())
-    .slice(0, 30)
+
+  const historique = [...tickets]
+    .filter((t) => t.status === 'Resolved' || t.status === 'Closed')
+    .sort((a, b) => new Date(b.updated_on).getTime() - new Date(a.updated_on).getTime())
+    .slice(0, 100)
+
+  const displayed = isHistorique ? historique : active
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -141,10 +150,21 @@ export default async function TicketsPage() {
         </div>
       </div>
 
-      {/* Tickets ouverts/en attente récents */}
+      {/* Onglets */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold">Tickets ouverts / en attente</h2>
+        <div className="flex items-center border-b border-border">
+          <a
+            href="/tickets"
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${!isHistorique ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Actifs <span className="ml-1.5 text-xs bg-muted rounded-full px-1.5 py-0.5">{active.length}</span>
+          </a>
+          <a
+            href="/tickets?tab=historique"
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${isHistorique ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            Historique <span className="ml-1.5 text-xs bg-muted rounded-full px-1.5 py-0.5">{historique.length}</span>
+          </a>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -161,7 +181,7 @@ export default async function TicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {recent.map((t) => (
+              {displayed.map((t) => (
                 <tr key={t.ticket_number} className="hover:bg-muted/20">
                   <td className="px-4 py-2 text-muted-foreground font-mono text-xs">{t.ticket_number}</td>
                   <td className="px-4 py-2 max-w-[280px]">
@@ -192,9 +212,11 @@ export default async function TicketsPage() {
                   </td>
                 </tr>
               ))}
-              {recent.length === 0 && (
+              {displayed.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Aucun ticket ouvert</td>
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                    {isHistorique ? 'Aucun ticket terminé' : 'Aucun ticket ouvert'}
+                  </td>
                 </tr>
               )}
             </tbody>
