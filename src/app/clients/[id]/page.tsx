@@ -50,11 +50,13 @@ export default async function ClientDetailPage({ params }: Props) {
       sslCertificates: { orderBy: { domain: 'asc' } },
       hostings: { orderBy: { name: 'asc' } },
       registrarConfigs: true,
+      personnelMovements: { orderBy: { date: 'desc' } },
     },
   })
   if (!client) notFound()
 
   const isAdmin = session.user.role === 'ADMIN'
+  const isClient = session.user.role === 'CLIENT'
   const canEdit = session.user.role === 'ADMIN' || session.user.role === 'TECH'
   const deleteWithId = deleteClient.bind(null, id)
 
@@ -115,7 +117,9 @@ export default async function ClientDetailPage({ params }: Props) {
         sslCerts={client.sslCertificates}
         hostings={client.hostings}
         registrarConfigs={client.registrarConfigs}
+        movements={client.personnelMovements}
         canEdit={canEdit}
+        isClient={isClient}
         hasRmmLink={!!client.tacticalRmmId}
       />
     </AppLayout>

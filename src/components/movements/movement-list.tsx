@@ -19,7 +19,7 @@ interface Props {
 function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClose: () => void; isClient?: boolean }) {
   const [movType, setMovType] = useState('ENTREE')
   const [entryType, setEntryType] = useState('EMPLOI')
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const createWithClientId = createMovement.bind(null, clientId)
   const transmitWithClientId = transmitMovement.bind(null, clientId)
 
@@ -38,12 +38,8 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="space-y-1">
           <Label className="text-xs">Mouvement *</Label>
-          <select
-            name="type"
-            value={movType}
-            onChange={(e) => setMovType(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
+          <select name="type" value={movType} onChange={(e) => setMovType(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="ENTREE">Entrée</option>
             <option value="SORTIE">Sortie</option>
           </select>
@@ -51,13 +47,9 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
 
         <div className="space-y-1">
           <Label className="text-xs">Type d'entrée</Label>
-          <select
-            name="entryType"
-            value={entryType}
-            onChange={(e) => setEntryType(e.target.value)}
+          <select name="entryType" value={entryType} onChange={(e) => setEntryType(e.target.value)}
             disabled={movType !== 'ENTREE'}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-40"
-          >
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-40">
             <option value="EMPLOI">Emploi</option>
             <option value="STAGE">Stage</option>
           </select>
@@ -65,26 +57,16 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
 
         <div className="space-y-1">
           <Label className="text-xs">Durée prévue (mois)</Label>
-          <Input
-            name="internshipMonths"
-            type="number"
-            min={1}
-            max={24}
-            placeholder="ex: 6"
+          <Input name="internshipMonths" type="number" min={1} max={24} placeholder="ex: 6"
             disabled={movType !== 'ENTREE' || entryType !== 'STAGE'}
-            className="h-8 text-sm disabled:opacity-40"
-          />
+            className="h-8 text-sm disabled:opacity-40" />
         </div>
 
         <div className="space-y-1">
           <Label className="text-xs">Date *</Label>
-          <Input
-            name="date"
-            type="date"
-            required
+          <Input name="date" type="date" required
             defaultValue={new Date().toISOString().split('T')[0]}
-            className="h-8 text-sm"
-          />
+            className="h-8 text-sm" />
         </div>
 
         <div className="space-y-1">
@@ -114,10 +96,15 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
 
         <div className="space-y-1">
           <Label className="text-xs">Accès VPN</Label>
-          <select
-            name="accessVPN"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
+          <select name="accessVPN" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="false">Non</option>
+            <option value="true">Oui</option>
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Accès serveur</Label>
+          <select name="accessServer" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="false">Non</option>
             <option value="true">Oui</option>
           </select>
@@ -126,10 +113,7 @@ function MovementForm({ clientId, onClose, isClient }: { clientId: string; onClo
         {!isClient && (
           <div className="space-y-1">
             <Label className="text-xs">État</Label>
-            <select
-              name="status"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
+            <select name="status" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
               <option value="EN_ATTENTE">En attente</option>
               <option value="DEMANDE_EFFECTUEE">Demande effectuée</option>
               <option value="ATTENTE_SIGNATURE">Attente de signature</option>
@@ -172,22 +156,12 @@ const STATUS_CLASS: Record<string, string> = {
   TERMINE: 'bg-muted text-muted-foreground',
 }
 
-function EditRow({
-  m,
-  clientId,
-  colSpan,
-  onClose,
-  isClient,
-}: {
-  m: PersonnelMovement
-  clientId: string
-  colSpan: number
-  onClose: () => void
-  isClient?: boolean
+function EditRow({ m, clientId, colSpan, onClose, isClient }: {
+  m: PersonnelMovement; clientId: string; colSpan: number; onClose: () => void; isClient?: boolean
 }) {
   const [movType, setMovType] = useState(m.type)
   const [entryType, setEntryType] = useState(m.entryType ?? 'EMPLOI')
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const updateWithIds = updateMovement.bind(null, m.id, clientId)
 
   return (
@@ -255,6 +229,14 @@ function EditRow({
               <option value="true">Oui</option>
             </select>
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Accès serveur</Label>
+            <select name="accessServer" defaultValue={m.accessServer ? 'true' : 'false'}
+              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
+              <option value="false">Non</option>
+              <option value="true">Oui</option>
+            </select>
+          </div>
           {!isClient && (
             <div className="space-y-1">
               <Label className="text-xs">État</Label>
@@ -288,10 +270,13 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
   const [, startTransition] = useTransition()
 
   const sorted = [...movements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const showActions = canEdit || isClient
+  const colSpan = 11 + (showActions ? 1 : 0)
+  const run = (fn: () => Promise<unknown>) => startTransition(async () => { await fn() })
 
   return (
     <div className="space-y-3">
-      {canEdit && (
+      {(canEdit || isClient) && (
         <div>
           {!showForm ? (
             <Button size="sm" onClick={() => setShowForm(true)}>
@@ -320,17 +305,16 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                 <th className="px-3 py-2 text-left font-medium">Mobile</th>
                 <th className="px-3 py-2 text-left font-medium">Email</th>
                 <th className="px-3 py-2 text-left font-medium">VPN</th>
+                <th className="px-3 py-2 text-left font-medium">Serveur</th>
                 <th className="px-3 py-2 text-left font-medium">État</th>
                 <th className="px-3 py-2 text-left font-medium">Notes</th>
-                {canEdit && <th className="px-3 py-2" />}
+                {showActions && <th className="px-3 py-2" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {sorted.map((m) => {
                 const isEntree = m.type === 'ENTREE'
                 const isEditing = editingId === m.id
-                const colSpan = 9 + (canEdit ? 1 : 0) + 1
-                const run = (fn: () => Promise<unknown>) => startTransition(async () => { await fn() })
 
                 return (
                   <Fragment key={m.id}>
@@ -356,24 +340,31 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                           {m.accessVPN ? 'Oui' : 'Non'}
                         </span>
                       </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`text-xs font-medium ${m.accessServer ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                          {m.accessServer ? 'Oui' : 'Non'}
+                        </span>
+                      </td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${STATUS_CLASS[m.status] ?? STATUS_CLASS.EN_ATTENTE}`}>
                           {STATUS_LABEL[m.status] ?? m.status}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground italic max-w-[200px] truncate">{m.notes ?? ''}</td>
-                      {canEdit && (
+                      {showActions && (
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             {m.status === 'EN_ATTENTE' && (
                               <>
-                                <Tip label={isEditing ? 'Fermer le formulaire d\'édition' : 'Modifier les informations de ce mouvement'}>
-                                  <Button variant="ghost" size="sm" type="button"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() => setEditingId(isEditing ? null : m.id)}>
-                                    {isEditing ? 'Fermer' : 'Éditer'}
-                                  </Button>
-                                </Tip>
+                                {canEdit && (
+                                  <Tip label={isEditing ? "Fermer le formulaire d'édition" : 'Modifier les informations de ce mouvement'}>
+                                    <Button variant="ghost" size="sm" type="button"
+                                      className="h-6 px-2 text-xs"
+                                      onClick={() => setEditingId(isEditing ? null : m.id)}>
+                                      {isEditing ? 'Fermer' : 'Éditer'}
+                                    </Button>
+                                  </Tip>
+                                )}
                                 <Tip label="Transmettre la demande à LSI et passer en statut « Demande effectuée »">
                                   <Button variant="ghost" size="sm" type="button"
                                     className="text-blue-600 h-6 px-2 text-xs"
@@ -381,16 +372,18 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                                     Envoyer
                                   </Button>
                                 </Tip>
-                                <Tip label="Supprimer définitivement ce mouvement">
-                                  <Button variant="ghost" size="sm" type="button"
-                                    className="text-destructive h-6 px-2 text-xs"
-                                    onClick={() => run(() => deleteMovement(m.id, clientId))}>
-                                    Suppr.
-                                  </Button>
-                                </Tip>
+                                {canEdit && (
+                                  <Tip label="Supprimer définitivement ce mouvement">
+                                    <Button variant="ghost" size="sm" type="button"
+                                      className="text-destructive h-6 px-2 text-xs"
+                                      onClick={() => run(() => deleteMovement(m.id, clientId))}>
+                                      Suppr.
+                                    </Button>
+                                  </Tip>
+                                )}
                               </>
                             )}
-                            {m.status === 'DEMANDE_EFFECTUEE' && (
+                            {m.status === 'DEMANDE_EFFECTUEE' && canEdit && (
                               <Tip label="Annuler la demande et repasser en statut « En attente »">
                                 <Button variant="ghost" size="sm" type="button"
                                   className="text-amber-600 h-6 px-2 text-xs"
@@ -403,7 +396,7 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                         </td>
                       )}
                     </tr>
-                    {isEditing && (
+                    {isEditing && canEdit && (
                       <EditRow
                         m={m}
                         clientId={clientId}

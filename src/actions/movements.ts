@@ -122,13 +122,19 @@ export async function transmitMovement(clientId: string, formData: FormData) {
 
 export async function sendMovementRequest(movementId: string, clientId: string) {
   const session = await requireAuth()
-  if (session.user.role === 'CLIENT') return
+
+  if (session.user.role === 'CLIENT') {
+    const access = await prisma.userClient.findUnique({
+      where: { userId_clientId: { userId: session.user.id, clientId } },
+    })
+    if (!access) return
+  }
 
   const m = await prisma.personnelMovement.findUnique({
     where: { id: movementId, status: 'EN_ATTENTE' },
     include: { client: { select: { name: true } } },
   })
-  if (!m) return
+  if (!m || m.clientId !== clientId) return
 
   await prisma.personnelMovement.update({
     where: { id: movementId },

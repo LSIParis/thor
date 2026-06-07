@@ -9,12 +9,14 @@ import { M365Panel } from '@/components/m365/m365-panel'
 import { NextcloudPanel } from '@/components/nextcloud/nextcloud-panel'
 import { VoipPanel } from '@/components/voip/voip-panel'
 import { DnsPanel } from '@/components/dns/dns-panel'
+import { MovementList } from '@/components/movements/movement-list'
 import type {
   Contact, Equipment,
   M365Tenant, M365Domain, M365Account,
   NextcloudService, NextcloudServer,
   VoipService, VoipEquipment, VoipTrunk, VoipExtension,
   DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig,
+  PersonnelMovement,
 } from '@prisma/client'
 
 type TenantWithRelations = M365Tenant & { domains: M365Domain[]; accounts: M365Account[] }
@@ -36,7 +38,9 @@ interface ClientDetailTabsProps {
   sslCerts: SslCertificate[]
   hostings: Hosting[]
   registrarConfigs: RegistrarConfig[]
+  movements: PersonnelMovement[]
   canEdit: boolean
+  isClient?: boolean
   hasRmmLink?: boolean
 }
 
@@ -44,7 +48,7 @@ export function ClientDetailTabs({
   clientId, contacts, equipment,
   m365Tenants, nextcloudServices, voipServices,
   dnsZones, sslCerts, hostings, registrarConfigs,
-  canEdit, hasRmmLink,
+  movements, canEdit, isClient, hasRmmLink,
 }: ClientDetailTabsProps) {
   const t = useTranslations('clients')
   const searchParams = useSearchParams()
@@ -61,6 +65,7 @@ export function ClientDetailTabs({
         <TabsTrigger value="m365">Microsoft 365 ({m365Tenants.length})</TabsTrigger>
         <TabsTrigger value="nextcloud">Nextcloud ({nextcloudServices.length})</TabsTrigger>
         <TabsTrigger value="voip">VoIP ({voipServices.length})</TabsTrigger>
+        <TabsTrigger value="movements">Entrées/Sorties ({movements.length})</TabsTrigger>
       </TabsList>
       <TabsContent value="contacts" className="mt-4">
         <ContactList contacts={contacts} clientId={clientId} canEdit={canEdit} />
@@ -86,6 +91,9 @@ export function ClientDetailTabs({
       </TabsContent>
       <TabsContent value="voip" className="mt-4">
         <VoipPanel clientId={clientId} services={voipServices} canEdit={canEdit} />
+      </TabsContent>
+      <TabsContent value="movements" className="mt-4">
+        <MovementList movements={movements} clientId={clientId} canEdit={canEdit} isClient={isClient} />
       </TabsContent>
     </Tabs>
   )
