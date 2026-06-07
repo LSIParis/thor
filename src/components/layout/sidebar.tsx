@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, LogOut, User, ArrowLeftRight } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight, LogOut, User, ArrowLeftRight, Ticket } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -28,11 +28,13 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
             ? [{ href: `/clients/${linkedClientId}`, label: 'Mon espace', icon: Users }]
             : []),
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+          { href: '/tickets', label: 'Tickets', icon: Ticket },
         ]
       : [
           { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
           { href: '/clients', label: t('clients'), icon: Users },
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+          { href: '/tickets', label: 'Tickets', icon: Ticket },
           ...(userRole === 'ADMIN'
             ? [{ href: '/admin', label: t('admin'), icon: Settings }]
             : []),
