@@ -40,31 +40,27 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
-  // Fetch raw company list to inspect structure and find id
-  const res0 = await fetch(`${base}/companies?page=1&per_page=100`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-    cache: 'no-store',
-  })
-  const raw0 = await res0.json() as { content?: Record<string, unknown>[] }
-  const rawCompanies = raw0.content ?? []
-  console.log('[desk365] renameCompany: first company raw =', JSON.stringify(rawCompanies[0]))
-  const company = rawCompanies.find((c) => c['name'] === oldName)
-  console.log('[desk365] renameCompany: found =', JSON.stringify(company))
-  if (!company) return { error: `Société "${oldName}" introuvable dans Desk365 (${rawCompanies.length} sociétés récupérées)` }
-  const companyId = company['id'] ?? company['company_id'] ?? company['handle']
-  if (!companyId) return { error: `Champ id introuvable pour "${oldName}" — structure: ${Object.keys(company).join(', ')}` }
+  const encoded = encodeURIComponent(oldName)
+  // Desk365 identifies companies by name (no numeric id in API).
+  // Try PATCH then POST on /companies/{name}.
+  const attempts: { method: string; url: string; body: unknown }[] = [
+    { method: 'PATCH', url: `${base}/companies/${encoded}`, body: { name: newName } },
+    { method: 'POST',  url: `${base}/companies/${encoded}`, body: { name: newName } },
+    { method: 'PUT',   url: `${base}/companies/${encoded}`, body: { name: newName } },
+    { method: 'PATCH', url: `${base}/companies/update`,     body: { name: oldName, new_name: newName } },
+    { method: 'POST',  url: `${base}/companies/update`,     body: { name: oldName, new_name: newName } },
+  ]
 
-  const methods = ['PATCH', 'PUT'] as const
-  for (const method of methods) {
-    const res = await fetch(`${base}/companies/${companyId}`, {
+  for (const { method, url, body } of attempts) {
+    const res = await fetch(url, {
       method,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName }),
+      body: JSON.stringify(body),
       cache: 'no-store',
     })
     const text = await res.text()
-    console.log(`[desk365] renameCompany ${method} /companies/${companyId}:`, res.status, text.slice(0, 300))
-    if (res.status === 405) continue
+    console.log(`[desk365] renameCompany ${method} ${url}:`, res.status, text.slice(0, 200))
+    if (res.status === 405 || res.status === 404) continue
     if (!res.ok) {
       try {
         const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
@@ -74,11 +70,10 @@ export async function renameDesk365Company(oldName: string, newName: string): Pr
         return { error: `HTTP ${res.status}: ${text.slice(0, 200)}` }
       }
     }
-    const json = JSON.parse(text) as { name?: string }
-    return { name: json.name ?? newName }
+    return { name: newName }
   }
 
-  return { error: 'Aucune méthode HTTP acceptée par Desk365 pour la mise à jour' }
+  return { error: "L'API Desk365 ne permet pas de renommer une société (aucun endpoint accepté)" }
 }
 
 export async function fetchDesk365Companies(): Promise<Desk365Company[]> {
