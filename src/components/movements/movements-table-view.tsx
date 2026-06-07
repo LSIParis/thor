@@ -4,7 +4,7 @@ import { useState, useMemo, Fragment, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, deleteMovement } from '@/actions/movements'
+import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, validateMovement, deleteMovement } from '@/actions/movements'
 import { LogIn, LogOut, Plus, X } from 'lucide-react'
 import { Tip } from '@/components/ui/tip'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -480,11 +480,11 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                               </>
                             )}
                             {m.status === 'DEMANDE_EFFECTUEE' && (
-                              <Tip label="Annuler la demande et repasser en statut « En attente »">
+                              <Tip label="Valider la demande : passe en statut « Actif » (entrée) ou « Terminé » (sortie)">
                                 <Button variant="ghost" size="sm" type="button"
-                                  className="text-amber-600 h-6 px-2 text-xs"
-                                  onClick={() => run(() => cancelMovementRequest(m.id, m.clientId))}>
-                                  Annuler la demande
+                                  className="text-emerald-600 h-6 px-2 text-xs"
+                                  onClick={() => run(() => validateMovement(m.id, m.clientId))}>
+                                  Valider la demande
                                 </Button>
                               </Tip>
                             )}

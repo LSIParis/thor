@@ -195,6 +195,24 @@ export async function cancelMovementRequest(movementId: string, clientId: string
   revalidatePath('/mouvements')
 }
 
+export async function validateMovement(movementId: string, clientId: string) {
+  const session = await requireAuth()
+  if (session.user.role === 'CLIENT') return
+
+  const m = await prisma.personnelMovement.findUnique({
+    where: { id: movementId, status: 'DEMANDE_EFFECTUEE' },
+  })
+  if (!m || m.clientId !== clientId) return
+
+  const nextStatus = m.type === 'SORTIE' ? 'TERMINE' : 'ACTIF'
+  await prisma.personnelMovement.update({
+    where: { id: movementId },
+    data: { status: nextStatus },
+  })
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/mouvements')
+}
+
 export async function updateMovement(movementId: string, clientId: string, formData: FormData) {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return
