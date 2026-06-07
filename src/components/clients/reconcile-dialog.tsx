@@ -284,19 +284,17 @@ export function ReconcileDialog({ onClose }: Props) {
                               <option key={c.name} value={c.name} />
                             ))}
                           </datalist>
-                          {!link.desk365Company && (
-                            <button
-                              type="button"
-                              title={`Créer "${client.name}" dans Desk365`}
-                              onClick={() => handleCreateDesk365(client.id, client.name)}
-                              disabled={!!creating}
-                              className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-muted-foreground/50 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-40"
-                            >
-                              {creating === `${client.id}-desk365`
-                                ? <Loader2 size={11} className="animate-spin" />
-                                : <Plus size={11} />}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            title={`Créer "${client.name}" dans Desk365`}
+                            onClick={() => handleCreateDesk365(client.id, client.name)}
+                            disabled={!!creating}
+                            className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-muted-foreground/50 text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-40"
+                          >
+                            {creating === `${client.id}-desk365`
+                              ? <Loader2 size={11} className="animate-spin" />
+                              : <Plus size={11} />}
+                          </button>
                         </div>
                       </td>
                     </tr>
