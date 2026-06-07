@@ -17,7 +17,7 @@ export async function createDesk365Company(name: string): Promise<{ name: string
   const res = await fetch(`${base}/companies/create`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, custom_fields: { cf_tenant_365: true } }),
+    body: JSON.stringify({ name }),
     cache: 'no-store',
   })
   const text = await res.text()
