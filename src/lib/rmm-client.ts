@@ -60,6 +60,20 @@ export async function renameRmmClient(baseUrl: string, apiKey: string, rmmId: st
   }
 }
 
+export async function deleteRmmClient(baseUrl: string, apiKey: string, rmmId: string): Promise<{ ok: true } | { error: string }> {
+  const url = baseUrl.replace(/\/$/, '')
+  try {
+    await axios.delete(`${url}/clients/${rmmId}/`, {
+      headers: { 'X-API-KEY': apiKey },
+      timeout: 10000,
+    })
+    return { ok: true }
+  } catch (err: unknown) {
+    const msg = (err as { message?: string })?.message ?? 'Erreur inconnue'
+    return { error: `Échec suppression RMM: ${msg}` }
+  }
+}
+
 export async function createRmmClient(baseUrl: string, apiKey: string, name: string): Promise<string | null> {
   const url = baseUrl.replace(/\/$/, '')
   try {

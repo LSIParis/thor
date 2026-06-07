@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm, refreshDesk365Companies } from '@/actions/sync'
+import { loadSyncData, autoReconcile, reconcileClients, createClientInRmm, createClientInDesk365, renameClientInRmm, refreshDesk365Companies, deleteClientFromRmm } from '@/actions/sync'
 import { deleteClient } from '@/actions/clients'
 import { X, Link2, Save, CheckCircle2, AlertCircle, Plus, Loader2, Pencil, Trash2 } from 'lucide-react'
 import type { SyncData } from '@/actions/sync'
@@ -23,7 +23,7 @@ export function ReconcileDialog({ onClose }: Props) {
   const [links, setLinks] = useState<LinkMap>({})
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState<string | null>(null) // localClientId + source
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // localClientId en attente de confirmation
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // key en attente de confirmation
   const [notice, setNotice] = useState<{ ok: boolean; msg: string } | null>(null)
   const [, startTransition] = useTransition()
 
@@ -65,6 +65,16 @@ export function ReconcileDialog({ onClose }: Props) {
     setCreating(`${localClientId}-delete`)
     setNotice(null)
     await deleteClient(localClientId)
+    setConfirmDelete(null)
+    await refreshData()
+    setCreating(null)
+  }
+
+  async function handleDeleteRmm(localClientId: string, rmmId: string) {
+    setCreating(`${localClientId}-rmm-delete`)
+    setNotice(null)
+    const res = await deleteClientFromRmm(localClientId, rmmId)
+    if (res.error) setNotice({ ok: false, msg: res.error })
     setConfirmDelete(null)
     await refreshData()
     setCreating(null)
@@ -202,7 +212,7 @@ export function ReconcileDialog({ onClose }: Props) {
                               title={`Supprimer "${client.name}"`}
                               onClick={() => setConfirmDelete(client.id)}
                               disabled={!!creating}
-                              className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity disabled:opacity-40"
+                              className="shrink-0 text-muted-foreground hover:text-destructive disabled:opacity-40"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -245,20 +255,37 @@ export function ReconcileDialog({ onClose }: Props) {
                             if (!link.rmmId) return null
                             const targetName = link.desk365Company ?? client.name
                             const rmmName = data.rmmClients.find((r) => r.id === link.rmmId)?.name
-                            if (!rmmName || rmmName === targetName) return null
-                            return (
-                              <button
-                                type="button"
-                                title={`Renommer "${rmmName}" → "${targetName}" dans TacticalRMM`}
-                                onClick={() => handleRenameRmm(client.id, link.rmmId!, targetName)}
-                                disabled={!!creating}
-                                className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-amber-400 text-amber-500 hover:border-amber-600 hover:text-amber-700 disabled:opacity-40"
-                              >
-                                {creating === `${client.id}-rmm-rename`
-                                  ? <Loader2 size={11} className="animate-spin" />
-                                  : <Pencil size={11} />}
-                              </button>
-                            )
+                            const key = `${client.id}-rmm-delete`
+                            return (<>
+                              {rmmName && rmmName !== targetName && (
+                                <button
+                                  type="button"
+                                  title={`Renommer "${rmmName}" → "${targetName}" dans TacticalRMM`}
+                                  onClick={() => handleRenameRmm(client.id, link.rmmId!, targetName)}
+                                  disabled={!!creating}
+                                  className="shrink-0 flex items-center justify-center w-6 h-6 rounded border border-dashed border-amber-400 text-amber-500 hover:border-amber-600 hover:text-amber-700 disabled:opacity-40"
+                                >
+                                  {creating === `${client.id}-rmm-rename`
+                                    ? <Loader2 size={11} className="animate-spin" />
+                                    : <Pencil size={11} />}
+                                </button>
+                              )}
+                              {confirmDelete === key ? (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button type="button" onClick={() => handleDeleteRmm(client.id, link.rmmId!)} disabled={!!creating}
+                                    className="text-xs px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground hover:bg-destructive/80 disabled:opacity-40">
+                                    {creating === key ? <Loader2 size={10} className="animate-spin" /> : 'Confirmer'}
+                                  </button>
+                                  <button type="button" onClick={() => setConfirmDelete(null)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                                </div>
+                              ) : (
+                                <button type="button" title="Supprimer de TacticalRMM" onClick={() => setConfirmDelete(key)}
+                                  disabled={!!creating}
+                                  className="shrink-0 text-muted-foreground hover:text-destructive disabled:opacity-40">
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </>)
                           })()}
                         </div>
                       </td>

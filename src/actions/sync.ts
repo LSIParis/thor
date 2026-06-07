@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { fetchDesk365Companies, createDesk365Company } from '@/lib/desk365'
-import { fetchRmmClients, createRmmClient, renameRmmClient } from '@/lib/rmm-client'
+import { fetchRmmClients, createRmmClient, renameRmmClient, deleteRmmClient } from '@/lib/rmm-client'
 import { decrypt } from '@/lib/crypto'
 import { revalidatePath } from 'next/cache'
 
@@ -149,6 +149,23 @@ export async function renameClientInRmm(
   if (!urlSetting?.value || !keySetting?.value) return { error: 'RMM non configuré' }
   const result = await renameRmmClient(urlSetting.value, decrypt(keySetting.value), rmmId, newName)
   if ('error' in result) return { error: result.error }
+  revalidatePath('/clients')
+  return {}
+}
+
+export async function deleteClientFromRmm(
+  localClientId: string,
+  rmmId: string
+): Promise<{ error?: string }> {
+  await requireAdmin()
+  const [urlSetting, keySetting] = await Promise.all([
+    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
+    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
+  ])
+  if (!urlSetting?.value || !keySetting?.value) return { error: 'RMM non configuré' }
+  const result = await deleteRmmClient(urlSetting.value, decrypt(keySetting.value), rmmId)
+  if ('error' in result) return { error: result.error }
+  await prisma.client.update({ where: { id: localClientId }, data: { tacticalRmmId: null } })
   revalidatePath('/clients')
   return {}
 }
