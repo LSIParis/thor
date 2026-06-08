@@ -4,6 +4,7 @@ import { getClientLinkedToUser } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
+import { ClientSelector } from '@/components/dashboard/client-selector'
 import { fetchDesk365Tickets } from '@/lib/desk365'
 import {
   Users, Contact, Monitor, AlertTriangle,
@@ -31,7 +32,7 @@ function PanelCard({
 }: {
   title: string
   icon: React.ElementType
-  accent: string // tailwind border-color class
+  accent: string
   href?: string
   metrics: { label: string; value: number; color?: string }[]
 }) {
@@ -86,26 +87,38 @@ function InfraItem({
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
   const t = await getTranslations('dashboard')
+  const { client: selectedClientId } = await searchParams
 
   const userId = session.user.id
   const role = session.user.role
   const isClient = role === 'CLIENT'
-  const clientFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+
+  // Access filter: what clients this user can see
+  const accessFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+
+  // Client filter: narrowed to a specific client if selected
+  const clientFilter = selectedClientId
+    ? role === 'ADMIN'
+      ? { id: selectedClientId }
+      : { id: selectedClientId, users: { some: { userId } } }
+    : accessFilter
+
   const clientWhere = { client: clientFilter }
 
   const now = new Date()
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in6m = new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000)
 
-  let clientCompany: string | null = null
+  // CLIENT role: get own company for ticket filtering
+  let ownClientCompany: string | null = null
   if (isClient) {
     const linkedClientId = await getClientLinkedToUser(userId)
     if (linkedClientId) {
       const c = await prisma.client.findUnique({ where: { id: linkedClientId }, select: { desk365Company: true } })
-      clientCompany = c?.desk365Company ?? null
+      ownClientCompany = c?.desk365Company ?? null
     }
   }
 
@@ -116,6 +129,9 @@ export default async function DashboardPage() {
     certsExpiringSoon, domainsExpiringSoon,
     equipmentRaw, dnsZones, sslExpiry, topClients,
     ticketsResult,
+    allClients,
+    selectedClient,
+    lastCronSetting,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
     prisma.contact.count({ where: clientWhere }),
@@ -134,13 +150,26 @@ export default async function DashboardPage() {
     prisma.sslCertificate.findMany({ where: { ...clientWhere, expiryDate: { gte: now, lte: in6m } }, select: { expiryDate: true } }),
     prisma.client.findMany({ where: clientFilter, select: { name: true, _count: { select: { equipment: true } } }, orderBy: { equipment: { _count: 'desc' } }, take: 8 }),
     fetchDesk365Tickets(),
+    // Dropdown list (all accessible clients, unaffected by selection)
+    !isClient
+      ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } })
+      : Promise.resolve([] as { id: string; name: string }[]),
+    // Selected client info for ticket filtering
+    selectedClientId
+      ? prisma.client.findFirst({ where: clientFilter, select: { name: true, desk365Company: true } })
+      : Promise.resolve(null),
+    // Last cron run timestamp
+    prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
   ])
 
-  // Tickets
+  // Tickets filtering
   const allTickets = ticketsResult.tickets
-  const visibleTickets = isClient && clientCompany
-    ? allTickets.filter((t) => t.company_name === clientCompany)
-    : allTickets
+  let visibleTickets = allTickets
+  if (isClient && ownClientCompany) {
+    visibleTickets = allTickets.filter((t) => t.company_name === ownClientCompany)
+  } else if (selectedClient?.desk365Company) {
+    visibleTickets = allTickets.filter((t) => t.company_name === selectedClient.desk365Company)
+  }
   const openTickets    = visibleTickets.filter((t) => t.status === 'Open').length
   const pendingTickets = visibleTickets.filter((t) => t.status === 'Pending').length
 
@@ -162,19 +191,33 @@ export default async function DashboardPage() {
   const certExpiry = Object.entries(monthMap).map(([month, count]) => ({ month, count }))
   const topClientsByEquipment = topClients.filter((c) => c._count.equipment > 0).map((c) => ({ name: c.name, count: c._count.equipment }))
 
-  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const lastCronRun = lastCronSetting?.value
+    ? new Date(lastCronSetting.value).toLocaleString('fr-FR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : null
 
   return (
     <AppLayout>
-      {/* Header */}
-      <div className="flex items-baseline justify-between mb-7">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5 capitalize">{today}</p>
+      {/* Client selector — ADMIN/TECH only */}
+      {!isClient && (
+        <div className="w-full bg-muted/50 border border-border rounded-xl px-5 py-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Sélectionnez le client à afficher :
+            </span>
+            <ClientSelector clients={allClients} selectedId={selectedClientId} />
+          </div>
+          {lastCronRun && (
+            <span className="text-xs text-muted-foreground/70 whitespace-nowrap">
+              Dernière mise à jour : <span className="font-medium text-muted-foreground">{lastCronRun}</span>
+            </span>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* ── Panneau principal : Tickets ── */}
+{/* ── Panneau principal : Tickets ── */}
       <div className="mb-6 max-w-sm">
         <PanelCard
           title="Tickets"
@@ -193,18 +236,18 @@ export default async function DashboardPage() {
         <div className="mb-6">
           <SectionLabel>Infrastructure</SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            <InfraItem label={t('clients')}    value={clientCount}     icon={Users} />
-            <InfraItem label={t('contacts')}   value={contactCount}    icon={Contact} />
-            <InfraItem label={t('equipment')}  value={equipmentCount}  icon={Monitor} />
-            <InfraItem label="Zones DNS"        value={dnsZoneCount}    icon={Globe} />
-            <InfraItem label="Certif. SSL"      value={sslCertCount}    icon={ShieldCheck} />
-            <InfraItem label="Hébergements"     value={hostingCount}    icon={Server} />
-            <InfraItem label="Tenants M365"     value={m365TenantCount} icon={LayoutGrid} />
-            <InfraItem label="Comptes M365"     value={m365AccountCount}icon={Building2} />
-            <InfraItem label="Nextcloud"        value={nextcloudCount}  icon={Cloud} />
-            <InfraItem label="VoIP"             value={voipCount}       icon={Phone} />
-            <InfraItem label="SSL exp. < 30j"   value={certsExpiringSoon}   icon={AlertTriangle} alert />
-            <InfraItem label="Dom. exp. < 30j"  value={domainsExpiringSoon} icon={AlertCircle}   alert />
+            <InfraItem label={t('clients')}    value={clientCount}      icon={Users} />
+            <InfraItem label={t('contacts')}   value={contactCount}     icon={Contact} />
+            <InfraItem label={t('equipment')}  value={equipmentCount}   icon={Monitor} />
+            <InfraItem label="Zones DNS"        value={dnsZoneCount}     icon={Globe} />
+            <InfraItem label="Certif. SSL"      value={sslCertCount}     icon={ShieldCheck} />
+            <InfraItem label="Hébergements"     value={hostingCount}     icon={Server} />
+            <InfraItem label="Tenants M365"     value={m365TenantCount}  icon={LayoutGrid} />
+            <InfraItem label="Comptes M365"     value={m365AccountCount} icon={Building2} />
+            <InfraItem label="Nextcloud"        value={nextcloudCount}   icon={Cloud} />
+            <InfraItem label="VoIP"             value={voipCount}        icon={Phone} />
+            <InfraItem label="SSL exp. < 30j"   value={certsExpiringSoon}    icon={AlertTriangle} alert />
+            <InfraItem label="Dom. exp. < 30j"  value={domainsExpiringSoon}  icon={AlertCircle}   alert />
           </div>
         </div>
       )}

@@ -163,6 +163,8 @@ model M365Account {
   userPrincipalName String
   jobTitle          String?
   licensed          Boolean    @default(true)
+  licenseType       String?
+  licenseExpiry     DateTime?
   notes             String?
   createdAt         DateTime   @default(now())
   tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

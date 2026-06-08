@@ -8,6 +8,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  await prisma.appSetting.upsert({
+    where: { key: 'last_cron_run' },
+    update: { value: new Date().toISOString() },
+    create: { key: 'last_cron_run', value: new Date().toISOString() },
+  })
+
   const twoDaysAgo = new Date()
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
 

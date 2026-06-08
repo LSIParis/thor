@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
-  LogOut, User, ArrowLeftRight, Ticket, Receipt,
-  FileText, ShoppingCart, FileCheck, ChevronDown,
+  LogOut, User, ArrowLeftRight, Ticket, ChevronDown,
   LayoutGrid, Boxes, Cloud, HardDrive, Phone, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -23,16 +22,15 @@ interface SidebarProps {
 type NavChild = { href: string; label: string; icon: React.ElementType }
 type NavItem = { href: string; label: string; icon: React.ElementType; children?: NavChild[] }
 
-const TRANSACTIONS_CHILDREN: NavChild[] = [
-  { href: '/transactions/devis',      label: 'Devis',      icon: FileText },
-  { href: '/transactions/commandes',  label: 'Commandes',  icon: ShoppingCart },
-  { href: '/transactions/factures',   label: 'Factures',   icon: FileCheck },
-]
 
 export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const t = useTranslations('nav')
+
+  // Grey out items below "Clients" when NO specific client is selected on the dashboard
+  const NEVER_DIM = new Set(['/dashboard', '/clients'])
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => ({
     '/transactions': pathname.startsWith('/transactions'),
@@ -49,16 +47,14 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
           ...(linkedClientId
             ? [{ href: `/clients/${linkedClientId}`, label: 'Mon espace', icon: Users }]
             : []),
-          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/tickets', label: 'Tickets', icon: Ticket },
-          { href: '/transactions', label: 'Transactions', icon: Receipt, children: TRANSACTIONS_CHILDREN },
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
         ]
       : [
           { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
           { href: '/clients', label: t('clients'), icon: Users },
-          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/tickets', label: 'Tickets', icon: Ticket },
-          { href: '/transactions', label: 'Transactions', icon: Receipt, children: TRANSACTIONS_CHILDREN },
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/dns',         label: 'DNS & Mails',   icon: Globe },
           { href: '/m365',        label: 'Microsoft 365', icon: LayoutGrid },
           { href: '/saas',        label: 'Autre SaaS',    icon: Boxes },
@@ -97,9 +93,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon, children }) => {
-          const isActive = pathname.startsWith(href) && href !== '/dashboard'
-            ? true
-            : pathname === href
+          const dimmed = pathname === '/dashboard' && !searchParams.get('client') && !NEVER_DIM.has(href)
 
           if (!children) {
             return (
@@ -107,11 +101,14 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
                 key={href}
                 href={href}
                 title={collapsed ? label : undefined}
+                aria-disabled={dimmed}
+                tabIndex={dimmed ? -1 : undefined}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 text-sm transition-colors',
                   pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
                     ? 'text-foreground bg-secondary border-l-2 border-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
+                  dimmed && 'opacity-35 pointer-events-none'
                 )}
               >
                 <Icon size={16} className="flex-shrink-0" />
@@ -130,11 +127,14 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
                 key={href}
                 href={children[0].href}
                 title={label}
+                aria-disabled={dimmed}
+                tabIndex={dimmed ? -1 : undefined}
                 className={cn(
                   'flex items-center justify-center px-3 py-2 text-sm transition-colors',
                   anyChildActive
                     ? 'text-foreground bg-secondary border-l-2 border-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
+                  dimmed && 'opacity-35 pointer-events-none'
                 )}
               >
                 <Icon size={16} className="flex-shrink-0" />
@@ -143,7 +143,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
           }
 
           return (
-            <div key={href}>
+            <div key={href} className={cn(dimmed && 'opacity-35 pointer-events-none')}>
               <button
                 onClick={() => toggleSection(href)}
                 className={cn(

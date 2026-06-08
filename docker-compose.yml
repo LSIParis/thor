@@ -45,9 +45,9 @@ services:
     environment:
       CRON_SECRET: ${CRON_SECRET}
       APP_URL: http://app:3000
-    # Appel tous les jours à 08h00
+    # Appel toutes les 15 minutes
     entrypoint: >
-      sh -c "echo '0 8 * * * wget -qO- \"$$APP_URL/api/cron/check-movements?secret=$$CRON_SECRET\" && echo' | crontab - && crond -f -d 8"
+      sh -c "echo '*/15 * * * * wget -qO- \"$$APP_URL/api/cron/check-movements?secret=$$CRON_SECRET\" && echo' | crontab - && crond -f -d 8"
     depends_on:
       - app
     networks:
