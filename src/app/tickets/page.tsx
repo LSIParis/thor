@@ -1,4 +1,6 @@
 import { requireAuth } from '@/lib/access'
+import { getClientLinkedToUser } from '@/lib/access'
+import { prisma } from '@/lib/db'
 import { fetchDesk365Tickets } from '@/lib/desk365'
 import { AlertCircle, CheckCircle2, Clock, Inbox, AlertTriangle, Zap, Minus, ChevronUp, ExternalLink } from 'lucide-react'
 import { AddTicketDialog } from '@/components/tickets/add-ticket-dialog'
@@ -42,13 +44,31 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 }
 
 export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  await requireAuth()
+  const session = await requireAuth()
 
   const { tab } = await searchParams
   const isHistorique = tab === 'historique'
+  const isClient = session.user.role === 'CLIENT'
 
   const subdomain = process.env.DESK365_SUBDOMAIN ?? ''
-  const { tickets, total } = await fetchDesk365Tickets()
+  const { tickets: allTickets, total } = await fetchDesk365Tickets()
+
+  // For CLIENT role, restrict to their company's tickets only
+  let tickets = allTickets
+  if (isClient) {
+    const linkedClientId = await getClientLinkedToUser(session.user.id)
+    let clientCompany: string | null = null
+    if (linkedClientId) {
+      const client = await prisma.client.findUnique({
+        where: { id: linkedClientId },
+        select: { desk365Company: true },
+      })
+      clientCompany = client?.desk365Company ?? null
+    }
+    tickets = clientCompany
+      ? allTickets.filter((t) => t.company_name === clientCompany)
+      : []
+  }
 
   const byStatus = tickets.reduce<Record<string, number>>((acc, t) => {
     acc[t.status] = (acc[t.status] ?? 0) + 1
@@ -94,7 +114,11 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Tickets</h1>
-          <p className="text-sm text-muted-foreground">{total} tickets au total dans Desk365</p>
+          <p className="text-sm text-muted-foreground">
+            {isClient
+              ? `${tickets.length} ticket${tickets.length !== 1 ? 's' : ''} pour votre société`
+              : `${total} tickets au total dans Desk365`}
+          </p>
         </div>
         <AddTicketDialog />
       </div>
@@ -107,48 +131,51 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         <StatCard label="Fermés" value={byStatus['Closed'] ?? 0} icon={<AlertCircle size={18} />} color="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Par priorité */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold mb-3">Priorité <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
-          <div className="space-y-2">
-            {[20, 10, 5, 1].map((p) => (
-              <div key={p} className="flex items-center justify-between">
-                <div className={`flex items-center gap-1.5 text-sm ${PRIORITY_COLOR[p]}`}>
-                  {PRIORITY_ICON[p]} {PRIORITY_LABEL[p]}
+      {/* Grids analytiques — masqués pour les clients */}
+      {!isClient && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Par priorité */}
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h2 className="text-sm font-semibold mb-3">Priorité <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
+            <div className="space-y-2">
+              {[20, 10, 5, 1].map((p) => (
+                <div key={p} className="flex items-center justify-between">
+                  <div className={`flex items-center gap-1.5 text-sm ${PRIORITY_COLOR[p]}`}>
+                    {PRIORITY_ICON[p]} {PRIORITY_LABEL[p]}
+                  </div>
+                  <span className="font-medium text-sm">{byPriority[p] ?? 0}</span>
                 </div>
-                <span className="font-medium text-sm">{byPriority[p] ?? 0}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Par type */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold mb-3">Type <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
-          <div className="space-y-2">
-            {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
-              <div key={type} className="flex items-center justify-between">
-                <span className="text-sm">{type}</span>
-                <span className="font-medium text-sm">{count}</span>
-              </div>
-            ))}
+          {/* Par type */}
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h2 className="text-sm font-semibold mb-3">Type <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
+            <div className="space-y-2">
+              {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
+                <div key={type} className="flex items-center justify-between">
+                  <span className="text-sm">{type}</span>
+                  <span className="font-medium text-sm">{count}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Par technicien */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold mb-3">Par technicien <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
-          <div className="space-y-2">
-            {Object.entries(byAgent).sort((a, b) => b[1] - a[1]).map(([agent, count]) => (
-              <div key={agent} className="flex items-center justify-between gap-2">
-                <span className="text-sm truncate">{agent.split('@')[0]}</span>
-                <span className="font-medium text-sm shrink-0">{count}</span>
-              </div>
-            ))}
+          {/* Par technicien */}
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h2 className="text-sm font-semibold mb-3">Par technicien <span className="text-muted-foreground font-normal">(ouverts + en attente)</span></h2>
+            <div className="space-y-2">
+              {Object.entries(byAgent).sort((a, b) => b[1] - a[1]).map(([agent, count]) => (
+                <div key={agent} className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate">{agent.split('@')[0]}</span>
+                  <span className="font-medium text-sm shrink-0">{count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Onglets */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -172,10 +199,10 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2 text-left">#</th>
                 <th className="px-4 py-2 text-left">Sujet</th>
-                <th className="px-4 py-2 text-left">Société</th>
+                {!isClient && <th className="px-4 py-2 text-left">Société</th>}
                 <th className="px-4 py-2 text-left">Statut</th>
                 <th className="px-4 py-2 text-left">Priorité</th>
-                <th className="px-4 py-2 text-left">Technicien</th>
+                {!isClient && <th className="px-4 py-2 text-left">Technicien</th>}
                 <th className="px-4 py-2 text-left">Créé le</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -187,7 +214,9 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
                   <td className="px-4 py-2 max-w-[280px]">
                     <span className="truncate block" title={t.subject}>{t.subject}</span>
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground truncate max-w-[140px]">{t.company_name ?? '—'}</td>
+                  {!isClient && (
+                    <td className="px-4 py-2 text-muted-foreground truncate max-w-[140px]">{t.company_name ?? '—'}</td>
+                  )}
                   <td className="px-4 py-2">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[t.status] ?? ''}`}>
                       {t.status}
@@ -198,7 +227,9 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
                       {PRIORITY_ICON[t.priority]} {PRIORITY_LABEL[t.priority] ?? t.priority}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{t.assigned_to?.split('@')[0] ?? '—'}</td>
+                  {!isClient && (
+                    <td className="px-4 py-2 text-muted-foreground text-xs">{t.assigned_to?.split('@')[0] ?? '—'}</td>
+                  )}
                   <td className="px-4 py-2 text-muted-foreground text-xs">{fmt(t.created_on)}</td>
                   <td className="px-4 py-2 shrink-0">
                     <a
@@ -214,7 +245,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
               ))}
               {displayed.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={isClient ? 6 : 8} className="px-4 py-8 text-center text-muted-foreground text-sm">
                     {isHistorique ? 'Aucun ticket terminé' : 'Aucun ticket ouvert'}
                   </td>
                 </tr>

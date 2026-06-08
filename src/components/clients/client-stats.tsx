@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Contact, Monitor, Globe, Shield, Server, LayoutGrid, Cloud, Phone, Users, PhoneCall, AlertTriangle } from 'lucide-react'
+import { Contact, Monitor, Globe, Shield, Server, Cloud, Phone, AlertTriangle } from 'lucide-react'
 
 interface ClientStatsProps {
   contactsCount: number
@@ -9,8 +9,6 @@ interface ClientStatsProps {
   hostingsCount: number
   certsExpiringSoon: number
   domainsExpiringSoon: number
-  m365TenantsCount: number
-  m365AccountsCount: number
   nextcloudServicesCount: number
   nextcloudServersCount: number
   voipServicesCount: number
@@ -35,21 +33,18 @@ function StatCard({ label, value, icon: Icon, warning = false }: {
 
 export function ClientStats({
   contactsCount, equipmentCount,
-  dnsZonesCount, sslCertsCount, hostingsCount, certsExpiringSoon, domainsExpiringSoon,
-  m365TenantsCount, m365AccountsCount,
-  nextcloudServicesCount, nextcloudServersCount,
-  voipServicesCount, voipExtensionsCount,
+  dnsZonesCount, sslCertsCount, hostingsCount, certsExpiringSoon,
+  nextcloudServicesCount,
+  voipServicesCount,
 }: ClientStatsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10 gap-3 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
       <StatCard label="Contacts"         value={contactsCount}          icon={Contact} />
       <StatCard label="Équipements"       value={equipmentCount}         icon={Monitor} />
       <StatCard label="Zones DNS"         value={dnsZonesCount}          icon={Globe} />
       <StatCard label="Certifs SSL"       value={sslCertsCount}          icon={Shield} />
       <StatCard label="Hébergements"      value={hostingsCount}          icon={Server} />
       <StatCard label="Certs exp. < 30j" value={certsExpiringSoon}      icon={AlertTriangle} warning />
-      <StatCard label="Tenants M365"      value={m365TenantsCount}       icon={LayoutGrid} />
-      <StatCard label="Comptes M365"      value={m365AccountsCount}      icon={Users} />
       <StatCard label="Nextcloud"         value={nextcloudServicesCount} icon={Cloud} />
       <StatCard label="Services VoIP"     value={voipServicesCount}      icon={Phone} />
     </div>

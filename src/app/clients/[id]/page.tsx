@@ -25,13 +25,6 @@ export default async function ClientDetailPage({ params }: Props) {
     include: {
       contacts: { orderBy: { lastName: 'asc' } },
       equipment: { orderBy: { type: 'asc' }, include: { assignedTo: true } },
-      m365Tenants: {
-        orderBy: { displayName: 'asc' },
-        include: {
-          domains: { orderBy: { isDefault: 'desc' } },
-          accounts: { orderBy: { displayName: 'asc' } },
-        },
-      },
       nextcloudServices: {
         orderBy: { name: 'asc' },
         include: { servers: { orderBy: { createdAt: 'asc' } } },
@@ -63,7 +56,6 @@ export default async function ClientDetailPage({ params }: Props) {
 
   const now = Date.now()
   const in30Days = now + 30 * 24 * 60 * 60 * 1000
-  const m365AccountsCount = client.m365Tenants.reduce((sum, t) => sum + t.accounts.length, 0)
   const nextcloudServersCount = client.nextcloudServices.reduce((sum, s) => sum + s.servers.length, 0)
   const voipExtensionsCount = client.voipServices.reduce((sum, s) => sum + s.extensions.length, 0)
   const certsExpiringSoon = client.sslCertificates.filter(
@@ -103,8 +95,6 @@ export default async function ClientDetailPage({ params }: Props) {
         hostingsCount={client.hostings.length}
         certsExpiringSoon={certsExpiringSoon}
         domainsExpiringSoon={domainsExpiringSoon}
-        m365TenantsCount={client.m365Tenants.length}
-        m365AccountsCount={m365AccountsCount}
         nextcloudServicesCount={client.nextcloudServices.length}
         nextcloudServersCount={nextcloudServersCount}
         voipServicesCount={client.voipServices.length}
@@ -114,7 +104,6 @@ export default async function ClientDetailPage({ params }: Props) {
         clientId={id}
         contacts={client.contacts}
         equipment={client.equipment}
-        m365Tenants={client.m365Tenants}
         nextcloudServices={client.nextcloudServices}
         voipServices={client.voipServices}
         dnsZones={client.dnsZones}

@@ -25,17 +25,22 @@ export default async function ClientsPage() {
         ? undefined
         : { users: { some: { userId: session.user.id } } },
     orderBy: { name: 'asc' },
-    include: { _count: { select: { contacts: true, equipment: true, dnsZones: true, m365Tenants: true, nextcloudServices: true, voipServices: true } } },
+    include: { _count: { select: { contacts: true, equipment: true, dnsZones: true, nextcloudServices: true, voipServices: true } } },
   })
 
   return (
     <AppLayout>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {clients.length} client{clients.length !== 1 ? 's' : ''}
+          </p>
+        </div>
         {session.user.role === 'ADMIN' && (
           <div className="flex items-center gap-2">
             <RmmImportButton />
-            <Button asChild>
+            <Button asChild size="sm">
               <Link href="/clients/new">{t('new')}</Link>
             </Button>
           </div>

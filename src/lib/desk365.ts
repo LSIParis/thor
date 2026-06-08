@@ -247,21 +247,26 @@ export async function fetchDesk365Tickets(): Promise<{ tickets: Desk365Ticket[];
   let total = 0
   let prevSig = ''
 
-  while (true) {
-    const res = await fetch(`${base}/tickets?page=${page}&per_page=100`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      next: { revalidate: 300 }, // cache 5 min
-    })
-    if (!res.ok) break
-    const json = await res.json() as { count?: number; tickets?: Desk365Ticket[] }
-    if (page === 1) total = json.count ?? 0
-    const batch = json.tickets ?? []
-    if (batch.length === 0) break
-    const sig = JSON.stringify(batch)
-    if (sig === prevSig) break
-    prevSig = sig
-    all.push(...batch)
-    page++
+  try {
+    while (true) {
+      const res = await fetch(`${base}/tickets?page=${page}&per_page=100`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(15_000),
+      })
+      if (!res.ok) break
+      const json = await res.json() as { count?: number; tickets?: Desk365Ticket[] }
+      if (page === 1) total = json.count ?? 0
+      const batch = json.tickets ?? []
+      if (batch.length === 0) break
+      const sig = JSON.stringify(batch)
+      if (sig === prevSig) break
+      prevSig = sig
+      all.push(...batch)
+      page++
+    }
+  } catch (err) {
+    console.error('[desk365] fetchDesk365Tickets exception:', err)
   }
 
   return { tickets: all, total }
