@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
   LogOut, User, ArrowLeftRight, Ticket, Receipt,
   FileText, ShoppingCart, FileCheck, ChevronDown,
-  LayoutGrid, Boxes, Cloud, HardDrive, Phone,
+  LayoutGrid, Boxes, Cloud, HardDrive, Phone, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +59,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/tickets', label: 'Tickets', icon: Ticket },
           { href: '/transactions', label: 'Transactions', icon: Receipt, children: TRANSACTIONS_CHILDREN },
+          { href: '/dns',         label: 'DNS & Mails',   icon: Globe },
           { href: '/m365',        label: 'Microsoft 365', icon: LayoutGrid },
           { href: '/saas',        label: 'Autre SaaS',    icon: Boxes },
           { href: '/cloud',       label: 'Cloud',         icon: Cloud },
