@@ -69,7 +69,10 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <AddTenantDialog clients={allClients} />
+          <AddTenantDialog
+            clients={allClients}
+            selectedClient={selectedClientId ? (allClients.find(c => c.id === selectedClientId) ?? null) : null}
+          />
         </div>
       </div>
 

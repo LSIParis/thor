@@ -14,6 +14,8 @@ const SKU_LABELS: Record<string, string> = {
   ENTERPRISEPREMIUM:                  'Office 365 E5',
   ATP_ENTERPRISE:                     'Defender for Office',
   ATP_ENTERPRISE_GOV:                 'Defender for Office',
+  DEFENDER_ENDPOINT_P1:               'Defender for Endpoint P1',
+  MDE_SMB:                            'Defender for Endpoint P1',
   EXCHANGESTANDARD:                   'Exchange Plan 1',
   EXCHANGEENTERPRISE:                 'Exchange Plan 2',
   TEAMS_EXPLORATORY:                  'Teams Exploratory',
@@ -23,6 +25,9 @@ const SKU_LABELS: Record<string, string> = {
   VISIOCLIENT:                        'Visio Plan 2',
   POWER_BI_PRO:                       'Power BI Pro',
   POWER_BI_STANDARD:                  'Power BI Free',
+  MCOMEETADV:                         'Audio Conf.',
+  RMSBASIC:                           'Right Mngmt',
+  THREAT_INTELLIGENCE:                'Edr - Xdr',
   INTUNE_A:                           'Intune',
   EMS:                                'EMS E3',
   EMSPREMIUM:                         'EMS E5',
@@ -30,15 +35,30 @@ const SKU_LABELS: Record<string, string> = {
   AAD_PREMIUM_P2:                     'Entra ID P2',
   WINDOWS_STORE:                      'Microsoft Store',
   FLOW_FREE:                          'Flow Free',
+  FORMS_PRO:                          'Forms Pro',
+  POWERAPPS_VIRAL:                    'Power Apps',
+  POWERAPPS_DEV:                      'Power Apps',
 }
 
 export function labelSku(sku: string): string {
   return SKU_LABELS[sku] ?? sku.replace(/_/g, ' ')
 }
 
+const HIDDEN_SKUS = new Set([
+  'PROJECT_MADEIRA_PREVIEW',
+  'PROJECT_MADEIRA_PREVIEW_IW_SKU',
+])
+
+export function isHiddenSku(sku: string): boolean {
+  return HIDDEN_SKUS.has(sku)
+}
+
 const FREE_SKUS = new Set([
   'FLOW_FREE',
+  'FORMS_PRO',
   'POWER_BI_STANDARD',
+  'POWERAPPS_VIRAL',
+  'POWERAPPS_DEV',
   'TEAMS_FREE',
   'TEAMS_EXPLORATORY',
 ])

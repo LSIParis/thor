@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, XCircle } from 'lucide-react'
-import { labelSku, sortSkus } from '@/lib/m365-sku-labels'
+import { labelSku, sortSkus, isHiddenSku } from '@/lib/m365-sku-labels'
 
 interface Account {
   id: string
@@ -54,7 +54,7 @@ export function TenantAccountsView({
       {/* License SKUs */}
       {licenseSkus.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 py-2 bg-muted/10 border-b border-border no-print">
-          {sortSkus(licenseSkus.map((s) => s.skuPartNumber)).map((skuPart) => {
+          {sortSkus(licenseSkus.map((s) => s.skuPartNumber).filter((s) => !isHiddenSku(s))).map((skuPart) => {
             const sku = licenseSkus.find((s) => s.skuPartNumber === skuPart)!
             const pct      = sku.total > 0 ? sku.consumed / sku.total : 0
             const isActive = filters.has(sku.skuPartNumber)

@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
   LogOut, User, ArrowLeftRight, Ticket, ChevronDown,
-  LayoutGrid, Boxes, Cloud, HardDrive, Phone, Globe,
+  LayoutGrid, Boxes, Cloud, HardDrive, Phone, Globe, Monitor,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +57,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
       : [
           { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
           { href: '/clients', label: t('clients'), icon: Users },
+          { href: '/parc',    label: 'Parc',     icon: Monitor },
           { href: '/tickets', label: 'Tickets', icon: Ticket },
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/dns',         label: 'DNS & Mails',   icon: Globe },
