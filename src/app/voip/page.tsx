@@ -16,11 +16,15 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   )
 }
 
-export default async function VoipPage() {
+export default async function VoipPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
+  const { client: selectedClientId } = await searchParams
   const userId = session.user.id
   const role = session.user.role
-  const clientFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const accessFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const clientFilter = selectedClientId
+    ? (role === 'ADMIN' ? { id: selectedClientId } : { id: selectedClientId, users: { some: { userId } } })
+    : accessFilter
 
   const services = await prisma.voipService.findMany({
     where: { client: clientFilter },

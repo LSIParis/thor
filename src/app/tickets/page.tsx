@@ -43,17 +43,17 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   )
 }
 
-export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ tab?: string; client?: string }> }) {
   const session = await requireAuth()
 
-  const { tab } = await searchParams
+  const { tab, client: selectedClientId } = await searchParams
   const isHistorique = tab === 'historique'
   const isClient = session.user.role === 'CLIENT'
 
   const subdomain = process.env.DESK365_SUBDOMAIN ?? ''
   const { tickets: allTickets, total } = await fetchDesk365Tickets()
 
-  // For CLIENT role, restrict to their company's tickets only
+  // Filter by company: CLIENT role uses their own company, URL param uses selected client's company
   let tickets = allTickets
   if (isClient) {
     const linkedClientId = await getClientLinkedToUser(session.user.id)
@@ -68,6 +68,13 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
     tickets = clientCompany
       ? allTickets.filter((t) => t.company_name === clientCompany)
       : []
+  } else if (selectedClientId) {
+    const client = await prisma.client.findUnique({
+      where: { id: selectedClientId },
+      select: { desk365Company: true },
+    })
+    const company = client?.desk365Company ?? null
+    tickets = company ? allTickets.filter((t) => t.company_name === company) : []
   }
 
   const byStatus = tickets.reduce<Record<string, number>>((acc, t) => {

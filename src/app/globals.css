@@ -97,3 +97,43 @@
 .react-international-phone-country-selector-button__button-content {
   gap: 4px;
 }
+
+/* ── Print ───────────────────────────────────────────────── */
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 11px;
+  }
+
+  /* Hide sidebar and layout chrome */
+  aside, nav, [data-sidebar], .no-print { display: none !important; }
+
+  /* Full width main */
+  .flex.h-screen { display: block !important; }
+  main { padding: 0 !important; overflow: visible !important; }
+
+  /* Cards / borders in light mode */
+  .bg-card, .bg-muted\/30, .bg-muted\/10, .bg-muted\/20 {
+    background: #f8f8f8 !important;
+  }
+  .border-border { border-color: #ddd !important; }
+  .text-muted-foreground, .text-muted-foreground\/60, .text-muted-foreground\/70 {
+    color: #555 !important;
+  }
+  .text-foreground\/70 { color: #333 !important; }
+  .text-foreground { color: #111 !important; }
+  .text-emerald-500 { color: #059669 !important; }
+  .text-destructive { color: #dc2626 !important; }
+  .text-amber-600 { color: #d97706 !important; }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd !important; padding: 4px 8px !important; }
+  thead { background: #f0f0f0 !important; }
+
+  /* Avoid breaking tenant blocks across pages */
+  .space-y-6 > div { break-inside: avoid; }
+}

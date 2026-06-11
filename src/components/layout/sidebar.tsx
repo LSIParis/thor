@@ -29,6 +29,10 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
   const searchParams = useSearchParams()
   const t = useTranslations('nav')
 
+  // Propagate selected client to all nav links
+  const clientId = searchParams.get('client')
+  const withClient = (h: string) => clientId ? `${h}?client=${clientId}` : h
+
   // Grey out items below "Clients" when NO specific client is selected on the dashboard
   const NEVER_DIM = new Set(['/dashboard', '/clients'])
 
@@ -99,7 +103,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
             return (
               <Link
                 key={href}
-                href={href}
+                href={withClient(href)}
                 title={collapsed ? label : undefined}
                 aria-disabled={dimmed}
                 tabIndex={dimmed ? -1 : undefined}
@@ -125,7 +129,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
             return (
               <Link
                 key={href}
-                href={children[0].href}
+                href={withClient(children[0].href)}
                 title={label}
                 aria-disabled={dimmed}
                 tabIndex={dimmed ? -1 : undefined}
@@ -167,7 +171,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
                     return (
                       <Link
                         key={child.href}
-                        href={child.href}
+                        href={withClient(child.href)}
                         className={cn(
                           'flex items-center gap-2 px-2 py-1.5 text-xs rounded transition-colors',
                           pathname.startsWith(child.href)

@@ -21,11 +21,15 @@ function fmt(d: Date | null) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
-export default async function SaasPage() {
+export default async function SaasPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
+  const { client: selectedClientId } = await searchParams
   const userId = session.user.id
   const role = session.user.role
-  const clientFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const accessFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const clientFilter = selectedClientId
+    ? (role === 'ADMIN' ? { id: selectedClientId } : { id: selectedClientId, users: { some: { userId } } })
+    : accessFilter
 
   const now = new Date()
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)

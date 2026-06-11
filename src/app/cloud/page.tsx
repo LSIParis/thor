@@ -16,11 +16,15 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   )
 }
 
-export default async function CloudPage() {
+export default async function CloudPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
+  const { client: selectedClientId } = await searchParams
   const userId = session.user.id
   const role = session.user.role
-  const clientFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const accessFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const clientFilter = selectedClientId
+    ? (role === 'ADMIN' ? { id: selectedClientId } : { id: selectedClientId, users: { some: { userId } } })
+    : accessFilter
 
   const services = await prisma.nextcloudService.findMany({
     where: { client: clientFilter },

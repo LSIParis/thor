@@ -3,11 +3,15 @@ import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { MovementsTableView } from '@/components/movements/movements-table-view'
 
-export default async function MouvementsPage() {
+export default async function MouvementsPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
+  const { client: selectedClientId } = await searchParams
   const { id: userId, role } = session.user
 
-  const accessibleClients = await getAccessibleClients(userId, role)
+  const allAccessibleClients = await getAccessibleClients(userId, role)
+  const accessibleClients = selectedClientId
+    ? allAccessibleClients.filter((c) => c.id === selectedClientId)
+    : allAccessibleClients
   const clientIds = accessibleClients.map((c) => c.id)
 
   const movements = await prisma.personnelMovement.findMany({

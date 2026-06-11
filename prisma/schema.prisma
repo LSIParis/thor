@@ -135,15 +135,32 @@ model AppSetting {
 }
 
 model M365Tenant {
-  id          String        @id @default(cuid())
-  clientId    String
-  tenantId    String?
-  displayName String
-  notes       String?
-  createdAt   DateTime      @default(now())
-  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  domains     M365Domain[]
-  accounts    M365Account[]
+  id                String           @id @default(cuid())
+  clientId          String
+  tenantId          String?
+  displayName       String
+  azureClientId     String?
+  azureClientSecret String?
+  lastSyncAt        DateTime?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  client            Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  domains           M365Domain[]
+  accounts          M365Account[]
+  licenseSkus       M365LicenseSku[]
+}
+
+model M365LicenseSku {
+  id            String     @id @default(cuid())
+  tenantId      String
+  skuId         String
+  skuPartNumber String
+  consumed      Int        @default(0)
+  total         Int        @default(0)
+  updatedAt     DateTime   @updatedAt
+  tenant        M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, skuId])
 }
 
 model M365Domain {
@@ -159,15 +176,19 @@ model M365Domain {
 model M365Account {
   id                String     @id @default(cuid())
   tenantId          String
+  graphId           String?
   displayName       String
   userPrincipalName String
   jobTitle          String?
   licensed          Boolean    @default(true)
   licenseType       String?
   licenseExpiry     DateTime?
+  accountEnabled    Boolean    @default(true)
   notes             String?
   createdAt         DateTime   @default(now())
   tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userPrincipalName])
 }
 
 model NextcloudService {

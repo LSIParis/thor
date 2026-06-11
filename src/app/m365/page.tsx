@@ -2,18 +2,29 @@ import { requireAuth } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { LayoutGrid, Users, Globe, CheckCircle2, XCircle } from 'lucide-react'
+import { LayoutGrid, Users, Globe } from 'lucide-react'
+import { TenantAccountsView } from '@/components/m365/tenant-accounts-view'
+import { AddTenantDialog } from '@/components/m365/add-tenant-dialog'
+import { EditTenantDialog } from '@/components/m365/edit-tenant-dialog'
+import { SyncTenantButton } from '@/components/m365/sync-tenant-button'
+import { PrintButton } from '@/components/m365/print-button'
 
-function fmt(d: Date | null) {
-  if (!d) return '—'
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
 
-export default async function M365Page() {
+export default async function M365Page({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
+  const { client: selectedClientId } = await searchParams
   const userId = session.user.id
   const role = session.user.role
-  const clientFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const accessFilter = role === 'ADMIN' ? {} : { users: { some: { userId } } }
+  const clientFilter = selectedClientId
+    ? (role === 'ADMIN' ? { id: selectedClientId } : { id: selectedClientId, users: { some: { userId } } })
+    : accessFilter
+
+  const allClients = await prisma.client.findMany({
+    where: accessFilter,
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
 
   const clients = await prisma.client.findMany({
     where: { ...clientFilter, m365Tenants: { some: {} } },
@@ -22,11 +33,21 @@ export default async function M365Page() {
       name: true,
       m365Tenants: {
         orderBy: { displayName: 'asc' },
-        include: {
+        select: {
+          id: true,
+          displayName: true,
+          tenantId: true,
+          azureClientId: true,
+          azureClientSecret: true,
+          lastSyncAt: true,
+          notes: true,
+          createdAt: true,
           accounts: {
             orderBy: { displayName: 'asc' },
           },
+          domains: { orderBy: { isDefault: 'desc' } },
           _count: { select: { domains: true } },
+          licenseSkus: { orderBy: { skuPartNumber: 'asc' } },
         },
       },
     },
@@ -37,8 +58,6 @@ export default async function M365Page() {
   const totalAccounts = clients.reduce((s, c) => s + c.m365Tenants.reduce((t, tn) => t + tn.accounts.length, 0), 0)
   const totalDomains  = clients.reduce((s, c) => s + c.m365Tenants.reduce((t, tn) => t + tn._count.domains, 0), 0)
 
-  const now = new Date()
-
   return (
     <AppLayout>
       <div className="flex items-center justify-between mb-6">
@@ -47,6 +66,10 @@ export default async function M365Page() {
           <p className="text-xs text-muted-foreground mt-0.5">
             {totalTenants} tenant{totalTenants !== 1 ? 's' : ''} · {clients.length} client{clients.length !== 1 ? 's' : ''}
           </p>
+        </div>
+        <div className="flex items-center gap-2 no-print">
+          <PrintButton />
+          <AddTenantDialog clients={allClients} />
         </div>
       </div>
 
@@ -91,12 +114,13 @@ export default async function M365Page() {
 
               <div className="space-y-4 pl-3 border-l-2 border-border">
                 {client.m365Tenants.map((tenant) => {
+                  const now = Date.now()
                   const expiringSoon = tenant.accounts.filter(
-                    (a) => a.licenseExpiry && a.licenseExpiry >= now &&
-                      a.licenseExpiry <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                    (a) => a.licenseExpiry && a.licenseExpiry >= new Date(now) &&
+                      a.licenseExpiry <= new Date(now + 30 * 24 * 60 * 60 * 1000)
                   ).length
                   const expired = tenant.accounts.filter(
-                    (a) => a.licenseExpiry && a.licenseExpiry < now
+                    (a) => a.licenseExpiry && a.licenseExpiry < new Date(now)
                   ).length
 
                   return (
@@ -119,54 +143,40 @@ export default async function M365Page() {
                           )}
                           <span>{tenant.accounts.length} compte{tenant.accounts.length !== 1 ? 's' : ''}</span>
                           <span>{tenant._count.domains} domaine{tenant._count.domains !== 1 ? 's' : ''}</span>
+                          {tenant.lastSyncAt && (
+                            <span className="text-muted-foreground/60" title={new Date(tenant.lastSyncAt).toLocaleString('fr-FR')}>
+                              sync {new Date(tenant.lastSyncAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                          <span className="no-print"><SyncTenantButton tenantDbId={tenant.id} /></span>
+                          <span className="no-print"><EditTenantDialog tenant={tenant} /></span>
                         </div>
                       </div>
 
-                      {/* Accounts table */}
-                      {tenant.accounts.length > 0 ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-muted/20">
-                              <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-2 text-left">Nom</th>
-                                <th className="px-4 py-2 text-left">Email</th>
-                                <th className="px-4 py-2 text-left">Poste</th>
-                                <th className="px-4 py-2 text-left">Licence</th>
-                                <th className="px-4 py-2 text-left">Expiration</th>
-                                <th className="px-4 py-2 text-center">Actif</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                              {tenant.accounts.map((account) => {
-                                const isExpired  = account.licenseExpiry && account.licenseExpiry < now
-                                const isExpiring = account.licenseExpiry && account.licenseExpiry >= now &&
-                                  account.licenseExpiry <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                                return (
-                                  <tr key={account.id} className="hover:bg-muted/20">
-                                    <td className="px-4 py-2 font-medium">{account.displayName}</td>
-                                    <td className="px-4 py-2 text-xs text-muted-foreground">{account.userPrincipalName}</td>
-                                    <td className="px-4 py-2 text-muted-foreground">{account.jobTitle ?? '—'}</td>
-                                    <td className="px-4 py-2 text-muted-foreground">{account.licenseType ?? '—'}</td>
-                                    <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                                      {fmt(account.licenseExpiry)}
-                                    </td>
-                                    <td className="px-4 py-2 text-center">
-                                      {account.licensed
-                                        ? <CheckCircle2 size={14} className="text-emerald-500 mx-auto" />
-                                        : <XCircle     size={14} className="text-muted-foreground/40 mx-auto" />
-                                      }
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
+                      {/* Domains */}
+                      {tenant.domains.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-border bg-muted/5">
+                          <span className="text-xs text-muted-foreground font-medium shrink-0">Domaines :</span>
+                          {tenant.domains.map((d) => (
+                            <span
+                              key={d.id}
+                              className={`inline-flex items-center gap-1 text-xs rounded px-2 py-0.5 font-mono ${
+                                d.isDefault
+                                  ? 'bg-primary/15 text-primary border border-primary/30'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {d.domain}
+                              {d.isDefault && <span className="font-sans text-[10px] font-medium">✦</span>}
+                            </span>
+                          ))}
                         </div>
-                      ) : (
-                        <p className="px-4 py-6 text-sm text-muted-foreground/60 text-center">
-                          Aucun compte dans ce tenant
-                        </p>
                       )}
+
+                      <TenantAccountsView
+                        accounts={tenant.accounts}
+                        licenseSkus={tenant.licenseSkus}
+                      />
                     </div>
                   )
                 })}

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { syncTenant } from '@/lib/m365-sync'
 
 // ── Tenants ──────────────────────────────────────────────
 
@@ -19,6 +20,43 @@ export async function createM365Tenant(clientId: string, formData: FormData) {
   })
   revalidatePath(`/clients/${clientId}`)
   redirect(`/clients/${clientId}?tab=m365`)
+}
+
+export async function createM365TenantFromPage(formData: FormData) {
+  await requireAdmin()
+  const clientId = formData.get('clientId') as string
+  await prisma.m365Tenant.create({
+    data: {
+      clientId,
+      displayName: formData.get('displayName') as string,
+      tenantId: (formData.get('tenantId') as string) || null,
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath('/m365')
+}
+
+export async function updateM365TenantFromPage(formData: FormData) {
+  await requireAdmin()
+  const id = formData.get('id') as string
+  await prisma.m365Tenant.update({
+    where: { id },
+    data: {
+      displayName: formData.get('displayName') as string,
+      tenantId: (formData.get('tenantId') as string) || null,
+      azureClientId: (formData.get('azureClientId') as string) || null,
+      azureClientSecret: (formData.get('azureClientSecret') as string) || null,
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath('/m365')
+}
+
+export async function syncM365TenantAccounts(tenantDbId: string): Promise<{ synced: number }> {
+  await requireAdmin()
+  const result = await syncTenant(tenantDbId)
+  revalidatePath('/m365')
+  return result
 }
 
 export async function deleteM365Tenant(tenantId: string, clientId: string) {
