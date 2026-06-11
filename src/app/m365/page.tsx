@@ -7,7 +7,7 @@ import { TenantAccountsView } from '@/components/m365/tenant-accounts-view'
 import { AddTenantDialog } from '@/components/m365/add-tenant-dialog'
 import { EditTenantDialog } from '@/components/m365/edit-tenant-dialog'
 import { SyncTenantButton } from '@/components/m365/sync-tenant-button'
-import { PrintButton } from '@/components/m365/print-button'
+import { ExportPdfButton } from '@/components/m365/export-pdf-button'
 
 
 export default async function M365Page({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
@@ -67,8 +67,8 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
             {totalTenants} tenant{totalTenants !== 1 ? 's' : ''} · {clients.length} client{clients.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2 no-print">
-          <PrintButton />
+        <div className="flex items-center gap-2">
+          <ExportPdfButton clientId={selectedClientId} />
           <AddTenantDialog clients={allClients} />
         </div>
       </div>
