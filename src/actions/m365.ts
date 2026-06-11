@@ -52,6 +52,12 @@ export async function updateM365TenantFromPage(formData: FormData) {
   revalidatePath('/m365')
 }
 
+export async function deleteM365TenantFromPage(tenantDbId: string) {
+  await requireAdmin()
+  await prisma.m365Tenant.delete({ where: { id: tenantDbId } })
+  revalidatePath('/m365')
+}
+
 export async function syncM365TenantAccounts(tenantDbId: string): Promise<{ synced: number }> {
   await requireAdmin()
   const result = await syncTenant(tenantDbId)

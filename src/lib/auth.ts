@@ -2,6 +2,8 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { authorize } from './auth.helpers'
 
+const isProd = process.env.NODE_ENV === 'production'
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
@@ -33,4 +35,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: { signIn: '/login' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 12 * 60 * 60, // 12 h max par sécurité
+  },
+  cookies: {
+    sessionToken: {
+      // Cookie de session : supprimé automatiquement à la fermeture du navigateur
+      name: isProd ? '__Secure-authjs.session-token' : 'authjs.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProd,
+        // Pas de maxAge → cookie de session (pas de date d'expiration persistante)
+      },
+    },
+  },
 })

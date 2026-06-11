@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import { labelSku, sortSkus } from '@/lib/m365-sku-labels'
 
 interface Account {
   id: string
@@ -53,7 +54,8 @@ export function TenantAccountsView({
       {/* License SKUs */}
       {licenseSkus.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 py-2 bg-muted/10 border-b border-border no-print">
-          {licenseSkus.map((sku) => {
+          {sortSkus(licenseSkus.map((s) => s.skuPartNumber)).map((skuPart) => {
+            const sku = licenseSkus.find((s) => s.skuPartNumber === skuPart)!
             const pct      = sku.total > 0 ? sku.consumed / sku.total : 0
             const isActive = filters.has(sku.skuPartNumber)
             const countColor = pct >= 1
@@ -72,7 +74,7 @@ export function TenantAccountsView({
                 }`}
               >
                 <span className={`font-medium ${isActive ? '' : 'text-foreground/70'}`}>
-                  {sku.skuPartNumber}
+                  {labelSku(sku.skuPartNumber)}
                 </span>
                 <span className={`font-mono font-semibold ${isActive ? 'text-primary-foreground/80' : countColor}`}>
                   {sku.consumed}
@@ -118,7 +120,11 @@ export function TenantAccountsView({
                     <td className="px-4 py-2 font-medium">{account.displayName}</td>
                     <td className="px-4 py-2 text-xs text-muted-foreground">{account.userPrincipalName}</td>
                     <td className="px-4 py-2 text-muted-foreground">{account.jobTitle ?? '—'}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{account.licenseType ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {account.licenseType
+                        ? account.licenseType.split(', ').map(labelSku).join(', ')
+                        : '—'}
+                    </td>
                     <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                       {fmt(account.licenseExpiry)}
                     </td>

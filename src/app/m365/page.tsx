@@ -2,12 +2,13 @@ import { requireAuth } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { LayoutGrid, Users, Globe } from 'lucide-react'
+import { LayoutGrid, Users, Globe, ExternalLink } from 'lucide-react'
 import { TenantAccountsView } from '@/components/m365/tenant-accounts-view'
 import { AddTenantDialog } from '@/components/m365/add-tenant-dialog'
 import { EditTenantDialog } from '@/components/m365/edit-tenant-dialog'
 import { SyncTenantButton } from '@/components/m365/sync-tenant-button'
 import { ExportPdfButton } from '@/components/m365/export-pdf-button'
+import { DeleteTenantButton } from '@/components/m365/delete-tenant-button'
 
 
 export default async function M365Page({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
@@ -68,7 +69,6 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportPdfButton clientId={selectedClientId} />
           <AddTenantDialog clients={allClients} />
         </div>
       </div>
@@ -148,8 +148,22 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
                               sync {new Date(tenant.lastSyncAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           )}
+                          {tenant.tenantId && (
+                            <a
+                              href={`https://admin.microsoft.com/?tenantid=${tenant.tenantId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Ouvrir l'admin Microsoft 365 — pour une session isolée, utilisez Ctrl+Shift+N (Edge InPrivate) puis collez l'URL"
+                              className="no-print inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <ExternalLink size={12} />
+                              Admin
+                            </a>
+                          )}
+                          <span className="no-print"><ExportPdfButton tenantId={tenant.id} /></span>
                           <span className="no-print"><SyncTenantButton tenantDbId={tenant.id} /></span>
                           <span className="no-print"><EditTenantDialog tenant={tenant} /></span>
+                          <span className="no-print"><DeleteTenantButton tenantDbId={tenant.id} displayName={tenant.displayName} /></span>
                         </div>
                       </div>
 

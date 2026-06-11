@@ -33,8 +33,8 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
   const clientId = searchParams.get('client')
   const withClient = (h: string) => clientId ? `${h}?client=${clientId}` : h
 
-  // Grey out items below "Clients" when NO specific client is selected on the dashboard
-  const NEVER_DIM = new Set(['/dashboard', '/clients'])
+  // Désactiver les menus sous "Clients" tant qu'aucun client n'est sélectionné
+  const NEVER_DIM = new Set(['/dashboard', '/clients', '/admin'])
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => ({
     '/transactions': pathname.startsWith('/transactions'),
@@ -97,7 +97,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon, children }) => {
-          const dimmed = pathname === '/dashboard' && !searchParams.get('client') && !NEVER_DIM.has(href)
+          const dimmed = !clientId && !NEVER_DIM.has(href)
 
           if (!children) {
             return (

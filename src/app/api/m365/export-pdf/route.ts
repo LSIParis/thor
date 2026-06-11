@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
+import { labelSku, sortSkus } from '@/lib/m365-sku-labels'
 
 function esc(s: string) {
   return s
@@ -12,47 +13,10 @@ function esc(s: string) {
     .replace(/"/g, '&quot;')
 }
 
-// Noms lisibles pour les SKU Microsoft courants
-const SKU_LABELS: Record<string, string> = {
-  MICROSOFT_365_BUSINESS_BASIC:       'Business Basic',
-  MICROSOFT_365_BUSINESS_ESSENTIALS:  'Business Basic',
-  O365_BUSINESS_ESSENTIALS:           'Business Basic',
-  O365_BUSINESS_ESSENTIAL:            'Business Basic',
-  Microsoft_365_Business_Essentials:  'Business Basic',
-  MICROSOFT_365_BUSINESS_STANDARD:    'Business Standard',
-  O365_BUSINESS_PREMIUM:              'Business Standard',
-  MICROSOFT_365_BUSINESS_PREMIUM:     'Business Premium',
-  Microsoft_365_Business_Premium:     'Business Premium',
-  SPE_E3:                             'M365 E3',
-  SPE_E5:                             'M365 E5',
-  ENTERPRISEPACK:                     'Office 365 E3',
-  ENTERPRISEPREMIUM:                  'Office 365 E5',
-  ATP_ENTERPRISE:                     'Defender for Office',
-  ATP_ENTERPRISE_GOV:                 'Defender for Office',
-  EXCHANGESTANDARD:                   'Exchange Plan 1',
-  EXCHANGEENTERPRISE:                 'Exchange Plan 2',
-  TEAMS_EXPLORATORY:                  'Teams Exploratory',
-  TEAMS_FREE:                         'Teams Free',
-  PROJECTPREMIUM:                     'Project Plan 5',
-  PROJECTESSENTIALS:                  'Project Plan 1',
-  VISIOCLIENT:                        'Visio Plan 2',
-  POWER_BI_PRO:                       'Power BI Pro',
-  POWER_BI_STANDARD:                  'Power BI Free',
-  INTUNE_A:                           'Intune',
-  EMS:                                'EMS E3',
-  EMSPREMIUM:                         'EMS E5',
-  AAD_PREMIUM:                        'Entra ID P1',
-  AAD_PREMIUM_P2:                     'Entra ID P2',
-  WINDOWS_STORE:                      'Microsoft Store',
-}
-
-function labelSku(sku: string): string {
-  return SKU_LABELS[sku] ?? sku.replace(/_/g, ' ')
-}
-
 export async function GET(req: NextRequest) {
   const session = await requireAuth()
   const selectedClientId = req.nextUrl.searchParams.get('client') ?? undefined
+  const selectedTenantId = req.nextUrl.searchParams.get('tenant') ?? undefined
 
   const userId = session.user.id
   const role   = session.user.role
@@ -63,11 +27,14 @@ export async function GET(req: NextRequest) {
         : { id: selectedClientId, users: { some: { userId } } })
     : accessFilter
 
+  const tenantFilter = selectedTenantId ? { some: { id: selectedTenantId } } : { some: {} }
+
   const clients = await prisma.client.findMany({
-    where: { ...clientFilter, m365Tenants: { some: {} } },
+    where: { ...clientFilter, m365Tenants: tenantFilter },
     select: {
       id: true, name: true,
       m365Tenants: {
+        where: selectedTenantId ? { id: selectedTenantId } : undefined,
         orderBy: { displayName: 'asc' },
         select: {
           id: true, displayName: true, tenantId: true,
@@ -110,7 +77,7 @@ export async function GET(req: NextRequest) {
         if (!a.licenseType) continue
         for (const s of a.licenseType.split(', ')) skuSet.add(s.trim())
       }
-      const skus = [...skuSet].sort()
+      const skus = sortSkus([...skuSet])
       if (!skus.length) continue
 
       // En-têtes colonnes SKU (tournées -60°)
@@ -226,6 +193,8 @@ export async function GET(req: NextRequest) {
     .btn:hover { opacity: .85; }
     .btn-pdf  { background: #3abfbf; color: #fff; }
     .btn-close { background: rgba(255,255,255,.12); color: #fff; }
+    .toolbar-hint { font-size: 1.1rem; color: rgba(255,255,255,.55); margin-left: 6px; }
+    .toolbar-hint strong { color: #3abfbf; }
 
     /* ── Wrapper page ── */
     .page-wrap { max-width: 960px; margin: 24px auto; padding: 0 16px 40px; }
@@ -343,7 +312,7 @@ export async function GET(req: NextRequest) {
     .doc-footer span { color: rgba(255,255,255,.8); }
 
     /* ── Print ── */
-    @page { margin: 1.2cm 1cm; size: landscape; }
+    @page { margin: 1cm; }
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       html, body { margin: 0 !important; padding: 0 !important; background: #fff; height: auto !important; }
@@ -363,6 +332,7 @@ export async function GET(req: NextRequest) {
     <span class="toolbar-title">Microsoft 365 — Rapport licences</span>
     <button class="btn btn-pdf"   onclick="window.print()">⬇ Enregistrer en PDF</button>
     <button class="btn btn-close" onclick="window.close()">✕ Fermer</button>
+    <span class="toolbar-hint">Dans la boîte d'impression, sélectionnez l'orientation <strong>Paysage</strong></span>
   </div>
 
   <div class="page-wrap">
