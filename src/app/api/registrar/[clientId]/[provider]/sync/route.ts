@@ -124,6 +124,15 @@ export async function POST(
     return NextResponse.json({ error: `${provider.toUpperCase()} inaccessible : ${err?.code ?? err?.message ?? 'unknown'}` }, { status: 502 })
   }
 
+  // Find or create the Registrar entry for this client+provider
+  // Match by name (case-insensitive) so we reuse any manually-created registrar
+  const providerLabel = provider.toUpperCase()
+  const registrar =
+    (await prisma.registrar.findFirst({
+      where: { clientId, name: { equals: providerLabel, mode: 'insensitive' } },
+    })) ??
+    (await prisma.registrar.create({ data: { clientId, name: providerLabel } }))
+
   let totalZones = 0
   let totalRecords = 0
   const errors: string[] = []
@@ -162,9 +171,9 @@ export async function POST(
         }
 
         const zone = await prisma.dnsZone.upsert({
-          where:  { ovhZoneName_clientId: { ovhZoneName: zoneName, clientId } },
+          where:  { ovhZoneName_registrarId: { ovhZoneName: zoneName, registrarId: registrar.id } },
           update: { domain: zoneName, nameservers: nsDisplay, source: provider },
-          create: { clientId, domain: zoneName, ovhZoneName: zoneName, nameservers: nsDisplay, source: provider },
+          create: { registrarId: registrar.id, domain: zoneName, ovhZoneName: zoneName, nameservers: nsDisplay, source: provider },
         })
 
         await prisma.dnsRecord.deleteMany({ where: { zoneId: zone.id } })
@@ -183,7 +192,7 @@ export async function POST(
 
   // Delete zones no longer present
   await prisma.dnsZone.deleteMany({
-    where: { clientId, source: provider, ovhZoneName: { notIn: zoneNames } },
+    where: { registrarId: registrar.id, source: provider, ovhZoneName: { notIn: zoneNames } },
   })
 
   await prisma.registrarConfig.update({

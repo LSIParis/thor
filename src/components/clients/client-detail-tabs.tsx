@@ -13,7 +13,7 @@ import type {
   Contact, Equipment,
   NextcloudService, NextcloudServer,
   VoipService, VoipEquipment, VoipTrunk, VoipExtension,
-  DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig,
+  Registrar, DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig,
   PersonnelMovement,
 } from '@prisma/client'
 
@@ -23,6 +23,7 @@ type VoipServiceWithChildren = VoipService & {
 }
 type EquipmentWithContact = Equipment & { assignedTo: Contact | null }
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
+type RegistrarWithZones = Registrar & { dnsZones: ZoneWithRecords[] }
 
 interface ClientDetailTabsProps {
   clientId: string
@@ -30,7 +31,7 @@ interface ClientDetailTabsProps {
   equipment: EquipmentWithContact[]
   nextcloudServices: ServiceWithServers[]
   voipServices: VoipServiceWithChildren[]
-  dnsZones: ZoneWithRecords[]
+  registrars: RegistrarWithZones[]
   sslCerts: SslCertificate[]
   hostings: Hosting[]
   registrarConfigs: RegistrarConfig[]
@@ -43,14 +44,15 @@ interface ClientDetailTabsProps {
 export function ClientDetailTabs({
   clientId, contacts, equipment,
   nextcloudServices, voipServices,
-  dnsZones, sslCerts, hostings, registrarConfigs,
+  registrars, sslCerts, hostings, registrarConfigs,
   movements, canEdit, isClient, hasRmmLink,
 }: ClientDetailTabsProps) {
   const t = useTranslations('clients')
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get('tab') ?? 'contacts'
 
-  const dnsTotal = dnsZones.length + sslCerts.length + hostings.length
+  const totalZones = registrars.reduce((s, r) => s + r.dnsZones.length, 0)
+  const dnsTotal = totalZones + sslCerts.length + hostings.length
 
   return (
     <Tabs defaultValue={defaultTab}>
@@ -71,7 +73,7 @@ export function ClientDetailTabs({
       <TabsContent value="dns" className="mt-4">
         <DnsPanel
           clientId={clientId}
-          zones={dnsZones}
+          registrars={registrars}
           certs={sslCerts}
           hostings={hostings}
           registrarConfigs={registrarConfigs}

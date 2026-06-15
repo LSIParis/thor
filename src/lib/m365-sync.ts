@@ -17,7 +17,13 @@ type SkuEntry = {
 }
 
 export async function syncTenant(tenantDbId: string): Promise<{ synced: number }> {
-  const tenant = await prisma.m365Tenant.findUniqueOrThrow({ where: { id: tenantDbId } })
+  const tenant = await prisma.m365Tenant.findUniqueOrThrow({
+    where: { id: tenantDbId },
+    select: {
+      id: true, clientId: true, displayName: true,
+      tenantId: true, azureClientId: true, azureClientSecret: true,
+    },
+  })
 
   if (!tenant.tenantId || !tenant.azureClientId || !tenant.azureClientSecret) {
     throw new Error(`Tenant "${tenant.displayName}" : credentials Azure manquants.`)
@@ -117,6 +123,52 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
       update: { graphId: u.id, displayName: u.displayName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled },
       create: { tenantId: tenantDbId, graphId: u.id, displayName: u.displayName, userPrincipalName: u.userPrincipalName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled },
     })
+  }
+
+  // ── Sync contacts depuis les comptes actifs ───────────────────────────────
+  const clientId = tenant.clientId
+
+  const defaultSite = await prisma.site.findFirst({
+    where: { clientId, isDefault: true },
+    select: { id: true },
+  })
+  const defaultSiteId = defaultSite?.id ?? null
+
+  for (const u of users) {
+    if (!u.accountEnabled || !u.displayName?.trim()) continue
+
+    const email = u.userPrincipalName.includes('#EXT#')
+      ? null
+      : u.userPrincipalName.toLowerCase()
+
+    const parts     = u.displayName.trim().split(/\s+/)
+    const firstName = parts[0] ?? ''
+    const lastName  = parts.slice(1).join(' ') || '—'
+    const role      = u.jobTitle ?? null
+
+    if (email) {
+      const existing = await prisma.contact.findFirst({ where: { clientId, email } })
+      if (existing) {
+        await prisma.contact.update({
+          where: { id: existing.id },
+          data: {
+            firstName, lastName, role,
+            ...(existing.siteId === null && defaultSiteId ? { siteId: defaultSiteId } : {}),
+          },
+        })
+      } else {
+        await prisma.contact.create({
+          data: { clientId, firstName, lastName, email, role, siteId: defaultSiteId },
+        })
+      }
+    } else {
+      const existing = await prisma.contact.findFirst({ where: { clientId, firstName, lastName } })
+      if (!existing) {
+        await prisma.contact.create({
+          data: { clientId, firstName, lastName, role, siteId: defaultSiteId },
+        })
+      }
+    }
   }
 
   await prisma.m365Tenant.update({

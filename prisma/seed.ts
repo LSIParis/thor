@@ -12,12 +12,13 @@ async function main() {
   const hash = await bcrypt.hash('Admin1234!', 12)
   await prisma.user.upsert({
     where: { email: 'admin@lsi-maintenance.fr' },
-    update: {},
+    update: { emailVerified: true, passwordHash: hash },
     create: {
       name: 'Administrateur',
       email: 'admin@lsi-maintenance.fr',
       passwordHash: hash,
       role: 'ADMIN',
+      emailVerified: true,
     },
   })
   console.log('Admin user seeded: admin@lsi-maintenance.fr / Admin1234!')

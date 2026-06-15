@@ -312,27 +312,40 @@ export async function GET(req: NextRequest) {
     .doc-footer span { color: rgba(255,255,255,.8); }
 
     /* ── Print ── */
-    @page { margin: 1cm; }
+    .print-repeat-header { display: none; }
+    @page { margin: 1.2cm 1cm 1cm; }
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       html, body { margin: 0 !important; padding: 0 !important; background: #fff; height: auto !important; }
-      .toolbar { display: none !important; position: static !important; height: 0 !important; }
+      .toolbar { display: none !important; }
       .page-wrap { max-width: none !important; margin: 0 !important; padding: 0 !important; }
-      .doc-header { border-radius: 0; break-before: avoid; }
+      .doc-header { border-radius: 0; }
       .doc-footer { border-radius: 0; }
-      .client-section { page-break-inside: avoid; }
-      .tenant-block   { page-break-inside: avoid; }
+      .client-header  { page-break-after: avoid; }
+      .tenant-header  { page-break-after: avoid; }
+      /* En-tête répété sur chaque page */
+      .print-repeat-header {
+        display: flex !important;
+        position: fixed;
+        top: -0.9cm; left: 0; right: 0;
+        justify-content: space-between;
+        align-items: center;
+        background: #1e2d3a;
+        color: rgba(255,255,255,.8);
+        font-size: 7.5pt;
+        padding: 3px 1cm;
+        border-bottom: 2px solid #3abfbf;
+      }
+      .print-repeat-header strong { color: #3abfbf; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <span class="toolbar-title">Microsoft 365 — Rapport licences</span>
-    <button class="btn btn-pdf"   onclick="window.print()">⬇ Enregistrer en PDF</button>
-    <button class="btn btn-close" onclick="window.close()">✕ Fermer</button>
-    <span class="toolbar-hint">Dans la boîte d'impression, sélectionnez l'orientation <strong>Paysage</strong></span>
+  <!-- En-tête répété à l'impression (fixe, invisible à l'écran) -->
+  <div class="print-repeat-header">
+    <span>LSI-Maintenance — <strong>Licences Microsoft 365</strong></span>
+    <span>${dateStr}</span>
   </div>
 
   <div class="page-wrap">
@@ -362,6 +375,15 @@ export async function GET(req: NextRequest) {
     </div>
 
   </div>
+
+  <!-- Toolbar (en bas pour ne pas perturber l'impression) -->
+  <div class="toolbar">
+    <span class="toolbar-title">Microsoft 365 — Rapport licences</span>
+    <button class="btn btn-pdf"   onclick="window.print()">⬇ Enregistrer en PDF</button>
+    <button class="btn btn-close" onclick="window.close()">✕ Fermer</button>
+    <span class="toolbar-hint">Dans la boîte d'impression, sélectionnez l'orientation <strong>Paysage</strong></span>
+  </div>
+
 </body>
 </html>`
 

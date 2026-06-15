@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { syncOrgsToZammad } from '@/lib/zammad'
 
 export async function createClient(formData: FormData) {
   await requireAdmin()
@@ -41,4 +42,14 @@ export async function deleteClient(clientId: string) {
   await prisma.client.delete({ where: { id: clientId } })
   revalidatePath('/clients')
   redirect('/clients')
+}
+
+export async function syncClientsToZammad(): Promise<{
+  created: number
+  updated: number
+  error?: string
+}> {
+  await requireAdmin()
+  const clients = await prisma.client.findMany({ select: { name: true }, orderBy: { name: 'asc' } })
+  return syncOrgsToZammad(clients.map(c => c.name))
 }

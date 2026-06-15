@@ -5,26 +5,102 @@ import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+// ── Registrars ────────────────────────────────────────────
+
+export async function createRegistrarFromPage(formData: FormData) {
+  await requireAdmin()
+  const clientId = formData.get('clientId') as string
+  await prisma.registrar.create({
+    data: {
+      clientId,
+      name: formData.get('name') as string,
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath('/dns')
+}
+
+export async function deleteRegistrarFromPage(registrarId: string) {
+  await requireAdmin()
+  await prisma.registrar.delete({ where: { id: registrarId } })
+  revalidatePath('/dns')
+}
+
+export async function updateRegistrarFromPage(registrarId: string, formData: FormData) {
+  await requireAdmin()
+  await prisma.registrar.update({
+    where: { id: registrarId },
+    data: {
+      name:  formData.get('name') as string,
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath('/dns')
+}
+
+export async function createRegistrar(clientId: string, formData: FormData) {
+  await requireAdmin()
+  await prisma.registrar.create({
+    data: {
+      clientId,
+      name: formData.get('name') as string,
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath(`/clients/${clientId}`)
+  redirect(`/clients/${clientId}?tab=dns`)
+}
+
+export async function deleteRegistrar(registrarId: string, clientId: string) {
+  await requireAdmin()
+  await prisma.registrar.delete({ where: { id: registrarId } })
+  revalidatePath(`/clients/${clientId}`)
+  redirect(`/clients/${clientId}?tab=dns`)
+}
+
 // ── DNS Zones ─────────────────────────────────────────────
 
-export async function createDnsZone(clientId: string, formData: FormData) {
+export async function createDnsZoneFromPage(formData: FormData) {
   await requireAdmin()
-  const reg = formData.get('registrationDate') as string
+  const registrarId = formData.get('registrarId') as string
   const exp = formData.get('expiryDate') as string
   await prisma.dnsZone.create({
     data: {
-      clientId,
+      registrarId,
       domain: formData.get('domain') as string,
-      registrar: (formData.get('registrar') as string) || null,
+      nameservers: (formData.get('nameservers') as string) || null,
+      expiryDate: exp ? new Date(exp) : null,
+      autoRenew: formData.get('autoRenew') === 'on',
+      notes: (formData.get('notes') as string) || null,
+    },
+  })
+  revalidatePath('/dns')
+}
+
+export async function createDnsZone(registrarId: string, formData: FormData) {
+  await requireAdmin()
+  const reg = formData.get('registrationDate') as string
+  const exp = formData.get('expiryDate') as string
+  const zone = await prisma.dnsZone.create({
+    data: {
+      registrarId,
+      domain: formData.get('domain') as string,
       nameservers: (formData.get('nameservers') as string) || null,
       registrationDate: reg ? new Date(reg) : null,
       expiryDate: exp ? new Date(exp) : null,
       autoRenew: formData.get('autoRenew') === 'on',
       notes: (formData.get('notes') as string) || null,
     },
+    include: { registrar: { select: { clientId: true } } },
   })
-  revalidatePath(`/clients/${clientId}`)
-  redirect(`/clients/${clientId}?tab=dns`)
+  revalidatePath(`/clients/${zone.registrar.clientId}`)
+  redirect(`/clients/${zone.registrar.clientId}?tab=dns`)
+}
+
+export async function deleteDnsZoneFromPage(zoneId: string) {
+  await requireAdmin()
+  await prisma.dnsZone.delete({ where: { id: zoneId } })
+  revalidatePath('/dns')
 }
 
 export async function deleteDnsZone(zoneId: string, clientId: string) {

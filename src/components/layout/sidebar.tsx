@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
   LogOut, User, ArrowLeftRight, Ticket, ChevronDown,
-  LayoutGrid, Boxes, Cloud, HardDrive, Phone, Globe, Monitor,
+  LayoutGrid, Boxes, Cloud, HardDrive, Phone, Monitor, Globe, MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -17,13 +17,14 @@ interface SidebarProps {
   userName: string
   locale: string
   linkedClientId?: string | null
+  clients?: { id: string; name: string }[]
 }
 
 type NavChild = { href: string; label: string; icon: React.ElementType }
 type NavItem = { href: string; label: string; icon: React.ElementType; children?: NavChild[] }
 
 
-export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarProps) {
+export function Sidebar({ userRole, userName, locale, linkedClientId, clients = [] }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -38,6 +39,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => ({
     '/transactions': pathname.startsWith('/transactions'),
+    '/clients': pathname.startsWith('/clients') || pathname.startsWith('/sites') || pathname.startsWith('/contacts'),
   }))
 
   function toggleSection(href: string) {
@@ -56,7 +58,11 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
         ]
       : [
           { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-          { href: '/clients', label: t('clients'), icon: Users },
+          { href: '/clients', label: t('clients'), icon: Users, children: [
+            { href: '/clients',  label: 'Sociétés',   icon: Users },
+            { href: '/sites',    label: 'Sites',      icon: MapPin },
+            { href: '/contacts', label: 'Contacts',   icon: User },
+          ]},
           { href: '/parc',    label: 'Parc',     icon: Monitor },
           { href: '/tickets', label: 'Tickets', icon: Ticket },
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
@@ -94,6 +100,18 @@ export function Sidebar({ userRole, userName, locale, linkedClientId }: SidebarP
         )}
         {collapsed && <div className="text-primary font-bold text-xs mx-auto">L</div>}
       </div>
+
+      {/* Client actif */}
+      {!collapsed && (
+        <div className="px-3 py-2 border-b border-border bg-muted/30">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Client</div>
+          <div className="text-xs font-medium truncate text-foreground">
+            {clientId
+              ? (clients.find(c => c.id === clientId)?.name ?? '—')
+              : 'Tous les clients'}
+          </div>
+        </div>
+      )}
 
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">

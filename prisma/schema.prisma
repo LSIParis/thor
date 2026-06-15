@@ -31,7 +31,6 @@ model Client {
   id            String       @id @default(cuid())
   name          String
   tacticalRmmId  String?      @unique
-  desk365Company String?
   address        String?
   phone         String?
   email         String?
@@ -46,10 +45,11 @@ model Client {
   m365Tenants       M365Tenant[]
   nextcloudServices NextcloudService[]
   voipServices      VoipService[]
-  dnsZones          DnsZone[]
+  registrars        Registrar[]
   sslCertificates   SslCertificate[]
   hostings          Hosting[]
   registrarConfigs  RegistrarConfig[]
+  sites             Site[]
 }
 
 model UserClient {
@@ -64,6 +64,7 @@ model UserClient {
 model Contact {
   id        String   @id @default(cuid())
   clientId  String
+  siteId    String?
   firstName String
   lastName  String
   email     String?
@@ -72,6 +73,7 @@ model Contact {
   notes     String?
   createdAt DateTime    @default(now())
   client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  site      Site?       @relation(fields: [siteId], references: [id], onDelete: SetNull)
   equipment Equipment[]
 }
 
@@ -268,11 +270,20 @@ model VoipExtension {
 
 // ── DNS / Certificats / Hébergement ───────────────────────────────────────────
 
+model Registrar {
+  id        String    @id @default(cuid())
+  clientId  String
+  name      String
+  notes     String?
+  createdAt DateTime  @default(now())
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dnsZones  DnsZone[]
+}
+
 model DnsZone {
   id               String      @id @default(cuid())
-  clientId         String
+  registrarId      String
   domain           String
-  registrar        String?
   nameservers      String?
   registrationDate DateTime?
   expiryDate       DateTime?
@@ -281,10 +292,10 @@ model DnsZone {
   ovhZoneName      String?
   notes            String?
   createdAt        DateTime    @default(now())
-  client           Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  registrar        Registrar   @relation(fields: [registrarId], references: [id], onDelete: Cascade)
   records          DnsRecord[]
 
-  @@unique([ovhZoneName, clientId])
+  @@unique([ovhZoneName, registrarId])
 }
 
 model DnsRecord {
@@ -327,6 +338,32 @@ model Hosting {
   notes       String?
   createdAt   DateTime  @default(now())
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ── Sites client ─────────────────────────────────────────────────────────────
+
+model Site {
+  id             String   @id @default(cuid())
+  clientId       String
+  name           String
+  address        String?
+  city           String?
+  postalCode     String?
+  country        String?  @default("France")
+  phone          String?
+  email          String?
+  digicode1      String?
+  digicode2      String?
+  interphone     String?
+  etage          String?
+  heureOuverture String?
+  heureFermeture String?
+  isHeadquarters Boolean  @default(false)
+  isDefault      Boolean  @default(false)
+  notes          String?
+  createdAt      DateTime @default(now())
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contacts       Contact[]
 }
 
 // ── Registrar / DNS provider config (OVH, Gandi, LWS) ───────────────────────
