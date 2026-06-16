@@ -80,6 +80,7 @@ model Contact {
 model Equipment {
   id               String    @id @default(cuid())
   clientId         String
+  siteId           String?
   type             String
   operatingSystem  String?
   brand            String?
@@ -95,6 +96,7 @@ model Equipment {
   rmmAgentId       String?   @unique
   createdAt        DateTime  @default(now())
   client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  site             Site?     @relation(fields: [siteId], references: [id], onDelete: SetNull)
   assignedTo       Contact?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 }
 
@@ -364,6 +366,7 @@ model Site {
   createdAt      DateTime @default(now())
   client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contacts       Contact[]
+  equipment      Equipment[]
 }
 
 // ── Registrar / DNS provider config (OVH, Gandi, LWS) ───────────────────────

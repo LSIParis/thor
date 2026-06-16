@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { ContactsView } from '@/components/contacts/contacts-view'
 import { AddContactDialog } from '@/components/contacts/add-contact-dialog'
 import { SyncM365Button } from '@/components/contacts/sync-m365-button'
+import { Download } from 'lucide-react'
 
 const CONTACT_SELECT = {
   id: true, firstName: true, lastName: true,
@@ -69,12 +70,16 @@ export default async function ContactsPage({
               {clientName} — {total} contact{total !== 1 ? 's' : ''}
             </p>
           </div>
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              <SyncM365Button clientId={selectedClientId} />
-              <AddContactDialog clients={allClients} sites={allSites} selectedClientId={selectedClientId} />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <a
+              href={`/api/contacts/export?client=${selectedClientId}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+            >
+              <Download size={13} /> CSV
+            </a>
+            {isAdmin && <SyncM365Button clientId={selectedClientId} />}
+            {isAdmin && <AddContactDialog clients={allClients} sites={allSites} selectedClientId={selectedClientId} />}
+          </div>
         </div>
 
         <ContactsView
@@ -107,9 +112,15 @@ export default async function ContactsPage({
             {contacts.length} contact{contacts.length !== 1 ? 's' : ''} · {allClients.length} client{allClients.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {isAdmin && (
-          <AddContactDialog clients={allClients} sites={allSites} />
-        )}
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/contacts/export"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <Download size={13} /> CSV
+          </a>
+          {isAdmin && <AddContactDialog clients={allClients} sites={allSites} />}
+        </div>
       </div>
 
       <ContactsView

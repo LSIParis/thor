@@ -5,6 +5,13 @@ export interface RmmClient {
   name: string
 }
 
+export interface RmmSite {
+  id: number
+  name: string
+  client: number
+  client_name: string
+}
+
 export interface RmmAgent {
   agent_id: string
   hostname: string
@@ -30,6 +37,35 @@ const CANDIDATE_PATHS = [
   '/clients/',
   '/api/v2/clients/',
 ]
+
+const SITE_CANDIDATE_PATHS = [
+  '/api/v3/sites/',
+  '/sites/',
+  '/api/v2/sites/',
+]
+
+export async function fetchRmmSites(baseUrl: string, apiKey: string, rmmClientId: string): Promise<RmmSite[]> {
+  const url = baseUrl.replace(/\/$/, '')
+  const headers = { 'X-API-KEY': apiKey }
+  let lastError: any
+
+  for (const path of SITE_CANDIDATE_PATHS) {
+    try {
+      const response = await axios.get<RmmSite[]>(`${url}${path}`, { headers, timeout: 10000 })
+      if (Array.isArray(response.data)) {
+        return response.data.filter((s) => String(s.client) === rmmClientId)
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        lastError = err
+        continue
+      }
+      throw err
+    }
+  }
+
+  throw lastError ?? new Error('No valid sites endpoint found')
+}
 
 export async function renameRmmClient(baseUrl: string, apiKey: string, rmmId: string, newName: string): Promise<{ ok: true } | { error: string }> {
   const url = baseUrl.replace(/\/$/, '')

@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
 import { AddSiteDialog } from '@/components/sites/add-site-dialog'
 import { SitesView } from '@/components/sites/sites-view'
+import { ImportRmmSitesButton } from '@/components/sites/import-rmm-button'
 
 const SITE_SELECT = {
   id: true, name: true, address: true, city: true,
@@ -47,6 +48,7 @@ export default async function SitesPage({
       select: {
         id: true,
         name: true,
+        tacticalRmmId: true,
         sites: { orderBy: SITE_ORDER, select: SITE_SELECT },
       },
     })
@@ -63,7 +65,12 @@ export default async function SitesPage({
             </p>
           </div>
           {isAdmin && (
-            <AddSiteDialog clients={allClients} selectedClientId={selectedClientId} />
+            <div className="flex items-center gap-2">
+              {client?.tacticalRmmId && (
+                <ImportRmmSitesButton clientId={selectedClientId} />
+              )}
+              <AddSiteDialog clients={allClients} selectedClientId={selectedClientId} />
+            </div>
           )}
         </div>
 

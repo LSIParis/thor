@@ -112,16 +112,46 @@ export async function POST(
       return NextResponse.json({ error: `RMM agents : ${detail}` }, { status: 502 })
     }
 
+    // Build site lookup: lowercase name → site id
+    const clientSites = await prisma.site.findMany({
+      where: { clientId },
+      select: { id: true, name: true },
+    })
+    const siteMap = new Map(clientSites.map((s) => [s.name.toLowerCase(), s.id]))
+
+    // Build contact lookup for description-based user matching
+    const clientContacts = await prisma.contact.findMany({
+      where: { clientId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+
+    function matchContactFromDescription(description: string | null): string | null {
+      if (!description) return null
+      const desc = description.toLowerCase()
+      for (const c of clientContacts) {
+        const fn = c.firstName.toLowerCase()
+        const ln = c.lastName.toLowerCase()
+        if (
+          desc.includes(`${fn} ${ln}`) ||
+          desc.includes(`${ln} ${fn}`) ||
+          desc.includes(`${ln}, ${fn}`)
+        ) return c.id
+      }
+      return null
+    }
+
     let created = 0
     let updated = 0
     let unchanged = 0
 
     for (const agent of agents) {
       if (!agent.agent_id) continue
-      const type = rmmAgentToEquipmentType(agent)
+      const type   = rmmAgentToEquipmentType(agent)
       const localIp = agent.local_ips?.split(',')[0]?.trim() || agent.public_ip || null
-      const brand = agent.make_model?.split(' ')[0] || null
-      const model = agent.make_model || agent.hostname
+      const brand   = agent.make_model?.split(' ')[0] || null
+      const model   = agent.make_model || agent.hostname
+      const siteId  = agent.site_name ? (siteMap.get(agent.site_name.toLowerCase()) ?? null) : null
+      const assignedToId = matchContactFromDescription(agent.description)
 
       const existing = await prisma.equipment.findUnique({ where: { rmmAgentId: agent.agent_id } })
 
@@ -136,27 +166,32 @@ export async function POST(
             serialNumber: agent.serial_number || null,
             operatingSystem: agent.operating_system || null,
             ipAddress: localIp,
+            siteId,
+            assignedToId,
             notes: agent.description || null,
           },
         })
         created++
       } else {
+        // type is intentionally excluded from updates — preserve manual classification from Parc
         const changed =
-          existing.type !== type ||
           existing.model !== model ||
           existing.operatingSystem !== (agent.operating_system || null) ||
-          existing.ipAddress !== localIp
+          existing.ipAddress !== localIp ||
+          existing.siteId !== siteId ||
+          (assignedToId !== null && existing.assignedToId !== assignedToId)
 
         if (changed) {
           await prisma.equipment.update({
             where: { id: existing.id },
             data: {
-              type,
               brand,
               model,
               serialNumber: agent.serial_number || null,
               operatingSystem: agent.operating_system || null,
               ipAddress: localIp,
+              siteId,
+              ...(assignedToId !== null ? { assignedToId } : {}),
             },
           })
           updated++
@@ -166,7 +201,21 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ created, updated, unchanged, total: agents.length })
+    // Bidirectional: remove Thor equipment whose RMM agent no longer exists
+    const activeAgentIds = new Set(agents.map((a) => a.agent_id).filter(Boolean))
+    const rmmLinked = await prisma.equipment.findMany({
+      where: { clientId, rmmAgentId: { not: null } },
+      select: { id: true, rmmAgentId: true },
+    })
+    let deleted = 0
+    for (const eq of rmmLinked) {
+      if (eq.rmmAgentId && !activeAgentIds.has(eq.rmmAgentId)) {
+        await prisma.equipment.delete({ where: { id: eq.id } })
+        deleted++
+      }
+    }
+
+    return NextResponse.json({ created, updated, unchanged, deleted, total: agents.length })
   } catch (err: any) {
     console.error('[RMM agents import]', err)
     return NextResponse.json(
