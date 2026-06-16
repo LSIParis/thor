@@ -1,29 +1,32 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Button } from '@/components/ui/button'
-import { syncClientsToZammad } from '@/actions/clients'
 import { RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { syncContactsWithZammad } from '@/actions/contacts'
 
-type Result = { created: number; updated: number; imported: number; error?: string }
+type Result = { pushed: number; imported: number; historical: number; error?: string }
 
-export function SyncZammadButton() {
+export function SyncZammadContactsButton() {
   const [result, setResult] = useState<Result | null>(null)
   const [isPending, start]  = useTransition()
 
   function handleSync() {
     setResult(null)
     start(async () => {
-      const res = await syncClientsToZammad()
+      const res = await syncContactsWithZammad()
       setResult(res)
     })
   }
 
-  const summary = result && !result.error ? [
-    result.created  > 0 && `+${result.created} org${result.created  !== 1 ? 's' : ''} Zammad`,
-    result.imported > 0 && `+${result.imported} client${result.imported !== 1 ? 's' : ''} Thor`,
-    result.created === 0 && result.imported === 0 && 'Déjà synchronisé',
-  ].filter(Boolean).join(' · ') : null
+  const summary = result && !result.error
+    ? [
+        result.pushed     > 0 && `↑${result.pushed} → Zammad`,
+        result.imported   > 0 && `↓${result.imported} → Thor`,
+        result.historical > 0 && `${result.historical} historique${result.historical > 1 ? 's' : ''}`,
+        result.pushed === 0 && result.imported === 0 && result.historical === 0 && 'Déjà synchronisé',
+      ].filter(Boolean).join(' · ')
+    : null
 
   return (
     <div className="flex items-center gap-3">
@@ -43,7 +46,7 @@ export function SyncZammadButton() {
         {isPending
           ? <Loader2 size={14} className="mr-1.5 animate-spin" />
           : <RefreshCw size={14} className="mr-1.5" />}
-        Synchro Zammad
+        Synchronisation Zammad
       </Button>
     </div>
   )

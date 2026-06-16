@@ -4,6 +4,17 @@ interface ZammadOrg {
   active: boolean
 }
 
+export interface ZammadUser {
+  id: number
+  firstname: string
+  lastname: string
+  email: string | null
+  phone: string | null
+  organization_id: number | null
+  active: boolean
+  login: string
+}
+
 // ── Types publics ──────────────────────────────────────────────────────────────
 
 export interface ZammadTicket {
@@ -237,7 +248,7 @@ function authHeaders() {
   }
 }
 
-async function fetchAllOrgs(): Promise<ZammadOrg[]> {
+export async function fetchAllOrgs(): Promise<ZammadOrg[]> {
   const b = base()
   if (!b) return []
 
@@ -258,6 +269,61 @@ async function fetchAllOrgs(): Promise<ZammadOrg[]> {
   }
 
   return all
+}
+
+export async function fetchAllZammadUsers(): Promise<ZammadUser[]> {
+  const b = base()
+  if (!b || !process.env.ZAMMAD_TOKEN) return []
+
+  const all: ZammadUser[] = []
+  let page = 1
+
+  while (true) {
+    const res = await fetch(`${b}/users?per_page=500&page=${page}`, {
+      headers: authHeaders(), cache: 'no-store',
+    })
+    if (!res.ok) break
+    const items = (await res.json()) as ZammadUser[]
+    if (!Array.isArray(items) || items.length === 0) break
+    all.push(...items)
+    if (items.length < 500) break
+    page++
+  }
+
+  // Exclure le compte système (login='-') et les inactifs
+  return all.filter(u => u.active && u.email && u.login !== '-')
+}
+
+export async function upsertZammadUser(u: {
+  zammadId?: number
+  firstname: string
+  lastname: string
+  email: string
+  phone?: string | null
+  organizationId?: number | null
+}): Promise<number | null> {
+  const b = base()
+  if (!b || !process.env.ZAMMAD_TOKEN) return null
+
+  const body = {
+    firstname:       u.firstname,
+    lastname:        u.lastname,
+    email:           u.email,
+    phone:           u.phone ?? '',
+    organization_id: u.organizationId ?? null,
+    login:           u.email,
+    roles:           ['Customer'],
+  }
+
+  const url    = u.zammadId ? `${b}/users/${u.zammadId}` : `${b}/users`
+  const method = u.zammadId ? 'PUT' : 'POST'
+
+  const res = await fetch(url, {
+    method, headers: authHeaders(), body: JSON.stringify(body), cache: 'no-store',
+  })
+  if (!res.ok) return null
+  const data = await res.json() as { id?: number }
+  return data.id ?? null
 }
 
 export async function syncOrgsToZammad(

@@ -5,7 +5,15 @@ import { Building2, ChevronDown } from 'lucide-react'
 
 interface Client { id: string; name: string }
 
-export function ClientSelector({ clients, selectedId }: { clients: Client[]; selectedId?: string }) {
+export function ClientSelector({
+  clients,
+  selectedId,
+  basePath = '/dashboard',
+}: {
+  clients: Client[]
+  selectedId?: string
+  basePath?: string
+}) {
   const router = useRouter()
 
   return (
@@ -15,8 +23,8 @@ export function ClientSelector({ clients, selectedId }: { clients: Client[]; sel
         value={selectedId ?? ''}
         onChange={(e) => {
           const val = e.target.value
-          if (!val) { router.push('/dashboard'); return }
-          router.push(`/dashboard?client=${val}`)
+          if (!val) { router.push(basePath); return }
+          router.push(`${basePath}?client=${val}`)
         }}
         className="pl-8 pr-8 py-1.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring appearance-none cursor-pointer min-w-[220px]"
       >

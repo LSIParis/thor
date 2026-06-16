@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db'
 import { ContactsView } from '@/components/contacts/contacts-view'
 import { AddContactDialog } from '@/components/contacts/add-contact-dialog'
 import { SyncM365Button } from '@/components/contacts/sync-m365-button'
+import { ClientSelector } from '@/components/dashboard/client-selector'
+import { SyncZammadButton } from '@/components/clients/sync-zammad-button'
+import { SyncZammadContactsButton } from '@/components/contacts/sync-zammad-contacts-button'
 import { Download } from 'lucide-react'
 
 const CONTACT_SELECT = {
@@ -63,14 +66,15 @@ export default async function ContactsPage({
 
     return (
       <AppLayout>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {clientName} — {total} contact{total !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <ClientSelector clients={allClients} selectedId={selectedClientId} basePath="/contacts" />
             <a
               href={`/api/contacts/export?client=${selectedClientId}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
@@ -105,20 +109,22 @@ export default async function ContactsPage({
 
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {contacts.length} contact{contacts.length !== 1 ? 's' : ''} · {allClients.length} client{allClients.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ClientSelector clients={allClients} selectedId={undefined} basePath="/contacts" />
           <a
             href="/api/contacts/export"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
           >
             <Download size={13} /> CSV
           </a>
+          {isAdmin && <SyncZammadContactsButton />}
           {isAdmin && <AddContactDialog clients={allClients} sites={allSites} />}
         </div>
       </div>
