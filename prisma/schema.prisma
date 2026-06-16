@@ -37,6 +37,7 @@ model Client {
   logoPath      String?
   notes         String?
   isHistorical  Boolean      @default(false)
+  noSync        Boolean      @default(false)
   createdAt     DateTime     @default(now())
   users         UserClient[]
   contacts      Contact[]
@@ -73,6 +74,7 @@ model Contact {
   role         String?
   notes        String?
   isHistorical Boolean  @default(false)
+  noSync       Boolean  @default(false)
   zammadUserId Int?     @unique
   createdAt    DateTime    @default(now())
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -96,6 +98,7 @@ model Equipment {
   photoPath        String?
   assignedToId     String?
   notes            String?
+  noSync           Boolean   @default(false)
   rmmAgentId       String?   @unique
   createdAt        DateTime  @default(now())
   client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -365,6 +368,7 @@ model Site {
   heureFermeture String?
   isHeadquarters Boolean  @default(false)
   isDefault      Boolean  @default(false)
+  noSync         Boolean  @default(false)
   notes          String?
   createdAt      DateTime @default(now())
   client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)

@@ -11,7 +11,7 @@ import { Download } from 'lucide-react'
 
 const CONTACT_SELECT = {
   id: true, firstName: true, lastName: true,
-  email: true, phone: true, role: true, notes: true, siteId: true,
+  email: true, phone: true, role: true, notes: true, siteId: true, noSync: true,
 } as const
 
 const ALPHA_ORDER = [{ lastName: 'asc' as const }, { firstName: 'asc' as const }]

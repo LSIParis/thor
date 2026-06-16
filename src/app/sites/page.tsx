@@ -10,7 +10,7 @@ const SITE_SELECT = {
   postalCode: true, country: true, phone: true, email: true,
   digicode1: true, digicode2: true, interphone: true, etage: true,
   heureOuverture: true, heureFermeture: true,
-  isHeadquarters: true, isDefault: true, notes: true,
+  isHeadquarters: true, isDefault: true, noSync: true, notes: true,
 } as const
 
 const SITE_ORDER = [

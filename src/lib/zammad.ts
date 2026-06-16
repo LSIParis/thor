@@ -74,7 +74,8 @@ function stateCategory(stateTypeName: string): ZammadTicket['stateCategory'] {
 function buildQuery(stateIds: number[], orgName?: string): string {
   const parts: string[] = []
   if (stateIds.length > 0) {
-    parts.push(stateIds.map((id) => `state_id:${id}`).join(' OR '))
+    const stateClause = stateIds.map((id) => `state_id:${id}`).join(' OR ')
+    parts.push(stateIds.length > 1 ? `(${stateClause})` : stateClause)
   }
   if (orgName) {
     parts.push(`organization.name:"${orgName.replace(/"/g, '')}"`)
@@ -200,7 +201,8 @@ export async function fetchZammadDashboard(orgName?: string): Promise<ZammadDash
     }
 
     // Parallel: recent tickets list + 3 count queries
-    const recentQuery  = orgName ? `organization.name:"${orgName.replace(/"/g, '')}"` : '*'
+    const activeIds    = [...openIds, ...pendingIds]
+    const recentQuery  = buildQuery(activeIds, orgName)
     const openQuery    = buildQuery(openIds,    orgName)
     const pendingQuery = buildQuery(pendingIds, orgName)
     const closedQuery  = buildQuery(closedIds,  orgName)

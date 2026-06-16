@@ -41,6 +41,10 @@ export default async function NewClientPage() {
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
             />
           </div>
+          <div className="flex items-center gap-2">
+            <input id="noSync" type="checkbox" name="noSync" value="true" className="rounded border-input" />
+            <Label htmlFor="noSync" className="text-sm font-normal cursor-pointer">Pas de synchronisation</Label>
+          </div>
           <div className="flex gap-2 pt-2">
             <Button type="submit">{t('save')}</Button>
             <Button variant="ghost" asChild>

@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
 import { fetchZammadDashboard, type ZammadTicket } from '@/lib/zammad'
+import { RefreshTicketsButton } from '@/components/tickets/refresh-tickets-button'
 import { ExternalLink, AlertCircle, Inbox, Clock, CheckCircle2, Hash } from 'lucide-react'
 
 // ── State badge ───────────────────────────────────────────────────────────────
@@ -108,16 +109,19 @@ export default async function TicketsPage({
             <p className="text-xs text-muted-foreground mt-0.5">{orgName}</p>
           )}
         </div>
-        {zammadUrl && (
-          <a
-            href={zammadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-          >
-            <ExternalLink size={13} /> Ouvrir Zammad
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          <RefreshTicketsButton />
+          {zammadUrl && (
+            <a
+              href={zammadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+            >
+              <ExternalLink size={13} /> Ouvrir Zammad
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Not configured */}
@@ -170,7 +174,7 @@ export default async function TicketsPage({
           <div className="rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Tickets récents
+                Tickets ouverts / en attente
               </span>
             </div>
 

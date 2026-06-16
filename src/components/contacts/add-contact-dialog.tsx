@@ -131,6 +131,15 @@ export function AddContactDialog({
                   <textarea name="notes" rows={2}
                     className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background resize-none" />
                 </div>
+
+                {/* Pas de synchronisation */}
+                <div className="col-span-2 flex items-center gap-2">
+                  <input id="noSyncContact" type="checkbox" name="noSync" value="true"
+                    className="rounded border-input" />
+                  <label htmlFor="noSyncContact" className="text-xs text-muted-foreground cursor-pointer">
+                    Pas de synchronisation
+                  </label>
+                </div>
               </div>
 
               {error && <p className="text-xs text-destructive">{error}</p>}

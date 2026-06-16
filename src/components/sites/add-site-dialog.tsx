@@ -180,7 +180,7 @@ export function AddSiteDialog({
                 </div>
 
                 {/* Flags */}
-                <div className="col-span-2 flex items-center gap-6">
+                <div className="col-span-2 flex items-center gap-6 flex-wrap">
                   <div className="flex items-center gap-2">
                     <input id="isHQ" type="checkbox" name="isHeadquarters" value="true"
                       className="rounded border-input" />
@@ -190,6 +190,11 @@ export function AddSiteDialog({
                     <input id="isDef" type="checkbox" name="isDefault" value="true"
                       className="rounded border-input" />
                     <label htmlFor="isDef" className="text-xs text-muted-foreground">Site par défaut</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input id="noSync" type="checkbox" name="noSync" value="true"
+                      className="rounded border-input" />
+                    <label htmlFor="noSync" className="text-xs text-muted-foreground">Pas de synchronisation</label>
                   </div>
                 </div>
 

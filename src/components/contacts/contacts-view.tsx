@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 type Contact = {
   id: string; firstName: string; lastName: string
   email: string | null; phone: string | null
-  role: string | null; notes: string | null; siteId: string | null
+  role: string | null; notes: string | null; siteId: string | null; noSync: boolean
 }
 type ContactWithClient = Contact & { client: { id: string; name: string } }
 type SiteGroup = { id: string; name: string; contacts: Contact[] }

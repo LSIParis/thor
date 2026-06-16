@@ -22,6 +22,7 @@ type EquipmentRow = {
   ipType: string | null
   rmmAgentId: string | null
   notes: string | null
+  noSync: boolean
   purchaseDate: Date | null
   warrantyDuration: string | null
   site: { id: string; name: string } | null
@@ -160,6 +161,10 @@ export function ParcList({
                       <WifiIcon size={9} /> RMM
                     </span>
                   )}
+                  {item.noSync
+                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
+                    : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
+                  }
                 </div>
 
                 <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-muted-foreground">

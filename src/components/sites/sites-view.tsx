@@ -13,7 +13,7 @@ type Site = {
   phone: string | null; email: string | null
   digicode1: string | null; digicode2: string | null; interphone: string | null; etage: string | null
   heureOuverture: string | null; heureFermeture: string | null
-  isHeadquarters: boolean; isDefault: boolean; notes: string | null
+  isHeadquarters: boolean; isDefault: boolean; noSync: boolean; notes: string | null
 }
 type SiteWithClient = Site & { client: { id: string; name: string } }
 

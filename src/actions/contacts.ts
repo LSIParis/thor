@@ -63,6 +63,7 @@ export async function createContactFromPage(formData: FormData) {
       phone:     (formData.get('phone') as string) || null,
       role:      (formData.get('role') as string) || null,
       notes:     (formData.get('notes') as string) || null,
+      noSync:    formData.get('noSync') === 'true',
     },
   })
   revalidatePath('/contacts')
@@ -81,6 +82,7 @@ export async function updateContactFromPage(contactId: string, formData: FormDat
       phone:     (formData.get('phone') as string) || null,
       role:      (formData.get('role') as string) || null,
       notes:     (formData.get('notes') as string) || null,
+      noSync:    formData.get('noSync') === 'true',
     },
   })
   revalidatePath('/contacts')
@@ -119,8 +121,8 @@ export async function syncContactsWithZammad(): Promise<{
     prisma.contact.findMany({
       select: {
         id: true, firstName: true, lastName: true,
-        email: true, phone: true, zammadUserId: true,
-        client: { select: { name: true } },
+        email: true, phone: true, zammadUserId: true, noSync: true,
+        client: { select: { name: true, noSync: true } },
       },
     }),
     fetchAllOrgs(),
@@ -143,7 +145,7 @@ export async function syncContactsWithZammad(): Promise<{
 
   // ── Thor → Zammad : pousser chaque contact avec email ──────────────────────
   for (const contact of thorContacts) {
-    if (!contact.email) continue
+    if (!contact.email || contact.noSync || contact.client.noSync) continue
     const email = contact.email.toLowerCase()
     const existing = userByEmail.get(email)
     const orgId = orgByName.get(contact.client.name.toLowerCase().trim()) ?? null
@@ -171,8 +173,10 @@ export async function syncContactsWithZammad(): Promise<{
 
   // ── Zammad → Thor : importer les users absents de Thor ─────────────────────
   // Récupérer tous les clients Thor pour la résolution org → client
-  const thorClients = await prisma.client.findMany({ select: { id: true, name: true } })
-  const clientByName = new Map(thorClients.map(c => [c.name.toLowerCase().trim(), c.id]))
+  const thorClients = await prisma.client.findMany({ select: { id: true, name: true, noSync: true } })
+  const clientByName = new Map(
+    thorClients.filter(c => !c.noSync).map(c => [c.name.toLowerCase().trim(), c.id]),
+  )
 
   for (const zUser of zammadUsers) {
     if (!zUser.email) continue
@@ -186,7 +190,7 @@ export async function syncContactsWithZammad(): Promise<{
       ? zammadOrgs.find(o => o.id === zUser.organization_id)
       : null
     const clientId = org ? (clientByName.get(org.name.toLowerCase().trim()) ?? null) : null
-    if (!clientId) continue  // pas de client Thor correspondant, on ne peut pas importer
+    if (!clientId) continue  // client absent ou noSync, on ne peut pas importer
 
     await prisma.contact.create({
       data: {
@@ -205,6 +209,7 @@ export async function syncContactsWithZammad(): Promise<{
   const activeZammadIds = new Set(zammadUsers.map(u => u.id))
   for (const contact of thorContacts) {
     if (!contact.zammadUserId) continue
+    if (contact.noSync || contact.client.noSync) continue  // ne pas toucher les contacts noSync
     if (!activeZammadIds.has(contact.zammadUserId)) {
       await prisma.contact.update({
         where: { id: contact.id },
@@ -224,6 +229,11 @@ export async function syncContactsFromM365(
   clientId: string
 ): Promise<{ created: number; updated: number; skipped: number; error?: string }> {
   await requireAdmin()
+
+  const clientCheck = await prisma.client.findUnique({ where: { id: clientId }, select: { noSync: true } })
+  if (clientCheck?.noSync) {
+    return { created: 0, updated: 0, skipped: 0, error: 'Synchronisation désactivée pour ce client.' }
+  }
 
   const [accounts, defaultSite] = await Promise.all([
     prisma.m365Account.findMany({

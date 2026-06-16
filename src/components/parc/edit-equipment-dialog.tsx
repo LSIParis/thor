@@ -29,6 +29,7 @@ type EquipmentRow = {
   ipAddress: string | null
   ipType: string | null
   notes: string | null
+  noSync: boolean
   purchaseDate: Date | null
   warrantyDuration: string | null
   site: { id: string; name: string } | null
@@ -253,6 +254,21 @@ export function EditEquipmentDialog({
                       className={`${inputCls} resize-none`}
                     />
                   </Field>
+                </div>
+
+                {/* Pas de synchronisation */}
+                <div className="sm:col-span-2 flex items-center gap-2">
+                  <input
+                    id="noSyncEq"
+                    type="checkbox"
+                    name="noSync"
+                    value="true"
+                    defaultChecked={item.noSync}
+                    className="rounded border-input"
+                  />
+                  <label htmlFor="noSyncEq" className="text-xs text-muted-foreground cursor-pointer">
+                    Pas de synchronisation
+                  </label>
                 </div>
               </div>
 

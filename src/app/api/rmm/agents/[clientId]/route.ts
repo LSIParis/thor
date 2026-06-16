@@ -68,6 +68,9 @@ export async function POST(
 
     const client = await prisma.client.findUnique({ where: { id: clientId } })
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    if (client.noSync) {
+      return NextResponse.json({ error: 'Synchronisation désactivée pour ce client.' }, { status: 400 })
+    }
     if (!client.tacticalRmmId) {
       return NextResponse.json({ error: "Ce client n'est pas lié à Tactical RMM" }, { status: 400 })
     }
@@ -153,7 +156,10 @@ export async function POST(
       const siteId  = agent.site_name ? (siteMap.get(agent.site_name.toLowerCase()) ?? null) : null
       const assignedToId = matchContactFromDescription(agent.description)
 
-      const existing = await prisma.equipment.findUnique({ where: { rmmAgentId: agent.agent_id } })
+      const existing = await prisma.equipment.findUnique({
+        where: { rmmAgentId: agent.agent_id },
+        select: { id: true, noSync: true, model: true, operatingSystem: true, ipAddress: true, siteId: true, assignedToId: true },
+      })
 
       if (!existing) {
         await prisma.equipment.create({
@@ -172,6 +178,8 @@ export async function POST(
           },
         })
         created++
+      } else if (existing.noSync) {
+        unchanged++
       } else {
         // type is intentionally excluded from updates — preserve manual classification from Parc
         const changed =
@@ -205,11 +213,11 @@ export async function POST(
     const activeAgentIds = new Set(agents.map((a) => a.agent_id).filter(Boolean))
     const rmmLinked = await prisma.equipment.findMany({
       where: { clientId, rmmAgentId: { not: null } },
-      select: { id: true, rmmAgentId: true },
+      select: { id: true, rmmAgentId: true, noSync: true },
     })
     let deleted = 0
     for (const eq of rmmLinked) {
-      if (eq.rmmAgentId && !activeAgentIds.has(eq.rmmAgentId)) {
+      if (eq.rmmAgentId && !activeAgentIds.has(eq.rmmAgentId) && !eq.noSync) {
         await prisma.equipment.delete({ where: { id: eq.id } })
         deleted++
       }

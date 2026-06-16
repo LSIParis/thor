@@ -24,6 +24,7 @@ interface Site {
   heureFermeture: string | null
   isHeadquarters: boolean
   isDefault: boolean
+  noSync: boolean
   notes: string | null
 }
 
@@ -46,6 +47,7 @@ export function SiteCard({ site, isAdmin, clientName, clientId, selected, onTogg
     const fd = new FormData(e.currentTarget)
     if (!fd.get('isHeadquarters')) fd.set('isHeadquarters', 'false')
     if (!fd.get('isDefault'))      fd.set('isDefault', 'false')
+    if (!fd.get('noSync'))         fd.set('noSync', 'false')
     start(async () => {
       await updateSite(site.id, fd)
       setMode('idle')
@@ -129,7 +131,7 @@ export function SiteCard({ site, isAdmin, clientName, clientId, selected, onTogg
             <input name="heureFermeture" type="time" defaultValue={site.heureFermeture ?? ''}
               className="w-full text-xs border border-input rounded px-2 py-1.5 bg-background" />
           </div>
-          <div className="col-span-2 flex items-center gap-4">
+          <div className="col-span-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <input id={`hq-${site.id}`} type="checkbox" name="isHeadquarters" value="true"
                 defaultChecked={site.isHeadquarters} className="rounded border-input" />
@@ -139,6 +141,11 @@ export function SiteCard({ site, isAdmin, clientName, clientId, selected, onTogg
               <input id={`def-${site.id}`} type="checkbox" name="isDefault" value="true"
                 defaultChecked={site.isDefault} className="rounded border-input" />
               <label htmlFor={`def-${site.id}`} className="text-[10px] text-muted-foreground">Site par défaut</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input id={`nosync-${site.id}`} type="checkbox" name="noSync" value="true"
+                defaultChecked={site.noSync} className="rounded border-input" />
+              <label htmlFor={`nosync-${site.id}`} className="text-[10px] text-muted-foreground">Pas de synchronisation</label>
             </div>
           </div>
           <div className="col-span-2">
@@ -191,7 +198,7 @@ export function SiteCard({ site, isAdmin, clientName, clientId, selected, onTogg
           <MapPin size={13} />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium">{site.name}</span>
             {site.isDefault && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
@@ -203,6 +210,10 @@ export function SiteCard({ site, isAdmin, clientName, clientId, selected, onTogg
                 <Star size={9} /> Siège
               </span>
             )}
+            {site.noSync
+              ? <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
+              : <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
+            }
           </div>
           {(site.address || site.city || site.postalCode) && (
             <p className="text-xs text-muted-foreground mt-0.5">

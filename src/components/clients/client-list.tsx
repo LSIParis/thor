@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { Search, Pencil } from 'lucide-react'
 import type { Client } from '@prisma/client'
 
 const PALETTE = [
@@ -25,7 +25,7 @@ function initials(name: string) {
   return name.split(/\s+/).slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase()
 }
 
-export function ClientList({ clients }: { clients: Client[] }) {
+export function ClientList({ clients, isAdmin = false }: { clients: Client[]; isAdmin?: boolean }) {
   const [query, setQuery] = useState('')
 
   const filtered = query.trim()
@@ -56,17 +56,20 @@ export function ClientList({ clients }: { clients: Client[] }) {
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(client => (
-            <Link
+            <div
               key={client.id}
-              href={`/dashboard?client=${client.id}`}
-              className="group flex flex-col bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-sm transition-all"
+              className="group relative flex flex-col bg-card border border-border rounded-xl hover:border-primary/40 hover:shadow-sm transition-all"
             >
-              <div className="flex items-start gap-3">
+              {/* Zone principale cliquable */}
+              <Link
+                href={`/dashboard?client=${client.id}`}
+                className="flex items-start gap-3 p-4 min-w-0"
+              >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarColor(client.name)}`}>
                   {initials(client.name)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors">
+                  <p className="font-semibold text-sm leading-snug truncate group-hover:text-primary transition-colors pr-6">
                     {client.name}
                   </p>
                   {client.phone && (
@@ -75,9 +78,27 @@ export function ClientList({ clients }: { clients: Client[] }) {
                   {!client.phone && client.email && (
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">{client.email}</p>
                   )}
+                  <div className="mt-1.5">
+                    {client.noSync
+                      ? <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
+                      : <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
+                    }
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+
+              {/* Bouton édition (admin uniquement) */}
+              {isAdmin && (
+                <Link
+                  href={`/clients/${client.id}/edit`}
+                  onClick={e => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
+                  title="Modifier"
+                >
+                  <Pencil size={13} />
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       ) : (

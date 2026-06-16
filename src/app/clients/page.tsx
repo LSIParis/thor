@@ -47,7 +47,7 @@ export default async function ClientsPage() {
           </div>
         )}
       </div>
-      <ClientList clients={clients} />
+      <ClientList clients={clients} isAdmin={session.user.role === 'ADMIN'} />
     </AppLayout>
   )
 }

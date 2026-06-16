@@ -15,6 +15,7 @@ export async function createClient(formData: FormData) {
       phone: (formData.get('phone') as string) || null,
       email: (formData.get('email') as string) || null,
       notes: (formData.get('notes') as string) || null,
+      noSync: formData.get('noSync') === 'true',
     },
   })
   revalidatePath('/clients')
@@ -31,6 +32,7 @@ export async function updateClient(clientId: string, formData: FormData) {
       phone: (formData.get('phone') as string) || null,
       email: (formData.get('email') as string) || null,
       notes: (formData.get('notes') as string) || null,
+      noSync: formData.get('noSync') === 'true',
     },
   })
   revalidatePath(`/clients/${clientId}`)
@@ -54,10 +56,12 @@ export async function syncClientsToZammad(): Promise<{
 
   // ── Thor → Zammad : pousser les clients Thor comme organisations ──────────
   const thorClients = await prisma.client.findMany({
-    select: { name: true },
+    select: { name: true, noSync: true },
     orderBy: { name: 'asc' },
   })
-  const pushResult = await syncOrgsToZammad(thorClients.map(c => c.name))
+  const pushResult = await syncOrgsToZammad(
+    thorClients.filter(c => !c.noSync).map(c => c.name),
+  )
   if (pushResult.error) {
     return { created: pushResult.created, updated: pushResult.updated, imported: 0, error: pushResult.error }
   }

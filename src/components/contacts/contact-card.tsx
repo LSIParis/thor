@@ -18,6 +18,7 @@ interface Contact {
   role: string | null
   notes: string | null
   siteId: string | null
+  noSync: boolean
 }
 
 interface ContactCardProps {
@@ -96,6 +97,13 @@ export function ContactCard({ contact, isAdmin, sites, clientName, clientId, sel
             <textarea name="notes" rows={2} defaultValue={contact.notes ?? ''}
               className="w-full text-xs border border-input rounded px-2 py-1.5 bg-background resize-none" />
           </div>
+          <div className="col-span-2 flex items-center gap-2">
+            <input id={`nosync-${contact.id}`} type="checkbox" name="noSync" value="true"
+              defaultChecked={contact.noSync} className="rounded border-input" />
+            <label htmlFor={`nosync-${contact.id}`} className="text-[10px] text-muted-foreground cursor-pointer">
+              Pas de synchronisation
+            </label>
+          </div>
           <div className="col-span-2 flex justify-end gap-2 pt-1">
             <Button type="button" size="sm" variant="ghost" onClick={() => setMode('idle')}>
               <X size={12} className="mr-1" /> Annuler
@@ -138,13 +146,17 @@ export function ContactCard({ contact, isAdmin, sites, clientName, clientId, sel
         <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
           <User size={13} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium">
             {contact.lastName} {contact.firstName}
           </span>
           {contact.role && (
-            <span className="ml-2 text-xs text-muted-foreground">{contact.role}</span>
+            <span className="text-xs text-muted-foreground">{contact.role}</span>
           )}
+          {contact.noSync
+            ? <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
+            : <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
+          }
         </div>
       </div>
 

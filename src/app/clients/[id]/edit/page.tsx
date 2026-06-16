@@ -17,7 +17,7 @@ export default async function EditClientPage({ params }: Props) {
   await requireAdmin()
   const t = await getTranslations('clients')
 
-  const client = await prisma.client.findUnique({ where: { id } })
+  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true } })
   if (!client) notFound()
 
   const updateWithId = updateClient.bind(null, id)
@@ -51,6 +51,10 @@ export default async function EditClientPage({ params }: Props) {
               defaultValue={client.notes ?? ''}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="noSync" type="checkbox" name="noSync" value="true" defaultChecked={client.noSync} className="rounded border-input" />
+            <Label htmlFor="noSync" className="text-sm font-normal cursor-pointer">Pas de synchronisation</Label>
           </div>
           <div className="flex gap-2 pt-2">
             <Button type="submit">{t('save')}</Button>

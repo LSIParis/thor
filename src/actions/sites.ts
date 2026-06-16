@@ -22,6 +22,7 @@ const siteFields = (formData: FormData) => ({
   heureFermeture: (formData.get('heureFermeture') as string) || null,
   isHeadquarters: formData.get('isHeadquarters') === 'true',
   isDefault:      formData.get('isDefault') === 'true',
+  noSync:         formData.get('noSync') === 'true',
   notes:          (formData.get('notes') as string) || null,
 })
 
@@ -60,11 +61,14 @@ export async function importSitesFromRmm(
   const [urlSetting, keySetting, client] = await Promise.all([
     prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
     prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-    prisma.client.findUnique({ where: { id: clientId }, select: { tacticalRmmId: true } }),
+    prisma.client.findUnique({ where: { id: clientId }, select: { tacticalRmmId: true, noSync: true } }),
   ])
 
   if (!urlSetting?.value || !keySetting?.value) {
     return { created: 0, skipped: 0, error: 'RMM non configuré (voir Paramètres)' }
+  }
+  if (client?.noSync) {
+    return { created: 0, skipped: 0, error: 'Synchronisation désactivée pour ce client.' }
   }
   if (!client?.tacticalRmmId) {
     return { created: 0, skipped: 0, error: 'Ce client n\'est pas lié à TacticalRMM' }

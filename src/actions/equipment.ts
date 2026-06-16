@@ -58,6 +58,7 @@ export async function updateEquipmentInPlace(
         siteId:           (formData.get('siteId') as string) || null,
         assignedToId:     (formData.get('assignedToId') as string) || null,
         notes:            (formData.get('notes') as string) || null,
+        noSync:           formData.get('noSync') === 'true',
       },
     })
     revalidatePath('/parc')
@@ -99,6 +100,7 @@ export async function createEquipment(clientId: string, formData: FormData) {
       photoPath,
       assignedToId: (formData.get('assignedToId') as string) || null,
       notes: (formData.get('notes') as string) || null,
+      noSync: formData.get('noSync') === 'true',
     },
   })
   revalidatePath(`/clients/${clientId}`)
@@ -126,6 +128,7 @@ export async function updateEquipment(equipmentId: string, clientId: string, for
       siteId:           (formData.get('siteId') as string) || null,
       assignedToId:     (formData.get('assignedToId') as string) || null,
       notes:            (formData.get('notes') as string) || null,
+      noSync:           formData.get('noSync') === 'true',
       ...(newPhotoPath ? { photoPath: newPhotoPath } : {}),
     },
   })

@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react'
 const EQ_SELECT = {
   id: true, type: true, operatingSystem: true, brand: true, model: true,
   serialNumber: true, ipAddress: true, ipType: true, rmmAgentId: true,
-  notes: true, purchaseDate: true, warrantyDuration: true,
+  notes: true, noSync: true, purchaseDate: true, warrantyDuration: true,
   site:       { select: { id: true, name: true } },
   assignedTo: { select: { firstName: true, lastName: true, role: true } },
 } as const

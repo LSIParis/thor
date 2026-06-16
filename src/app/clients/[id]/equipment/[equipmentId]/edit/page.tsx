@@ -245,6 +245,11 @@ export default async function EditEquipmentPage({ params }: Props) {
             />
           </div>
 
+          <div className="flex items-center gap-2">
+            <input id="noSync" type="checkbox" name="noSync" value="true" defaultChecked={equipment.noSync} className="rounded border-input" />
+            <Label htmlFor="noSync" className="text-sm font-normal cursor-pointer">Pas de synchronisation</Label>
+          </div>
+
           <div className="flex gap-2 pt-2">
             <Button type="submit">Enregistrer</Button>
             <Button variant="ghost" asChild>
