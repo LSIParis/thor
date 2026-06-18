@@ -13,7 +13,7 @@ const CONTACT_SELECT = {
   email: true, phone: true, role: true, notes: true, siteId: true, noSync: true, visible: true,
 } as const
 
-const ALPHA_ORDER = [{ lastName: 'asc' as const }, { firstName: 'asc' as const }]
+const ALPHA_ORDER = [{ firstName: 'asc' as const }, { lastName: 'asc' as const }]
 
 export default async function ContactsPage({
   searchParams,
