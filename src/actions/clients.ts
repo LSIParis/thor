@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { fetchDesk365Companies, createDesk365Company, desk365Configured } from '@/lib/desk365'
 
 export async function createClient(formData: FormData) {
   await requireAdmin()
@@ -56,6 +57,39 @@ export async function deleteClient(clientId: string) {
   await prisma.client.delete({ where: { id: clientId } })
   revalidatePath('/clients')
   redirect('/clients')
+}
+
+export async function syncClientsToDesk365(): Promise<{
+  created: number
+  skipped: number
+  error?: string
+}> {
+  await requireAdmin()
+
+  if (!desk365Configured()) {
+    return { created: 0, skipped: 0, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+  }
+
+  const [thorClients, desk365Names] = await Promise.all([
+    prisma.client.findMany({ where: { noSync: false }, select: { name: true }, orderBy: { name: 'asc' } }),
+    fetchDesk365Companies(),
+  ])
+
+  const existing = new Set(desk365Names.map(n => n.toLowerCase().trim()))
+
+  let created = 0
+  let skipped = 0
+  for (const client of thorClients) {
+    if (existing.has(client.name.toLowerCase().trim())) {
+      skipped++
+      continue
+    }
+    const result = await createDesk365Company(client.name)
+    if ('error' in result) return { created, skipped, error: result.error }
+    created++
+  }
+
+  return { created, skipped }
 }
 
 export async function updateClientBilling(clientId: string, formData: FormData) {

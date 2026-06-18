@@ -3,6 +3,7 @@ import { requireAuth, getClientLinkedToUser } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientList } from '@/components/clients/client-list'
 import { RmmImportButton } from '@/components/clients/rmm-import-button'
+import { SyncDesk365Button } from '@/components/clients/sync-desk365-button'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
@@ -38,6 +39,7 @@ export default async function ClientsPage() {
         </div>
         {session.user.role === 'ADMIN' && (
           <div className="flex items-center gap-2">
+            <SyncDesk365Button />
             <RmmImportButton />
             <Button asChild size="sm">
               <Link href="/clients/new">{t('new')}</Link>
