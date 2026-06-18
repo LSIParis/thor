@@ -54,7 +54,7 @@ function CollapsibleList({
   )
 }
 
-export function SyncDesk365ContactsButton() {
+export function SyncDesk365ContactsButton({ clientId }: { clientId?: string } = {}) {
   const [result, setResult] = useState<Result | null>(null)
   const [isPending, start]  = useTransition()
 
@@ -62,7 +62,7 @@ export function SyncDesk365ContactsButton() {
     setResult(null)
     start(async () => {
       try {
-        const res = await syncVisibleContactsToDesk365()
+        const res = await syncVisibleContactsToDesk365(clientId)
         setResult(res)
       } catch (e) {
         setResult({ created: 0, skipped: 0, toDelete: [], orphans: [], error: e instanceof Error ? e.message : 'Erreur serveur' })

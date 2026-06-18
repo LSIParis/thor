@@ -120,7 +120,7 @@ export async function setContactsVisible(ids: string[], visible: boolean) {
 
 type ContactRef = { name: string; email: string; company: string }
 
-export async function syncVisibleContactsToDesk365(): Promise<{
+export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
   created: number
   skipped: number
   toDelete: ContactRef[]
@@ -136,9 +136,11 @@ export async function syncVisibleContactsToDesk365(): Promise<{
   }
 
   try {
-    const [thorVisible, thorNoSync, thorAllEmails, desk365Contacts] = await Promise.all([
+    const clientFilter = clientId ? { clientId } : {}
+
+    const [thorVisible, thorNoSync, thorAllEmails, desk365Contacts, clientInfo] = await Promise.all([
       prisma.contact.findMany({
-        where: { visible: true },
+        where: { visible: true, ...clientFilter },
         select: {
           firstName: true, lastName: true,
           email: true, phone: true, role: true,
@@ -146,7 +148,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         },
       }),
       prisma.contact.findMany({
-        where: { noSync: true, email: { not: null } },
+        where: { noSync: true, email: { not: null }, ...clientFilter },
         select: {
           firstName: true, lastName: true,
           email: true,
@@ -154,10 +156,13 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         },
       }),
       prisma.contact.findMany({
-        where: { email: { not: null } },
+        where: { email: { not: null }, ...clientFilter },
         select: { email: true },
       }),
       fetchDesk365Contacts(),
+      clientId
+        ? prisma.client.findUnique({ where: { id: clientId }, select: { name: true } })
+        : Promise.resolve(null),
     ])
 
     const existingEmails = new Set(
@@ -213,10 +218,14 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       .sort(byName)
 
     // Contacts dans Desk365 absents de Thor (par email)
+    // Si un client est sélectionné, on limite aux contacts Desk365 de cette société
+    const clientName = clientInfo?.name?.toLowerCase().trim()
     const orphans = desk365Contacts
       .filter(c => {
         const e = c.primary_email?.toLowerCase().trim()
-        return e && !thorEmails.has(e)
+        if (!e || thorEmails.has(e)) return false
+        if (clientName) return c.company_name?.toLowerCase().trim() === clientName
+        return true
       })
       .map(c => ({
         name: c.name ?? '',
