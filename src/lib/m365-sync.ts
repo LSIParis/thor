@@ -4,6 +4,7 @@ type GraphUser = {
   id: string
   displayName: string
   userPrincipalName: string
+  userType: string | null
   jobTitle: string | null
   accountEnabled: boolean
   assignedLicenses: { skuId: string }[]
@@ -97,7 +98,7 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
   // Users (paginated)
   const users: GraphUser[] = []
   let url: string | null =
-    'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,jobTitle,accountEnabled,assignedLicenses,createdDateTime&$top=999'
+    'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,userType,jobTitle,accountEnabled,assignedLicenses,createdDateTime&$top=999'
 
   while (url) {
     const res = await fetch(url, { headers })
@@ -112,8 +113,13 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
     url = data['@odata.nextLink'] ?? null
   }
 
+  // Exclure les utilisateurs externes (invités)
+  const internalUsers = users.filter(
+    u => u.userType !== 'Guest' && !u.userPrincipalName.includes('#EXT#')
+  )
+
   // Upsert accounts
-  for (const u of users) {
+  for (const u of internalUsers) {
     const licensed = u.assignedLicenses.length > 0
     const licenseType = licensed
       ? u.assignedLicenses.map((l) => skuMap[l.skuId] ?? l.skuId).join(', ')
@@ -135,7 +141,7 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
   })
   const defaultSiteId = defaultSite?.id ?? null
 
-  for (const u of users) {
+  for (const u of internalUsers) {
     if (!u.accountEnabled || !u.displayName?.trim()) continue
 
     const email = u.userPrincipalName.includes('#EXT#')
@@ -177,5 +183,5 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
     data: { lastSyncAt: new Date() },
   })
 
-  return { synced: users.length }
+  return { synced: internalUsers.length }
 }
