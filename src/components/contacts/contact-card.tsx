@@ -19,6 +19,7 @@ interface Contact {
   notes: string | null
   siteId: string | null
   noSync: boolean
+  visible: boolean
 }
 
 interface ContactCardProps {
@@ -104,6 +105,13 @@ export function ContactCard({ contact, isAdmin, sites, clientName, clientId, sel
               Pas de synchronisation
             </label>
           </div>
+          <div className="col-span-2 flex items-center gap-2">
+            <input id={`visible-${contact.id}`} type="checkbox" name="visible" value="true"
+              defaultChecked={contact.visible} className="rounded border-input" />
+            <label htmlFor={`visible-${contact.id}`} className="text-[10px] text-muted-foreground cursor-pointer">
+              Visible
+            </label>
+          </div>
           <div className="col-span-2 flex justify-end gap-2 pt-1">
             <Button type="button" size="sm" variant="ghost" onClick={() => setMode('idle')}>
               <X size={12} className="mr-1" /> Annuler
@@ -157,6 +165,9 @@ export function ContactCard({ contact, isAdmin, sites, clientName, clientId, sel
             ? <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
             : <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
           }
+          {!contact.visible && (
+            <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-muted text-muted-foreground border-border">Non visible</span>
+          )}
         </div>
       </div>
 

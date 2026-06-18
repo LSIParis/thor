@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
-import { fetchZammadDashboard, type ZammadTicket } from '@/lib/zammad'
+import { fetchZammadDashboard, countClosedTicketsSince, type ZammadTicket } from '@/lib/zammad'
 import { RefreshTicketsButton } from '@/components/tickets/refresh-tickets-button'
 import { ExternalLink, AlertCircle, Inbox, Clock, CheckCircle2, Hash } from 'lucide-react'
 
@@ -63,6 +63,37 @@ function StatCard({
   )
 }
 
+function ClosedStatCard({
+  total, billing, billingLabel,
+}: {
+  total: number
+  billing: number | null
+  billingLabel: string
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
+      <div className="p-2.5 rounded-lg border bg-muted text-muted-foreground border-border">
+        <CheckCircle2 size={18} />
+      </div>
+      <div className="flex items-stretch flex-1 min-w-0">
+        <div className={billing !== null ? 'flex-1' : ''}>
+          <div className="text-2xl font-bold tabular-nums">{total.toLocaleString('fr-FR')}</div>
+          <div className="text-xs text-muted-foreground">Fermés</div>
+        </div>
+        {billing !== null && (
+          <>
+            <div className="w-px bg-border self-stretch mx-4" />
+            <div className="flex-1">
+              <div className="text-2xl font-bold tabular-nums">{billing.toLocaleString('fr-FR')}</div>
+              <div className="text-xs text-muted-foreground">{billingLabel}</div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function TicketsPage({
@@ -81,17 +112,33 @@ export default async function TicketsPage({
 
   // Find the client's Zammad org name (= client name in Thor)
   let orgName: string | undefined
+  let billingPeriod: string = 'monthly'
   if (selectedClientId) {
     const client = await prisma.client.findFirst({
       where: isAdmin
         ? { id: selectedClientId }
         : { id: selectedClientId, users: { some: { userId } } },
-      select: { name: true },
+      select: { name: true, billingPeriod: true },
     })
     orgName = client?.name
+    billingPeriod = client?.billingPeriod ?? 'monthly'
   }
 
-  const dash = await fetchZammadDashboard(orgName)
+  const billingStart = (() => {
+    const now = new Date()
+    if (billingPeriod === 'quarterly') {
+      const quarterMonth = Math.floor(now.getMonth() / 3) * 3
+      return new Date(now.getFullYear(), quarterMonth, 1)
+    }
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })()
+
+  const [dash, closedSinceBilling] = await Promise.all([
+    fetchZammadDashboard(orgName),
+    selectedClientId
+      ? countClosedTicketsSince(orgName, billingStart)
+      : Promise.resolve(null),
+  ])
 
   const allClients = await prisma.client.findMany({
     where: accessFilter,
@@ -156,11 +203,10 @@ export default async function TicketsPage({
               icon={Clock}
               colorClass="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
             />
-            <StatCard
-              label="Fermés"
-              value={dash.countClosed}
-              icon={CheckCircle2}
-              colorClass="bg-muted text-muted-foreground border-border"
+            <ClosedStatCard
+              total={dash.countClosed}
+              billing={closedSinceBilling}
+              billingLabel="sur la période en cours"
             />
             <StatCard
               label="Total"

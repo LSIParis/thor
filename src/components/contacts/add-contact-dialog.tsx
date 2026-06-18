@@ -140,6 +140,15 @@ export function AddContactDialog({
                     Pas de synchronisation
                   </label>
                 </div>
+
+                {/* Visible */}
+                <div className="col-span-2 flex items-center gap-2">
+                  <input id="visibleContact" type="checkbox" name="visible" value="true"
+                    defaultChecked className="rounded border-input" />
+                  <label htmlFor="visibleContact" className="text-xs text-muted-foreground cursor-pointer">
+                    Visible
+                  </label>
+                </div>
               </div>
 
               {error && <p className="text-xs text-destructive">{error}</p>}

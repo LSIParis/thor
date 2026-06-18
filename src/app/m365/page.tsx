@@ -32,6 +32,7 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
     select: {
       id: true,
       name: true,
+      billingPeriod: true,
       m365Tenants: {
         orderBy: { displayName: 'asc' },
         select: {
@@ -100,7 +101,13 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
         </div>
       ) : (
         <div className="space-y-6">
-          {clients.map((client) => (
+          {clients.map((client) => {
+            const now = new Date()
+            const billingStart = client.billingPeriod === 'quarterly'
+              ? new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+              : new Date(now.getFullYear(), now.getMonth(), 1)
+
+            return (
             <div key={client.id}>
               {/* Client header */}
               <div className="flex items-center gap-2 mb-3">
@@ -193,13 +200,15 @@ export default async function M365Page({ searchParams }: { searchParams: Promise
                       <TenantAccountsView
                         accounts={tenant.accounts}
                         licenseSkus={tenant.licenseSkus}
+                        billingStart={billingStart}
                       />
                     </div>
                   )
                 })}
               </div>
             </div>
-          ))}
+          )
+          })}
         </div>
       )}
     </AppLayout>

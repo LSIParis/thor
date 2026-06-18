@@ -64,6 +64,7 @@ export async function createContactFromPage(formData: FormData) {
       role:      (formData.get('role') as string) || null,
       notes:     (formData.get('notes') as string) || null,
       noSync:    formData.get('noSync') === 'true',
+      visible:   formData.get('visible') === 'true',
     },
   })
   revalidatePath('/contacts')
@@ -83,6 +84,7 @@ export async function updateContactFromPage(contactId: string, formData: FormDat
       role:      (formData.get('role') as string) || null,
       notes:     (formData.get('notes') as string) || null,
       noSync:    formData.get('noSync') === 'true',
+      visible:   formData.get('visible') === 'true',
     },
   })
   revalidatePath('/contacts')
@@ -98,6 +100,20 @@ export async function deleteContactsBulk(ids: string[]) {
   await requireAdmin()
   if (ids.length === 0) return
   await prisma.contact.deleteMany({ where: { id: { in: ids } } })
+  revalidatePath('/contacts')
+}
+
+export async function setContactsNoSync(ids: string[], noSync: boolean) {
+  await requireAdmin()
+  if (ids.length === 0) return
+  await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { noSync } })
+  revalidatePath('/contacts')
+}
+
+export async function setContactsVisible(ids: string[], visible: boolean) {
+  await requireAdmin()
+  if (ids.length === 0) return
+  await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { visible } })
   revalidatePath('/contacts')
 }
 

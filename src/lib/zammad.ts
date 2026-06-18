@@ -48,8 +48,7 @@ export interface ZammadDashboard {
 
 // ── Helpers internes ───────────────────────────────────────────────────────────
 
-type StateType = { id: number; name: string }
-type State     = { id: number; name: string; state_type_id: number }
+type State = { id: number; name: string }
 type Priority  = { id: number; name: string; ui_color: string | null }
 type User      = { id: number; firstname: string; lastname: string }
 type Org       = { id: number; name: string }
@@ -71,7 +70,7 @@ function stateCategory(stateTypeName: string): ZammadTicket['stateCategory'] {
   }
 }
 
-function buildQuery(stateIds: number[], orgName?: string): string {
+function buildQuery(stateIds: number[], orgName?: string, since?: Date): string {
   const parts: string[] = []
   if (stateIds.length > 0) {
     const stateClause = stateIds.map((id) => `state_id:${id}`).join(' OR ')
@@ -80,55 +79,50 @@ function buildQuery(stateIds: number[], orgName?: string): string {
   if (orgName) {
     parts.push(`organization.name:"${orgName.replace(/"/g, '')}"`)
   }
+  if (since) {
+    const iso = since.toISOString().split('T')[0]
+    parts.push(`close_at:[${iso} TO *]`)
+  }
   return parts.join(' AND ') || '*'
 }
 
 async function searchTickets(b: string, query: string, limit = 25): Promise<{
   tickets: ZammadTicket[]
   count: number
-  stateTypes: StateType[]
-  states: State[]
-  priorities: Priority[]
-  users: Record<number, User>
-  orgs: Record<number, Org>
 }> {
-  const [searchRes, stateTypesRes, statesRes, prioritiesRes] = await Promise.all([
-    fetch(`${b}/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&sort_by=updated_at&order_by=desc`, {
+  const [searchRes, statesRes, prioritiesRes] = await Promise.all([
+    // full=true → réponse { record_ids: [...], assets: { Ticket, User, Organization } }
+    fetch(`${b}/tickets/search?query=${encodeURIComponent(query)}&limit=${limit}&sort_by=updated_at&order_by=desc&full=true`, {
       headers: authHeaders(), cache: 'no-store',
     }),
-    fetch(`${b}/ticket_state_types`, { headers: authHeaders(), cache: 'no-store' }),
-    fetch(`${b}/ticket_states`,      { headers: authHeaders(), cache: 'no-store' }),
-    fetch(`${b}/ticket_priorities`,  { headers: authHeaders(), cache: 'no-store' }),
+    fetch(`${b}/ticket_states`,     { headers: authHeaders(), cache: 'no-store' }),
+    fetch(`${b}/ticket_priorities`, { headers: authHeaders(), cache: 'no-store' }),
   ])
 
-  const stateTypes:  StateType[]  = stateTypesRes.ok  ? await stateTypesRes.json()  : []
-  const states:      State[]      = statesRes.ok      ? await statesRes.json()       : []
-  const priorities:  Priority[]   = prioritiesRes.ok  ? await prioritiesRes.json()   : []
+  const states:     State[]    = statesRes.ok     ? await statesRes.json()    : []
+  const priorities: Priority[] = prioritiesRes.ok ? await prioritiesRes.json() : []
 
   if (!searchRes.ok) {
-    return { tickets: [], count: 0, stateTypes, states, priorities, users: {}, orgs: {} }
+    return { tickets: [], count: 0 }
   }
 
   const data = await searchRes.json() as {
-    tickets: number[]
-    tickets_count: number
+    record_ids?: number[]
     assets?: {
-      Ticket?:         Record<string, any>
-      TicketState?:    Record<string, any>
-      TicketPriority?: Record<string, any>
-      Organization?:   Record<string, any>
-      User?:           Record<string, any>
+      Ticket?:       Record<string, any>
+      Organization?: Record<string, any>
+      User?:         Record<string, any>
     }
   }
 
-  const assets    = data.assets ?? {}
-  const rawTickets: Record<string, any> = assets.Ticket ?? {}
+  const recordIds  = data.record_ids ?? []
+  const assets     = data.assets ?? {}
+  const rawTickets: Record<string, any> = assets.Ticket       ?? {}
   const rawOrgs:    Record<string, any> = assets.Organization ?? {}
-  const rawUsers:   Record<string, any> = assets.User ?? {}
+  const rawUsers:   Record<string, any> = assets.User         ?? {}
 
-  const stateTypeMap  = new Map(stateTypes.map((st) => [st.id, st.name]))
-  const stateMap      = new Map(states.map((s)  => [s.id, s]))
-  const priorityMap   = new Map(priorities.map((p) => [p.id, p]))
+  const stateMap    = new Map(states.map((s) => [s.id, s]))
+  const priorityMap = new Map(priorities.map((p) => [p.id, p]))
 
   const users: Record<number, User> = {}
   for (const [id, u] of Object.entries(rawUsers)) {
@@ -139,37 +133,35 @@ async function searchTickets(b: string, query: string, limit = 25): Promise<{
     orgs[Number(id)] = o as Org
   }
 
-  const tickets: ZammadTicket[] = (data.tickets ?? []).map((id) => {
-    const raw = rawTickets[String(id)] ?? {}
+  const tickets: ZammadTicket[] = recordIds.map((id) => {
+    const raw      = rawTickets[String(id)] ?? {}
     const state    = stateMap.get(raw.state_id)
     const priority = priorityMap.get(raw.priority_id)
-    const stTypeName = state ? (stateTypeMap.get(state.state_type_id) ?? 'unknown') : 'unknown'
-
     const customer = raw.customer_id ? users[raw.customer_id] : null
     const owner    = raw.owner_id    ? users[raw.owner_id]    : null
 
     return {
-      id:             raw.id,
-      number:         raw.number ?? String(id),
-      title:          raw.title  ?? '—',
-      state_id:       raw.state_id,
-      priority_id:    raw.priority_id,
+      id:              raw.id,
+      number:          raw.number ?? String(id),
+      title:           raw.title  ?? '—',
+      state_id:        raw.state_id,
+      priority_id:     raw.priority_id,
       organization_id: raw.organization_id ?? null,
-      created_at:     raw.created_at ?? '',
-      updated_at:     raw.updated_at ?? '',
-      stateName:      state?.name    ?? '—',
-      stateCategory:  stateCategory(stTypeName),
-      priorityName:   priority?.name ?? '—',
-      priorityColor:  priority?.ui_color ?? null,
-      orgName:        raw.organization_id ? (orgs[raw.organization_id]?.name ?? null) : null,
-      customerName:   customer ? `${customer.firstname} ${customer.lastname}`.trim() : null,
-      ownerName:      owner?.login && owner.login !== '-'
-                        ? `${owner.firstname} ${owner.lastname}`.trim()
-                        : null,
+      created_at:      raw.created_at ?? '',
+      updated_at:      raw.updated_at ?? '',
+      stateName:       state?.name    ?? '—',
+      stateCategory:   stateCategory(state?.name ?? ''),
+      priorityName:    priority?.name ?? '—',
+      priorityColor:   priority?.ui_color ?? null,
+      orgName:         raw.organization_id ? (orgs[raw.organization_id]?.name ?? null) : null,
+      customerName:    customer ? `${customer.firstname} ${customer.lastname}`.trim() : null,
+      ownerName:       owner?.login && owner.login !== '-'
+                         ? `${owner.firstname} ${owner.lastname}`.trim()
+                         : null,
     }
   })
 
-  return { tickets, count: data.tickets_count ?? 0, stateTypes, states, priorities, users, orgs }
+  return { tickets, count: recordIds.length }
 }
 
 // ── Fonction principale ────────────────────────────────────────────────────────
@@ -181,20 +173,15 @@ export async function fetchZammadDashboard(orgName?: string): Promise<ZammadDash
   }
 
   try {
-    // Fetch states + state types first to build category buckets
-    const [stateTypesRes, statesRes] = await Promise.all([
-      fetch(`${b}/ticket_state_types`, { headers: authHeaders(), cache: 'no-store' }),
-      fetch(`${b}/ticket_states`,      { headers: authHeaders(), cache: 'no-store' }),
-    ])
-    const stateTypes: StateType[] = stateTypesRes.ok ? await stateTypesRes.json() : []
-    const states:     State[]     = statesRes.ok     ? await statesRes.json()     : []
+    // Fetch states — derive category from name (ticket_state_types n'est pas dispo dans toutes les versions)
+    const statesRes = await fetch(`${b}/ticket_states`, { headers: authHeaders(), cache: 'no-store' })
+    const states: State[] = statesRes.ok ? await statesRes.json() : []
 
-    const stateTypeMap = new Map(stateTypes.map((st) => [st.id, st.name]))
     const openIds:    number[] = []
     const pendingIds: number[] = []
     const closedIds:  number[] = []
     for (const s of states) {
-      const cat = stateCategory(stateTypeMap.get(s.state_type_id) ?? '')
+      const cat = stateCategory(s.name)
       if (cat === 'open')    openIds.push(s.id)
       if (cat === 'pending') pendingIds.push(s.id)
       if (cat === 'closed')  closedIds.push(s.id)
@@ -207,20 +194,17 @@ export async function fetchZammadDashboard(orgName?: string): Promise<ZammadDash
     const pendingQuery = buildQuery(pendingIds, orgName)
     const closedQuery  = buildQuery(closedIds,  orgName)
 
+    const countQuery = (q: string) =>
+      fetch(`${b}/tickets/search?query=${encodeURIComponent(q)}&limit=1000`,
+        { headers: authHeaders(), cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : [])
+        .then((d: unknown) => Array.isArray(d) ? d.length : 0)
+
     const [recent, openCount, pendingCount, closedCount] = await Promise.all([
       searchTickets(b, recentQuery, 25),
-      fetch(`${b}/tickets/search?query=${encodeURIComponent(openQuery)}&limit=1`,
-        { headers: authHeaders(), cache: 'no-store' })
-        .then((r) => r.ok ? r.json() : { tickets_count: 0 })
-        .then((d: any) => (d.tickets_count ?? 0) as number),
-      fetch(`${b}/tickets/search?query=${encodeURIComponent(pendingQuery)}&limit=1`,
-        { headers: authHeaders(), cache: 'no-store' })
-        .then((r) => r.ok ? r.json() : { tickets_count: 0 })
-        .then((d: any) => (d.tickets_count ?? 0) as number),
-      fetch(`${b}/tickets/search?query=${encodeURIComponent(closedQuery)}&limit=1`,
-        { headers: authHeaders(), cache: 'no-store' })
-        .then((r) => r.ok ? r.json() : { tickets_count: 0 })
-        .then((d: any) => (d.tickets_count ?? 0) as number),
+      countQuery(openQuery),
+      countQuery(pendingQuery),
+      countQuery(closedQuery),
     ])
 
     return {
@@ -234,6 +218,30 @@ export async function fetchZammadDashboard(orgName?: string): Promise<ZammadDash
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur inconnue'
     return { configured: true, tickets: [], totalCount: 0, countOpen: 0, countPending: 0, countClosed: 0, error: msg }
+  }
+}
+
+export async function countClosedTicketsSince(
+  orgName: string | undefined,
+  since: Date
+): Promise<number> {
+  const b = base()
+  if (!b || !process.env.ZAMMAD_TOKEN) return 0
+  try {
+    const statesRes = await fetch(`${b}/ticket_states`, { headers: authHeaders(), cache: 'no-store' })
+    const states: State[] = statesRes.ok ? await statesRes.json() : []
+    const closedIds = states.filter(s => stateCategory(s.name) === 'closed').map(s => s.id)
+    if (closedIds.length === 0) return 0
+    const query = buildQuery(closedIds, orgName, since)
+    const res = await fetch(
+      `${b}/tickets/search?query=${encodeURIComponent(query)}&limit=1000`,
+      { headers: authHeaders(), cache: 'no-store' }
+    )
+    if (!res.ok) return 0
+    const d = await res.json() as unknown
+    return Array.isArray(d) ? d.length : 0
+  } catch {
+    return 0
   }
 }
 

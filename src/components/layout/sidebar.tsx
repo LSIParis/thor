@@ -34,9 +34,6 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
   const clientId = searchParams.get('client')
   const withClient = (h: string) => clientId ? `${h}?client=${clientId}` : h
 
-  // Désactiver les menus sous "Clients" tant qu'aucun client n'est sélectionné
-  const NEVER_DIM = new Set(['/dashboard', '/clients', '/admin'])
-
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => ({
     '/transactions': pathname.startsWith('/transactions'),
     '/clients': pathname.startsWith('/clients') || pathname.startsWith('/sites') || pathname.startsWith('/contacts'),
@@ -71,10 +68,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
           { href: '/saas',        label: 'Autre SaaS',    icon: Boxes },
           { href: '/cloud',       label: 'Cloud',         icon: Cloud },
           { href: '/sauvegarde',  label: 'Sauvegarde',    icon: HardDrive },
-          { href: '/voip',        label: 'Tél. VoIP',     icon: Phone },
-          ...(userRole === 'ADMIN'
-            ? [{ href: '/admin', label: t('admin'), icon: Settings }]
-            : []),
+          { href: '/voip', label: 'Tél. VoIP', icon: Phone },
         ]
 
   const switchLocale = () => {
@@ -116,22 +110,17 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon, children }) => {
-          const dimmed = !clientId && !NEVER_DIM.has(href)
-
           if (!children) {
             return (
               <Link
                 key={href}
                 href={withClient(href)}
                 title={collapsed ? label : undefined}
-                aria-disabled={dimmed}
-                tabIndex={dimmed ? -1 : undefined}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 text-sm transition-colors',
                   pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
                     ? 'text-foreground bg-secondary border-l-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
-                  dimmed && 'opacity-35 pointer-events-none'
                 )}
               >
                 <Icon size={16} className="flex-shrink-0" />
@@ -150,14 +139,11 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
                 key={href}
                 href={withClient(children[0].href)}
                 title={label}
-                aria-disabled={dimmed}
-                tabIndex={dimmed ? -1 : undefined}
                 className={cn(
                   'flex items-center justify-center px-3 py-2 text-sm transition-colors',
                   anyChildActive
                     ? 'text-foreground bg-secondary border-l-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
-                  dimmed && 'opacity-35 pointer-events-none'
                 )}
               >
                 <Icon size={16} className="flex-shrink-0" />
@@ -166,7 +152,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
           }
 
           return (
-            <div key={href} className={cn(dimmed && 'opacity-35 pointer-events-none')}>
+            <div key={href}>
               <button
                 onClick={() => toggleSection(href)}
                 className={cn(
@@ -212,6 +198,28 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
 
       {/* Bottom actions */}
       <div className="border-t border-border py-2">
+        {userRole === 'ADMIN' && (() => {
+          const settingsHref = clientId ? `/clients/${clientId}/parametres` : '/admin'
+          const settingsActive = clientId
+            ? pathname === `/clients/${clientId}/parametres`
+            : pathname.startsWith('/admin')
+          return (
+            <Link
+              href={settingsHref}
+              title={collapsed ? 'Paramètres' : undefined}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 text-sm transition-colors',
+                settingsActive
+                  ? 'text-foreground bg-secondary border-l-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+              )}
+            >
+              <Settings size={16} className="flex-shrink-0" />
+              {!collapsed && <span>Paramètres</span>}
+            </Link>
+          )
+        })()}
+
         <button
           onClick={switchLocale}
           title="Switch language"

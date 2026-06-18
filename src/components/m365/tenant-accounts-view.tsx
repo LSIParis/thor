@@ -13,6 +13,7 @@ interface Account {
   licenseType: string | null
   licenseExpiry: Date | null
   accountEnabled: boolean
+  m365CreatedAt: Date | null
 }
 
 interface LicenseSku {
@@ -30,9 +31,11 @@ function fmt(d: Date | null) {
 export function TenantAccountsView({
   accounts,
   licenseSkus,
+  billingStart,
 }: {
   accounts: Account[]
   licenseSkus: LicenseSku[]
+  billingStart?: Date
 }) {
   const [filters, setFilters] = useState<Set<string>>(new Set())
   const now = new Date()
@@ -115,17 +118,19 @@ export function TenantAccountsView({
                 const isExpired  = account.licenseExpiry && account.licenseExpiry < now
                 const isExpiring = account.licenseExpiry && account.licenseExpiry >= now &&
                   account.licenseExpiry <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                const isNew = billingStart && account.m365CreatedAt && new Date(account.m365CreatedAt) >= billingStart
+                const dim = isNew ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground'
                 return (
                   <tr key={account.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-2 font-medium">{account.displayName}</td>
-                    <td className="px-4 py-2 text-xs text-muted-foreground">{account.userPrincipalName}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{account.jobTitle ?? '—'}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className={`px-4 py-2 font-medium ${isNew ? 'text-amber-500 dark:text-amber-400' : ''}`}>{account.displayName}</td>
+                    <td className={`px-4 py-2 text-xs ${dim}`}>{account.userPrincipalName}</td>
+                    <td className={`px-4 py-2 ${dim}`}>{account.jobTitle ?? '—'}</td>
+                    <td className={`px-4 py-2 ${dim}`}>
                       {account.licenseType
                         ? account.licenseType.split(', ').map(labelSku).join(', ')
                         : '—'}
                     </td>
-                    <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                    <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : dim}`}>
                       {fmt(account.licenseExpiry)}
                     </td>
                     <td className="px-4 py-2 text-center">

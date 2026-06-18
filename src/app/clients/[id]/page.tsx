@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { deleteClient } from '@/actions/clients'
+import { Settings } from 'lucide-react'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -35,6 +36,11 @@ export default async function ClientDetailPage({ params }: Props) {
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/clients/${id}/parametres`}>
+                <Settings size={14} className="mr-1.5" /> Paramètres
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link href={`/clients/${id}/edit`}>{t('edit')}</Link>
             </Button>

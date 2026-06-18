@@ -7,6 +7,7 @@ type GraphUser = {
   jobTitle: string | null
   accountEnabled: boolean
   assignedLicenses: { skuId: string }[]
+  createdDateTime: string | null
 }
 
 type SkuEntry = {
@@ -96,7 +97,7 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
   // Users (paginated)
   const users: GraphUser[] = []
   let url: string | null =
-    'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,jobTitle,accountEnabled,assignedLicenses&$top=999'
+    'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,jobTitle,accountEnabled,assignedLicenses,createdDateTime&$top=999'
 
   while (url) {
     const res = await fetch(url, { headers })
@@ -120,8 +121,8 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
 
     await prisma.m365Account.upsert({
       where: { tenantId_userPrincipalName: { tenantId: tenantDbId, userPrincipalName: u.userPrincipalName } },
-      update: { graphId: u.id, displayName: u.displayName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled },
-      create: { tenantId: tenantDbId, graphId: u.id, displayName: u.displayName, userPrincipalName: u.userPrincipalName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled },
+      update: { graphId: u.id, displayName: u.displayName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled, m365CreatedAt: u.createdDateTime ? new Date(u.createdDateTime) : undefined },
+      create: { tenantId: tenantDbId, graphId: u.id, displayName: u.displayName, userPrincipalName: u.userPrincipalName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled, m365CreatedAt: u.createdDateTime ? new Date(u.createdDateTime) : null },
     })
   }
 

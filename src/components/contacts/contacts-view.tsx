@@ -3,14 +3,14 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ContactCard } from './contact-card'
-import { deleteContactsBulk } from '@/actions/contacts'
-import { MapPin, Users, Trash2, X, Loader2, Globe, ChevronDown } from 'lucide-react'
+import { deleteContactsBulk, setContactsNoSync, setContactsVisible } from '@/actions/contacts'
+import { MapPin, Users, Trash2, X, Loader2, Globe, ChevronDown, Wifi, WifiOff, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type Contact = {
   id: string; firstName: string; lastName: string
   email: string | null; phone: string | null
-  role: string | null; notes: string | null; siteId: string | null; noSync: boolean
+  role: string | null; notes: string | null; siteId: string | null; noSync: boolean; visible: boolean
 }
 type ContactWithClient = Contact & { client: { id: string; name: string } }
 type SiteGroup = { id: string; name: string; contacts: Contact[] }
@@ -145,6 +145,22 @@ export function ContactsView(props: Props) {
     })
   }
 
+  function handleSetNoSync(noSync: boolean) {
+    start(async () => {
+      await setContactsNoSync(Array.from(selected), noSync)
+      clearSelection()
+      router.refresh()
+    })
+  }
+
+  function handleSetVisible(visible: boolean) {
+    start(async () => {
+      await setContactsVisible(Array.from(selected), visible)
+      clearSelection()
+      router.refresh()
+    })
+  }
+
   const SelectAll = isAdmin && allIds.length > 0 ? (
     <label className="flex items-center gap-2 mb-3 cursor-pointer select-none w-fit">
       <input type="checkbox" checked={allSelected} onChange={toggleAll}
@@ -257,7 +273,7 @@ export function ContactsView(props: Props) {
         <BulkActionBar selCount={selCount} allSelected={allSelected} confirmDelete={confirmDelete}
           isPending={isPending} onToggleAll={toggleAll} onClear={clearSelection}
           onRequestDelete={() => setConfirm(true)} onCancelDelete={() => setConfirm(false)}
-          onConfirmDelete={handleBulkDelete} />
+          onConfirmDelete={handleBulkDelete} onSetNoSync={handleSetNoSync} onSetVisible={handleSetVisible} />
       </>
     )
   }
@@ -296,7 +312,7 @@ export function ContactsView(props: Props) {
       <BulkActionBar selCount={selCount} allSelected={allSelected} confirmDelete={confirmDelete}
         isPending={isPending} onToggleAll={toggleAll} onClear={clearSelection}
         onRequestDelete={() => setConfirm(true)} onCancelDelete={() => setConfirm(false)}
-        onConfirmDelete={handleBulkDelete} />
+        onConfirmDelete={handleBulkDelete} onSetNoSync={handleSetNoSync} />
     </>
   )
 }
@@ -305,11 +321,13 @@ export function ContactsView(props: Props) {
 
 function BulkActionBar({
   selCount, allSelected, confirmDelete, isPending,
-  onToggleAll, onClear, onRequestDelete, onCancelDelete, onConfirmDelete,
+  onToggleAll, onClear, onRequestDelete, onCancelDelete, onConfirmDelete, onSetNoSync, onSetVisible,
 }: {
   selCount: number; allSelected: boolean; confirmDelete: boolean; isPending: boolean
   onToggleAll: () => void; onClear: () => void
   onRequestDelete: () => void; onCancelDelete: () => void; onConfirmDelete: () => void
+  onSetNoSync: (noSync: boolean) => void
+  onSetVisible: (visible: boolean) => void
 }) {
   if (selCount === 0) return null
 
@@ -321,6 +339,28 @@ function BulkActionBar({
       <span className="text-border select-none">|</span>
       <button onClick={onToggleAll} className="text-xs text-muted-foreground hover:text-foreground">
         {allSelected ? 'Désélectionner tout' : 'Tout sélectionner'}
+      </button>
+      <span className="text-border select-none">|</span>
+      <button onClick={() => onSetNoSync(false)} disabled={isPending}
+        className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 hover:text-emerald-600 disabled:opacity-50">
+        {isPending ? <Loader2 size={10} className="animate-spin" /> : <Wifi size={11} />}
+        Synchro
+      </button>
+      <button onClick={() => onSetNoSync(true)} disabled={isPending}
+        className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 hover:text-amber-600 disabled:opacity-50">
+        {isPending ? <Loader2 size={10} className="animate-spin" /> : <WifiOff size={11} />}
+        Pas de synchro
+      </button>
+      <span className="text-border select-none">|</span>
+      <button onClick={() => onSetVisible(true)} disabled={isPending}
+        className="flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground disabled:opacity-50">
+        {isPending ? <Loader2 size={10} className="animate-spin" /> : <Eye size={11} />}
+        Visible
+      </button>
+      <button onClick={() => onSetVisible(false)} disabled={isPending}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50">
+        {isPending ? <Loader2 size={10} className="animate-spin" /> : <EyeOff size={11} />}
+        Non visible
       </button>
       <span className="text-border select-none">|</span>
       {confirmDelete ? (

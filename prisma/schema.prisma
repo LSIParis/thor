@@ -36,9 +36,10 @@ model Client {
   email         String?
   logoPath      String?
   notes         String?
-  isHistorical  Boolean      @default(false)
-  noSync        Boolean      @default(false)
-  createdAt     DateTime     @default(now())
+  isHistorical   Boolean      @default(false)
+  noSync         Boolean      @default(false)
+  billingPeriod  String       @default("monthly")
+  createdAt      DateTime     @default(now())
   users         UserClient[]
   contacts      Contact[]
   equipment          Equipment[]
@@ -75,6 +76,7 @@ model Contact {
   notes        String?
   isHistorical Boolean  @default(false)
   noSync       Boolean  @default(false)
+  visible      Boolean  @default(true)
   zammadUserId Int?     @unique
   createdAt    DateTime    @default(now())
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -195,6 +197,7 @@ model M365Account {
   licenseExpiry     DateTime?
   accountEnabled    Boolean    @default(true)
   notes             String?
+  m365CreatedAt     DateTime?
   createdAt         DateTime   @default(now())
   tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
