@@ -111,13 +111,29 @@ function DomainGroup<T extends Contact>({
 
 export function ContactsView(props: Props) {
   const { isAdmin } = props
-  const [selected, setSelected]     = useState<Set<string>>(new Set())
-  const [confirmDelete, setConfirm] = useState(false)
-  const [isPending, start]          = useTransition()
-  const router                      = useRouter()
+  const [selected, setSelected]         = useState<Set<string>>(new Set())
+  const [confirmDelete, setConfirm]     = useState(false)
+  const [isPending, start]              = useTransition()
+  const [showInvisible, setShowInvisible] = useState(false)
+  const router                          = useRouter()
+
+  // Contacts filtrés selon showInvisible (mode grouped uniquement)
+  const filteredSiteGroups = props.mode === 'grouped'
+    ? (showInvisible
+        ? props.siteGroups
+        : props.siteGroups
+            .map(s => ({ ...s, contacts: s.contacts.filter(c => c.visible) }))
+            .filter(s => s.contacts.length > 0))
+    : []
+  const filteredUnsited = props.mode === 'grouped'
+    ? (showInvisible ? props.unsited : props.unsited.filter(c => c.visible))
+    : []
+  const hiddenCount = props.mode === 'grouped'
+    ? [...props.siteGroups.flatMap(s => s.contacts), ...props.unsited].filter(c => !c.visible).length
+    : 0
 
   const allIds = props.mode === 'grouped'
-    ? [...props.siteGroups.flatMap(s => s.contacts.map(c => c.id)), ...props.unsited.map(c => c.id)]
+    ? [...filteredSiteGroups.flatMap(s => s.contacts.map(c => c.id)), ...filteredUnsited.map(c => c.id)]
     : props.contacts.map(c => c.id)
 
   const selCount    = selected.size
@@ -171,8 +187,9 @@ export function ContactsView(props: Props) {
 
   // ── Vue groupée par site (client sélectionné) ─────────────────────────────
   if (props.mode === 'grouped') {
-    const { siteGroups, unsited, clientSites } = props
-    const total = siteGroups.reduce((a, s) => a + s.contacts.length, 0) + unsited.length
+    const { clientSites } = props
+    const total = props.siteGroups.reduce((a, s) => a + s.contacts.length, 0) + props.unsited.length
+    const visibleTotal = filteredSiteGroups.reduce((a, s) => a + s.contacts.length, 0) + filteredUnsited.length
 
     if (total === 0) {
       return (
@@ -182,12 +199,36 @@ export function ContactsView(props: Props) {
       )
     }
 
+    const InvisibleToggle = hiddenCount > 0 ? (
+      <button
+        type="button"
+        onClick={() => setShowInvisible(v => !v)}
+        className="flex items-center gap-2 mb-3 w-fit group"
+      >
+        {/* switch track */}
+        <span className={`relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full transition-colors duration-150 ${showInvisible ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+          <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform duration-150 ${showInvisible ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+        </span>
+        <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+          {showInvisible
+            ? `Contacts non visibles affichés (${hiddenCount})`
+            : `${hiddenCount} contact${hiddenCount > 1 ? 's' : ''} non visible${hiddenCount > 1 ? 's' : ''} masqué${hiddenCount > 1 ? 's' : ''}`}
+        </span>
+      </button>
+    ) : null
+
     return (
       <>
+        {InvisibleToggle}
         {SelectAll}
+        {visibleTotal === 0 ? (
+          <div className="bg-card border border-border rounded-lg px-4 py-10 text-center text-muted-foreground text-sm">
+            Tous les contacts sont masqués
+          </div>
+        ) : (
         <div className="space-y-4">
           {/* Sites avec contacts → groupés par domaine */}
-          {siteGroups.filter(s => s.contacts.length > 0).map(site => {
+          {filteredSiteGroups.filter(s => s.contacts.length > 0).map(site => {
             const domainGroups = groupByDomain(site.contacts)
             const moreThanOneDomain = domainGroups.length > 1
 
@@ -231,8 +272,8 @@ export function ContactsView(props: Props) {
           })}
 
           {/* Sans site → groupés par domaine */}
-          {unsited.length > 0 && (() => {
-            const domainGroups = groupByDomain(unsited)
+          {filteredUnsited.length > 0 && (() => {
+            const domainGroups = groupByDomain(filteredUnsited)
             const moreThanOneDomain = domainGroups.length > 1
             return (
               <div>
@@ -240,7 +281,7 @@ export function ContactsView(props: Props) {
                   <Users size={12} className="text-muted-foreground" />
                   <span className="text-xs font-semibold text-muted-foreground">Sans site</span>
                   <span className="text-xs text-muted-foreground">
-                    — {unsited.length} contact{unsited.length !== 1 ? 's' : ''}
+                    — {filteredUnsited.length} contact{filteredUnsited.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 {moreThanOneDomain ? (
@@ -259,7 +300,7 @@ export function ContactsView(props: Props) {
                   </div>
                 ) : (
                   <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-                    {unsited.map(c => (
+                    {filteredUnsited.map(c => (
                       <ContactCard key={c.id} contact={c} isAdmin={isAdmin} sites={clientSites}
                         selected={selected.has(c.id)} onToggle={() => toggle(c.id)} />
                     ))}
@@ -269,6 +310,7 @@ export function ContactsView(props: Props) {
             )
           })()}
         </div>
+        )}
 
         <BulkActionBar selCount={selCount} allSelected={allSelected} confirmDelete={confirmDelete}
           isPending={isPending} onToggleAll={toggleAll} onClear={clearSelection}
