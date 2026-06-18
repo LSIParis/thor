@@ -177,6 +177,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
 
     return { created, skipped }
   } catch (e) {
+    console.error('[syncVisibleContactsToDesk365]', e)
     return { created: 0, skipped: 0, error: e instanceof Error ? e.message : 'Erreur inconnue' }
   }
 }

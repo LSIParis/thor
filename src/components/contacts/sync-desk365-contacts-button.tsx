@@ -14,8 +14,12 @@ export function SyncDesk365ContactsButton() {
   function handleSync() {
     setResult(null)
     start(async () => {
-      const res = await syncVisibleContactsToDesk365()
-      setResult(res)
+      try {
+        const res = await syncVisibleContactsToDesk365()
+        setResult(res)
+      } catch (e) {
+        setResult({ created: 0, skipped: 0, error: e instanceof Error ? e.message : 'Erreur serveur' })
+      }
     })
   }
 
