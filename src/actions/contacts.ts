@@ -163,7 +163,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       // Déduplication par email
       if (existingEmails.has(email)) { skipped++; continue }
 
-      const result = await createDesk365Contact({
+      let result = await createDesk365Contact({
         name,
         primary_email: email,
         phone: c.phone ?? null,
@@ -171,7 +171,17 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         company_name: companyName,
       })
 
-      if ('error' in result) return { created, skipped, error: result.error }
+      // Si le nom de société pose problème (ex: doublon), on réessaie sans
+      if ('error' in result && /company/i.test(result.error)) {
+        result = await createDesk365Contact({
+          name,
+          primary_email: email,
+          phone: c.phone ?? null,
+          title: c.role ?? null,
+        })
+      }
+
+      if ('error' in result) { skipped++; continue }
       created++
     }
 
