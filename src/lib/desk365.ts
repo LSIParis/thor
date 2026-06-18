@@ -11,32 +11,25 @@ const authHeaders = () => ({
 
 async function fetchAllPages<T>(url: string): Promise<T[]> {
   const all: T[] = []
-  let page = 1
-  let prevSignature = ''
-  while (true) {
+  let nextUrl: string | null = url
+  while (nextUrl) {
     let res: Response
     try {
-      res = await fetch(
-        `${url}${url.includes('?') ? '&' : '?'}page=${page}&per_page=100`,
-        { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(10000) }
-      )
+      res = await fetch(nextUrl, { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(10000) })
     } catch {
       break
     }
     if (!res.ok) break
-    let json: { content?: T[] }
+    let json: { content?: T[]; next_page?: string | null }
     try {
-      json = await res.json() as { content?: T[] }
+      json = await res.json() as { content?: T[]; next_page?: string | null }
     } catch {
       break
     }
     const items = json.content ?? []
     if (items.length === 0) break
-    const sig = JSON.stringify(items)
-    if (sig === prevSignature) break
-    prevSignature = sig
     all.push(...items)
-    page++
+    nextUrl = json.next_page ?? null
   }
   return all
 }
