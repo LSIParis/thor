@@ -121,21 +121,30 @@ export async function setContactsVisible(ids: string[], visible: boolean) {
 export async function syncVisibleContactsToDesk365(): Promise<{
   created: number
   skipped: number
+  toDelete: { name: string; email: string; company: string }[]
   error?: string
 }> {
   await requireAdmin()
 
   if (!desk365Configured()) {
-    return { created: 0, skipped: 0, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+    return { created: 0, skipped: 0, toDelete: [], error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
   }
 
   try {
-    const [thorContacts, desk365Contacts] = await Promise.all([
+    const [thorVisible, thorHidden, desk365Contacts] = await Promise.all([
       prisma.contact.findMany({
         where: { visible: true },
         select: {
           firstName: true, lastName: true,
           email: true, phone: true, role: true,
+          client: { select: { name: true } },
+        },
+      }),
+      prisma.contact.findMany({
+        where: { visible: false, email: { not: null } },
+        select: {
+          firstName: true, lastName: true,
+          email: true,
           client: { select: { name: true } },
         },
       }),
@@ -145,14 +154,11 @@ export async function syncVisibleContactsToDesk365(): Promise<{
     const existingEmails = new Set(
       desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
     )
-    const existingNames = new Set(
-      desk365Contacts.map(c => `${c.name?.toLowerCase().trim()}|${c.company_name?.toLowerCase().trim() ?? ''}`)
-    )
 
     let created = 0
     let skipped = 0
 
-    for (const c of thorContacts) {
+    for (const c of thorVisible) {
       const name = `${c.firstName} ${c.lastName}`.trim()
       const email = c.email?.toLowerCase().trim() || null
       const companyName = c.client.name
@@ -185,10 +191,19 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       created++
     }
 
-    return { created, skipped }
+    // Contacts non visibles présents dans Desk365 → à supprimer manuellement
+    const toDelete = thorHidden
+      .filter(c => existingEmails.has(c.email!.toLowerCase().trim()))
+      .map(c => ({
+        name: `${c.firstName} ${c.lastName}`.trim(),
+        email: c.email!,
+        company: c.client.name,
+      }))
+
+    return { created, skipped, toDelete }
   } catch (e) {
     console.error('[syncVisibleContactsToDesk365]', e)
-    return { created: 0, skipped: 0, error: e instanceof Error ? e.message : 'Erreur inconnue' }
+    return { created: 0, skipped: 0, toDelete: [], error: e instanceof Error ? e.message : 'Erreur inconnue' }
   }
 }
 
