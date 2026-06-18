@@ -156,7 +156,7 @@ export function ContactCard({ contact, isAdmin, sites, clientName, clientId, sel
         </div>
         <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium">
-            {contact.lastName} {contact.firstName}
+            {contact.firstName} {contact.lastName}
           </span>
           {contact.role && (
             <span className="text-xs text-muted-foreground">{contact.role}</span>
