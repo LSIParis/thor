@@ -81,6 +81,7 @@ export default async function ContactsPage({
               <Download size={13} /> CSV
             </a>
             {isAdmin && <SyncM365Button clientId={selectedClientId} />}
+            {isAdmin && <SyncDesk365ContactsButton />}
             {isAdmin && <AddContactDialog clients={allClients} sites={allSites} selectedClientId={selectedClientId} />}
           </div>
         </div>
