@@ -14,12 +14,22 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
   let page = 1
   let prevSignature = ''
   while (true) {
-    const res = await fetch(
-      `${url}${url.includes('?') ? '&' : '?'}page=${page}&per_page=100`,
-      { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(10000) }
-    )
+    let res: Response
+    try {
+      res = await fetch(
+        `${url}${url.includes('?') ? '&' : '?'}page=${page}&per_page=100`,
+        { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(10000) }
+      )
+    } catch {
+      break
+    }
     if (!res.ok) break
-    const json = await res.json() as { content?: T[] }
+    let json: { content?: T[] }
+    try {
+      json = await res.json() as { content?: T[] }
+    } catch {
+      break
+    }
     const items = json.content ?? []
     if (items.length === 0) break
     const sig = JSON.stringify(items)
@@ -52,13 +62,18 @@ export async function createDesk365Company(name: string): Promise<{ ok: true } |
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
-  const res = await fetch(`${base}/companies/create`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({ name }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${base}/companies/create`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    })
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Network error' }
+  }
   if (!res.ok) {
     const text = await res.text()
     try {
@@ -99,13 +114,18 @@ export async function createDesk365Contact(contact: Desk365ContactData): Promise
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
 
-  const res = await fetch(`${base}/contacts/create`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(contact),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${base}/contacts/create`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(contact),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    })
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Network error' }
+  }
   if (!res.ok) {
     const text = await res.text()
     try {

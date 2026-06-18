@@ -129,50 +129,56 @@ export async function syncVisibleContactsToDesk365(): Promise<{
     return { created: 0, skipped: 0, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
   }
 
-  const [thorContacts, desk365Contacts] = await Promise.all([
-    prisma.contact.findMany({
-      where: { visible: true },
-      select: {
-        firstName: true, lastName: true,
-        email: true, phone: true, role: true,
-        client: { select: { name: true } },
-      },
-    }),
-    fetchDesk365Contacts(),
-  ])
+  try {
+    const [thorContacts, desk365Contacts] = await Promise.all([
+      prisma.contact.findMany({
+        where: { visible: true },
+        select: {
+          firstName: true, lastName: true,
+          email: true, phone: true, role: true,
+          client: { select: { name: true } },
+        },
+      }),
+      fetchDesk365Contacts(),
+    ])
 
-  const existingEmails = new Set(
-    desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
-  )
-  const existingNames = new Set(
-    desk365Contacts.map(c => `${c.name?.toLowerCase().trim()}|${c.company_name?.toLowerCase().trim() ?? ''}`)
-  )
+    const existingEmails = new Set(
+      desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
+    )
+    const existingNames = new Set(
+      desk365Contacts.map(c => `${c.name?.toLowerCase().trim()}|${c.company_name?.toLowerCase().trim() ?? ''}`)
+    )
 
-  let created = 0
-  let skipped = 0
+    let created = 0
+    let skipped = 0
 
-  for (const c of thorContacts) {
-    const name = `${c.firstName} ${c.lastName}`.trim()
-    const email = c.email?.toLowerCase().trim() || null
-    const companyName = c.client.name
+    for (const c of thorContacts) {
+      const name = `${c.firstName} ${c.lastName}`.trim()
+      const email = c.email?.toLowerCase().trim() || null
+      const companyName = c.client.name
 
-    // Dédoublonnage par email, puis par nom+société
-    if (email && existingEmails.has(email)) { skipped++; continue }
-    if (!email && existingNames.has(`${name.toLowerCase()}|${companyName.toLowerCase()}`)) { skipped++; continue }
+      // Desk365 requires primary_email — skip contacts without email
+      if (!email) { skipped++; continue }
 
-    const result = await createDesk365Contact({
-      name,
-      primary_email: email,
-      phone: c.phone ?? null,
-      title: c.role ?? null,
-      company_name: companyName,
-    })
+      // Déduplication par email
+      if (existingEmails.has(email)) { skipped++; continue }
 
-    if ('error' in result) return { created, skipped, error: result.error }
-    created++
+      const result = await createDesk365Contact({
+        name,
+        primary_email: email,
+        phone: c.phone ?? null,
+        title: c.role ?? null,
+        company_name: companyName,
+      })
+
+      if ('error' in result) return { created, skipped, error: result.error }
+      created++
+    }
+
+    return { created, skipped }
+  } catch (e) {
+    return { created: 0, skipped: 0, error: e instanceof Error ? e.message : 'Erreur inconnue' }
   }
-
-  return { created, skipped }
 }
 
 // ── Synchronisation depuis Microsoft 365 ─────────────────────────────────────
