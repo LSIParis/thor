@@ -118,20 +118,25 @@ export async function setContactsVisible(ids: string[], visible: boolean) {
 
 // ── Synchronisation vers Desk365 ─────────────────────────────────────────────
 
+type ContactRef = { name: string; email: string; company: string }
+
 export async function syncVisibleContactsToDesk365(): Promise<{
   created: number
   skipped: number
-  toDelete: { name: string; email: string; company: string }[]
+  toDelete: ContactRef[]
+  orphans: ContactRef[]
   error?: string
 }> {
   await requireAdmin()
 
+  const empty = { created: 0, skipped: 0, toDelete: [], orphans: [] }
+
   if (!desk365Configured()) {
-    return { created: 0, skipped: 0, toDelete: [], error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+    return { ...empty, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
   }
 
   try {
-    const [thorVisible, thorHidden, desk365Contacts] = await Promise.all([
+    const [thorVisible, thorNoSync, thorAllEmails, desk365Contacts] = await Promise.all([
       prisma.contact.findMany({
         where: { visible: true },
         select: {
@@ -148,11 +153,18 @@ export async function syncVisibleContactsToDesk365(): Promise<{
           client: { select: { name: true } },
         },
       }),
+      prisma.contact.findMany({
+        where: { email: { not: null } },
+        select: { email: true },
+      }),
       fetchDesk365Contacts(),
     ])
 
     const existingEmails = new Set(
       desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
+    )
+    const thorEmails = new Set(
+      thorAllEmails.map(c => c.email!.toLowerCase().trim())
     )
 
     let created = 0
@@ -163,10 +175,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       const email = c.email?.toLowerCase().trim() || null
       const companyName = c.client.name
 
-      // Desk365 requires primary_email — skip contacts without email
       if (!email) { skipped++; continue }
-
-      // Déduplication par email
       if (existingEmails.has(email)) { skipped++; continue }
 
       let result = await createDesk365Contact({
@@ -177,7 +186,6 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         company_name: companyName,
       })
 
-      // Si le nom de société pose problème (ex: doublon), on réessaie sans
       if ('error' in result && /company/i.test(result.error)) {
         result = await createDesk365Contact({
           name,
@@ -191,8 +199,8 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       created++
     }
 
-    // Contacts non visibles présents dans Desk365 → à supprimer manuellement
-    const toDelete = thorHidden
+    // Contacts noSync dans Thor présents dans Desk365 → à supprimer manuellement
+    const toDelete = thorNoSync
       .filter(c => existingEmails.has(c.email!.toLowerCase().trim()))
       .map(c => ({
         name: `${c.firstName} ${c.lastName}`.trim(),
@@ -200,10 +208,22 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         company: c.client.name,
       }))
 
-    return { created, skipped, toDelete }
+    // Contacts dans Desk365 absents de Thor (par email)
+    const orphans = desk365Contacts
+      .filter(c => {
+        const e = c.primary_email?.toLowerCase().trim()
+        return e && !thorEmails.has(e)
+      })
+      .map(c => ({
+        name: c.name ?? '',
+        email: c.primary_email!,
+        company: c.company_name ?? '',
+      }))
+
+    return { created, skipped, toDelete, orphans }
   } catch (e) {
     console.error('[syncVisibleContactsToDesk365]', e)
-    return { created: 0, skipped: 0, toDelete: [], error: e instanceof Error ? e.message : 'Erreur inconnue' }
+    return { ...empty, error: e instanceof Error ? e.message : 'Erreur inconnue' }
   }
 }
 
