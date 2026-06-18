@@ -312,7 +312,7 @@ export function ContactsView(props: Props) {
       <BulkActionBar selCount={selCount} allSelected={allSelected} confirmDelete={confirmDelete}
         isPending={isPending} onToggleAll={toggleAll} onClear={clearSelection}
         onRequestDelete={() => setConfirm(true)} onCancelDelete={() => setConfirm(false)}
-        onConfirmDelete={handleBulkDelete} onSetNoSync={handleSetNoSync} />
+        onConfirmDelete={handleBulkDelete} onSetNoSync={handleSetNoSync} onSetVisible={handleSetVisible} />
     </>
   )
 }
