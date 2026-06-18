@@ -5,8 +5,6 @@ import { ContactsView } from '@/components/contacts/contacts-view'
 import { AddContactDialog } from '@/components/contacts/add-contact-dialog'
 import { SyncM365Button } from '@/components/contacts/sync-m365-button'
 import { ClientSelector } from '@/components/dashboard/client-selector'
-import { SyncZammadButton } from '@/components/clients/sync-zammad-button'
-import { SyncZammadContactsButton } from '@/components/contacts/sync-zammad-contacts-button'
 import { Download } from 'lucide-react'
 
 const CONTACT_SELECT = {
@@ -124,7 +122,6 @@ export default async function ContactsPage({
           >
             <Download size={13} /> CSV
           </a>
-          {isAdmin && <SyncZammadContactsButton />}
           {isAdmin && <AddContactDialog clients={allClients} sites={allSites} />}
         </div>
       </div>

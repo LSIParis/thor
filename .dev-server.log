@@ -1,0 +1,221 @@
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.32:3000
+- Environments: .env.local
+✓ Ready in 800ms
+
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 4.5s (next.js: 1710ms, proxy.ts: 1015ms, application-code: 1740ms)
+ GET /api/auth/session 200 in 987ms (next.js: 916ms, proxy.ts: 24ms, application-code: 48ms)
+ GET /api/auth/session 200 in 62ms (next.js: 25ms, proxy.ts: 14ms, application-code: 23ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 951ms (next.js: 18ms, proxy.ts: 17ms, application-code: 916ms)
+  └─ ƒ loadSyncData() in 876ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 439ms (next.js: 18ms, proxy.ts: 17ms, application-code: 404ms)
+  └─ ƒ loadSyncData() in 389ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 1439ms (next.js: 14ms, proxy.ts: 10ms, application-code: 1415ms)
+  └─ ƒ autoReconcile() in 1178ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 614ms (next.js: 18ms, proxy.ts: 51ms, application-code: 545ms)
+  └─ ƒ loadSyncData() in 531ms src/actions/sync.ts
+(node:10404) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:10392) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 1070ms (next.js: 132ms, proxy.ts: 99ms, application-code: 839ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 1547ms (next.js: 244ms, proxy.ts: 30ms, application-code: 1273ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 858ms (next.js: 93ms, proxy.ts: 137ms, application-code: 628ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 855ms (next.js: 175ms, proxy.ts: 139ms, application-code: 541ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 860ms (next.js: 141ms, proxy.ts: 139ms, application-code: 579ms)
+✓ Compiled in 143ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 684ms (next.js: 110ms, proxy.ts: 61ms, application-code: 513ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 569ms (next.js: 14ms, proxy.ts: 82ms, application-code: 474ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 385ms (next.js: 18ms, proxy.ts: 89ms, application-code: 277ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 387ms (next.js: 49ms, proxy.ts: 92ms, application-code: 246ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 1102ms (next.js: 20ms, proxy.ts: 24ms, application-code: 1058ms)
+  └─ ƒ loadSyncData() in 976ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 779ms (next.js: 15ms, proxy.ts: 17ms, application-code: 747ms)
+  └─ ƒ loadSyncData() in 732ms src/actions/sync.ts
+✓ Compiled in 145ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 905ms (next.js: 147ms, proxy.ts: 55ms, application-code: 703ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 603ms (next.js: 22ms, proxy.ts: 83ms, application-code: 497ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 449ms (next.js: 48ms, proxy.ts: 98ms, application-code: 303ms)
+✓ Compiled in 80ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 424ms (next.js: 93ms, proxy.ts: 44ms, application-code: 288ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 315ms (next.js: 29ms, proxy.ts: 101ms, application-code: 186ms)
+✓ Compiled in 173ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 407ms (next.js: 82ms, proxy.ts: 59ms, application-code: 265ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 308ms (next.js: 20ms, proxy.ts: 94ms, application-code: 194ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 1166ms (next.js: 159ms, proxy.ts: 16ms, application-code: 992ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 867ms (next.js: 99ms, proxy.ts: 148ms, application-code: 620ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 560ms (next.js: 42ms, proxy.ts: 77ms, application-code: 441ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 560ms (next.js: 70ms, proxy.ts: 78ms, application-code: 413ms)
+✓ Compiled in 79ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 427ms (next.js: 100ms, proxy.ts: 72ms, application-code: 255ms)
+✓ Compiled in 168ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 750ms (next.js: 105ms, proxy.ts: 104ms, application-code: 541ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 721ms (next.js: 37ms, proxy.ts: 238ms, application-code: 446ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 420ms (next.js: 56ms, proxy.ts: 102ms, application-code: 262ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 424ms (next.js: 26ms, proxy.ts: 103ms, application-code: 294ms)
+✓ Compiled in 263ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 576ms (next.js: 16ms, proxy.ts: 76ms, application-code: 484ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 819ms (next.js: 113ms, proxy.ts: 51ms, application-code: 656ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 405ms (next.js: 32ms, proxy.ts: 86ms, application-code: 288ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 794ms (next.js: 17ms, proxy.ts: 12ms, application-code: 764ms)
+  └─ ƒ loadSyncData() in 720ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 402ms (next.js: 12ms, proxy.ts: 9ms, application-code: 381ms)
+  └─ ƒ loadSyncData() in 364ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 266ms (next.js: 21ms, proxy.ts: 12ms, application-code: 233ms)
+  └─ ƒ createClientInDesk365("cmpyakoex000hb4svg4qp512x", "Agence Laforet Clichy") in 214ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 563ms (next.js: 19ms, proxy.ts: 30ms, application-code: 514ms)
+  └─ ƒ createClientInDesk365("cmpyakoep000gb4sve0r1mtvz", "Agence l'Adresse Paris XII") in 304ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 463ms (next.js: 12ms, proxy.ts: 17ms, application-code: 433ms)
+  └─ ƒ loadSyncData() in 422ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 217ms (next.js: 16ms, proxy.ts: 14ms, application-code: 188ms)
+  └─ ƒ createClientInDesk365("cmpyakof9000jb4svmy6pqvs3", "Amiral Hotel") in 180ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 549ms (next.js: 16ms, proxy.ts: 16ms, application-code: 518ms)
+  └─ ƒ loadSyncData() in 507ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 396ms (next.js: 7ms, proxy.ts: 8ms, application-code: 381ms)
+  └─ ƒ loadSyncData() in 373ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 685ms (next.js: 12ms, proxy.ts: 17ms, application-code: 655ms)
+  └─ ƒ reconcileClients([{"desk365Company":"109 Conseil","localClientId":"cmpyakodv000db4sv4v0xp5ix","rmmId":"45"},{"desk365Company":"13 pour Tous","localClientId":"cmpyakoec000eb4svzpwpdlm2","rmmId":"53"},{"desk365Company":"Adfirmo","localClientId":"cmpyakoei000fb4sv5e8nz81v","rmmId":"32"},"... 61 items not stringified"]) in 317ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 566ms (next.js: 13ms, proxy.ts: 109ms, application-code: 445ms)
+  └─ ƒ loadSyncData() in 431ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 1092ms (next.js: 14ms, proxy.ts: 12ms, application-code: 1066ms)
+  └─ ƒ loadSyncData() in 1055ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 432ms (next.js: 17ms, proxy.ts: 14ms, application-code: 401ms)
+  └─ ƒ loadSyncData() in 388ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 591ms (next.js: 22ms, proxy.ts: 37ms, application-code: 532ms)
+  └─ ƒ reconcileClients([{"desk365Company":"109 Conseil","localClientId":"cmpyakodv000db4sv4v0xp5ix","rmmId":"45"},{"desk365Company":"13 pour Tous","localClientId":"cmpyakoec000eb4svzpwpdlm2","rmmId":"53"},{"desk365Company":"Adfirmo","localClientId":"cmpyakoei000fb4sv5e8nz81v","rmmId":"32"},"... 61 items not stringified"]) in 299ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 495ms (next.js: 6ms, proxy.ts: 17ms, application-code: 472ms)
+  └─ ƒ loadSyncData() in 458ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 497ms (next.js: 21ms, proxy.ts: 29ms, application-code: 447ms)
+  └─ ƒ createClientInDesk365("cmpyakog4000ob4sv1sznycnm", "Cabinet Couilbault") in 286ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 429ms (next.js: 9ms, proxy.ts: 12ms, application-code: 409ms)
+  └─ ƒ loadSyncData() in 398ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 537ms (next.js: 19ms, proxy.ts: 26ms, application-code: 492ms)
+  └─ ƒ reconcileClients([{"desk365Company":"109 Conseil","localClientId":"cmpyakodv000db4sv4v0xp5ix","rmmId":"45"},{"desk365Company":"13 pour Tous","localClientId":"cmpyakoec000eb4svzpwpdlm2","rmmId":"53"},{"desk365Company":"Adfirmo","localClientId":"cmpyakoei000fb4sv5e8nz81v","rmmId":"32"},"... 61 items not stringified"]) in 302ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 543ms (next.js: 10ms, proxy.ts: 16ms, application-code: 518ms)
+  └─ ƒ loadSyncData() in 507ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 559ms (next.js: 26ms, proxy.ts: 16ms, application-code: 517ms)
+  └─ ƒ createClientInDesk365("cmpyakon7001wb4svcz9zmz16", "Uniconseil") in 321ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 443ms (next.js: 10ms, proxy.ts: 10ms, application-code: 423ms)
+  └─ ƒ loadSyncData() in 411ms src/actions/sync.ts
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 606ms (next.js: 82ms, proxy.ts: 98ms, application-code: 426ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 930ms (next.js: 127ms, proxy.ts: 61ms, application-code: 742ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 427ms (next.js: 73ms, proxy.ts: 161ms, application-code: 194ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 727ms (next.js: 158ms, proxy.ts: 9ms, application-code: 560ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 734ms (next.js: 84ms, proxy.ts: 193ms, application-code: 456ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 458ms (next.js: 40ms, proxy.ts: 104ms, application-code: 313ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 457ms (next.js: 66ms, proxy.ts: 104ms, application-code: 287ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 942ms (next.js: 17ms, proxy.ts: 14ms, application-code: 911ms)
+  └─ ƒ loadSyncData() in 866ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 440ms (next.js: 30ms, proxy.ts: 17ms, application-code: 394ms)
+  └─ ƒ loadSyncData() in 367ms src/actions/sync.ts
+[desk365] createCompany error 400 {"description":"Validation failed","errors":[{"code":"invalid_value","field":"name","message":"Company Name is not unique. Please choose a different name."}]}
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 308ms (next.js: 19ms, proxy.ts: 31ms, application-code: 258ms)
+  └─ ƒ createClientInDesk365("cmpyakoex000hb4svg4qp512x", "Agence Laforet Clichy") in 240ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 595ms (next.js: 20ms, proxy.ts: 27ms, application-code: 549ms)
+  └─ ƒ createClientInDesk365("cmpyakom5001rb4svncfmif2a", "Promo Food") in 357ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 499ms (next.js: 10ms, proxy.ts: 11ms, application-code: 478ms)
+  └─ ƒ loadSyncData() in 466ms src/actions/sync.ts
+✓ Compiled in 103ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 470ms (next.js: 89ms, proxy.ts: 57ms, application-code: 325ms)
+✓ Compiled in 83ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 357ms (next.js: 82ms, proxy.ts: 79ms, application-code: 195ms)
+✓ Compiled in 91ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 275ms (next.js: 74ms, proxy.ts: 45ms, application-code: 156ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 876ms (next.js: 15ms, proxy.ts: 18ms, application-code: 843ms)
+  └─ ƒ loadSyncData() in 809ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 1001ms (next.js: 15ms, proxy.ts: 10ms, application-code: 976ms)
+  └─ ƒ loadSyncData() in 964ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 573ms (next.js: 24ms, proxy.ts: 16ms, application-code: 533ms)
+  └─ ƒ createClientInDesk365("cmpyakofu000mb4sveszh4r0e", "Cabinet Algance") in 291ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 592ms (next.js: 14ms, proxy.ts: 20ms, application-code: 558ms)
+  └─ ƒ loadSyncData() in 537ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 794ms (next.js: 13ms, proxy.ts: 18ms, application-code: 764ms)
+  └─ ƒ autoReconcile() in 543ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 611ms (next.js: 47ms, proxy.ts: 75ms, application-code: 489ms)
+  └─ ƒ loadSyncData() in 478ms src/actions/sync.ts
+✓ Compiled in 109ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 634ms (next.js: 17ms, proxy.ts: 64ms, application-code: 553ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 889ms (next.js: 89ms, proxy.ts: 60ms, application-code: 740ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 520ms (next.js: 75ms, proxy.ts: 185ms, application-code: 259ms)
+✓ Compiled in 200ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 567ms (next.js: 100ms, proxy.ts: 50ms, application-code: 417ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 383ms (next.js: 32ms, proxy.ts: 112ms, application-code: 238ms)
+✓ Compiled in 314ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 675ms (next.js: 114ms, proxy.ts: 177ms, application-code: 384ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 832ms (next.js: 40ms, proxy.ts: 60ms, application-code: 732ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 675ms (next.js: 9ms, proxy.ts: 62ms, application-code: 603ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 675ms (next.js: 163ms, proxy.ts: 62ms, application-code: 450ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 1000ms (next.js: 136ms, proxy.ts: 134ms, application-code: 730ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 1323ms (next.js: 178ms, proxy.ts: 13ms, application-code: 1133ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 616ms (next.js: 39ms, proxy.ts: 143ms, application-code: 435ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 614ms (next.js: 77ms, proxy.ts: 142ms, application-code: 395ms)
+✓ Compiled in 214ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 387ms (next.js: 71ms, proxy.ts: 58ms, application-code: 258ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 732ms (next.js: 13ms, proxy.ts: 8ms, application-code: 711ms)
+  └─ ƒ loadSyncData() in 677ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 548ms (next.js: 36ms, proxy.ts: 11ms, application-code: 500ms)
+  └─ ƒ loadSyncData() in 483ms src/actions/sync.ts
+[desk365] renameCompany error 405 <!doctype html><html lang="en"><head><title>HTTP Status 405 – Method Not Allowed</title><style type="text/css">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} h1 {font-size:22px;} h2 {font-size:16px;} h3 {font-size:14px;} p {font-size:12px;} a {color:black;} .line {height:1px;background-color:#525D76;border:none;}</style></head><body><h1>HTTP Status 405 – Method Not Allowed</h1><hr class="line" /><p><b>Type</b> Status Report</p><p><b>Message</b> Request method &#39;PUT&#39; not supported</p><p><b>Description</b> The method received in the request-line is known by the origin server but not supported by the target resource.</p><hr class="line" /><h3>Apache Tomcat/8.5.66</h3></body></html>
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 234ms (next.js: 16ms, proxy.ts: 12ms, application-code: 207ms)
+  └─ ƒ renameCompanyInDesk365("cmpyakof9000jb4svmy6pqvs3", "Amiral Hôtel", "Amiral Hotel") in 193ms src/actions/sync.ts
+✓ Compiled in 98ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 804ms (next.js: 93ms, proxy.ts: 45ms, application-code: 666ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 605ms (next.js: 14ms, proxy.ts: 37ms, application-code: 554ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 476ms (next.js: 7ms, proxy.ts: 81ms, application-code: 388ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 914ms (next.js: 16ms, proxy.ts: 17ms, application-code: 882ms)
+  └─ ƒ loadSyncData() in 858ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 387ms (next.js: 12ms, proxy.ts: 9ms, application-code: 367ms)
+  └─ ƒ loadSyncData() in 351ms src/actions/sync.ts
+[desk365] renameCompany 405 <!doctype html><html lang="en"><head><title>HTTP Status 405 – Method Not Allowed</title><style type="text/css">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} h1 {font-size:22px;} h2 {font-size:16px;} h3 {font-size:14px;} p {font-size:12px;} a {color:black;} .line {height:1px;background-color:#525D76;border:none;}</style></head><body><h1>HTTP Status 405 – Method Not Allowed</h1><hr class="line" /><p><b>Type</b> Status Report</p><p><b>Message</b> Request method &#39;PUT&#39; not supported</p><p><b>Description</b> The method received in the request-line is known by the origin server but not supported by the target resource.</p><hr class="line" /><h3>Apache Tomcat/8.5.66</h3></body></html>
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 171ms (next.js: 16ms, proxy.ts: 15ms, application-code: 140ms)
+  └─ ƒ renameCompanyInDesk365("cmpyakof9000jb4svmy6pqvs3", "Amiral Hôtel", "Amiral Hotel") in 126ms src/actions/sync.ts
+✓ Compiled in 78ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 558ms (next.js: 24ms, proxy.ts: 56ms, application-code: 479ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 794ms (next.js: 104ms, proxy.ts: 52ms, application-code: 639ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 471ms (next.js: 84ms, proxy.ts: 196ms, application-code: 190ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 638ms (next.js: 21ms, proxy.ts: 15ms, application-code: 602ms)
+  └─ ƒ loadSyncData() in 574ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 354ms (next.js: 6ms, proxy.ts: 10ms, application-code: 338ms)
+  └─ ƒ loadSyncData() in 329ms src/actions/sync.ts
+[desk365] renameCompany 405 <!doctype html><html lang="en"><head><title>HTTP Status 405 – Method Not Allowed</title><style type="text/css">body {font-family:Tahoma,Arial,sans-serif;} h1, h2, h3, b {color:white;background-color:#525D76;} h1 {font-size:22px;} h2 {font-size:16px;} h3 {font-size:14px;} p {font-size:12px;} a {color:black;} .line {height:1px;background-color:#525D76;border:none;}</style></head><body><h1>HTTP Status 405 – Method Not Allowed</h1><hr class="line" /><p><b>Type</b> Status Report</p><p><b>Message</b> Request method &#39;POST&#39; not supported</p><p><b>Description</b> The method received in the request-line is known by the origin server but not supported by the target resource.</p><hr class="line" /><h3>Apache Tomcat/8.5.66</h3></body></html>
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 157ms (next.js: 14ms, proxy.ts: 10ms, application-code: 133ms)
+  └─ ƒ renameCompanyInDesk365("cmpyakofo000lb4svolpwlglr", "Alastrée", "Cabinet Alastrée") in 124ms src/actions/sync.ts
+✓ Compiled in 102ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 653ms (next.js: 12ms, proxy.ts: 63ms, application-code: 579ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 857ms (next.js: 87ms, proxy.ts: 44ms, application-code: 726ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 527ms (next.js: 124ms, proxy.ts: 106ms, application-code: 297ms)
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 498ms (next.js: 16ms, proxy.ts: 15ms, application-code: 468ms)
+  └─ ƒ loadSyncData() in 427ms src/actions/sync.ts
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 393ms (next.js: 10ms, proxy.ts: 14ms, application-code: 369ms)
+  └─ ƒ loadSyncData() in 356ms src/actions/sync.ts
+[desk365] renameCompany: found company {
+  name: 'Alastrée',
+  description: null,
+  phone: null,
+  address: null,
+  city: null,
+  state: null,
+  country: null,
+  zipcode: null,
+  domains: [ 'alastree.com' ],
+  departments: null,
+  created_on: '2024-08-06 11:12:55',
+  updated_on: '2024-08-06 11:16:46',
+  sla: 'Standard SLA'
+}
+ POST /clients/cmpyakokg001gb4svepm2b98d 200 in 318ms (next.js: 14ms, proxy.ts: 15ms, application-code: 289ms)
+  └─ ƒ renameCompanyInDesk365("cmpyakofo000lb4svolpwlglr", "Alastrée", "Cabinet Alastrée") in 280ms src/actions/sync.ts
+✓ Compiled in 119ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 630ms (next.js: 13ms, proxy.ts: 71ms, application-code: 546ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 830ms (next.js: 84ms, proxy.ts: 42ms, application-code: 704ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 495ms (next.js: 51ms, proxy.ts: 90ms, application-code: 354ms)
+✓ Compiled in 76ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 502ms (next.js: 104ms, proxy.ts: 51ms, application-code: 347ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 346ms (next.js: 41ms, proxy.ts: 52ms, application-code: 253ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 268ms (next.js: 37ms, proxy.ts: 73ms, application-code: 158ms)
+✓ Compiled in 94ms
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 572ms (next.js: 74ms, proxy.ts: 40ms, application-code: 458ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 517ms (next.js: 30ms, proxy.ts: 100ms, application-code: 388ms)
+ GET /clients/cmpyakokg001gb4svepm2b98d 200 in 373ms (next.js: 38ms, proxy.ts: 175ms, application-code: 160ms)
+[?25h

@@ -77,7 +77,6 @@ model Contact {
   isHistorical Boolean  @default(false)
   noSync       Boolean  @default(false)
   visible      Boolean  @default(true)
-  zammadUserId Int?     @unique
   createdAt    DateTime    @default(now())
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   site         Site?       @relation(fields: [siteId], references: [id], onDelete: SetNull)

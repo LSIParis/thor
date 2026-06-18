@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
-  LogOut, User, ArrowLeftRight, Ticket, ChevronDown,
+  LogOut, User, ArrowLeftRight, ChevronDown,
   LayoutGrid, Boxes, Cloud, HardDrive, Phone, Monitor, Globe, MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,7 +50,6 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
           ...(linkedClientId
             ? [{ href: `/clients/${linkedClientId}`, label: 'Mon espace', icon: Users }]
             : []),
-          { href: '/tickets', label: 'Tickets', icon: Ticket },
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
         ]
       : [
@@ -61,7 +60,6 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
             { href: '/contacts', label: 'Contacts',   icon: User },
           ]},
           { href: '/parc',    label: 'Parc',     icon: Monitor },
-          { href: '/tickets', label: 'Tickets', icon: Ticket },
           { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
           { href: '/dns',         label: 'DNS & Mails',   icon: Globe },
           { href: '/m365',        label: 'Microsoft 365', icon: LayoutGrid },

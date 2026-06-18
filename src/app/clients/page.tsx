@@ -3,7 +3,6 @@ import { requireAuth, getClientLinkedToUser } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ClientList } from '@/components/clients/client-list'
 import { RmmImportButton } from '@/components/clients/rmm-import-button'
-import { SyncZammadButton } from '@/components/clients/sync-zammad-button'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
@@ -39,7 +38,6 @@ export default async function ClientsPage() {
         </div>
         {session.user.role === 'ADMIN' && (
           <div className="flex items-center gap-2">
-            <SyncZammadButton />
             <RmmImportButton />
             <Button asChild size="sm">
               <Link href="/clients/new">{t('new')}</Link>

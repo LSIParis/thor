@@ -4,13 +4,10 @@ import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { ClientSelector } from '@/components/dashboard/client-selector'
-import { fetchZammadDashboard } from '@/lib/zammad'
-import Link from 'next/link'
 import {
   Users, Contact, Monitor, AlertTriangle,
   Globe, ShieldCheck, Server, LayoutGrid,
   Cloud, Phone, Building2, AlertCircle,
-  Inbox, Clock, CheckCircle2, Hash,
 } from 'lucide-react'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -67,11 +64,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const clientWhere = { client: clientFilter }
   const dnsZoneWhere = { registrar: { client: clientFilter } }
 
-  // Résolution du nom client pour le filtre Zammad (requête légère, pré-parallèle)
-  const selectedClientName = selectedClientId && !isClient
-    ? (await prisma.client.findFirst({ where: clientFilter, select: { name: true } }))?.name
-    : undefined
-
   const now = new Date()
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in6m = new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000)
@@ -84,10 +76,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     equipmentRaw, dnsZones, sslExpiry, topClients,
     allClients,
     lastCronSetting,
-    zammadDash,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
-    prisma.contact.count({ where: clientWhere }),
+    prisma.contact.count({ where: { ...clientWhere, visible: true } }),
     prisma.equipment.count({ where: clientWhere }),
     prisma.dnsZone.count({ where: dnsZoneWhere }),
     prisma.sslCertificate.count({ where: clientWhere }),
@@ -106,7 +97,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } })
       : Promise.resolve([] as { id: string; name: string }[]),
     prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
-    fetchZammadDashboard(selectedClientName),
   ])
 
   // Chart data
@@ -170,35 +160,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <InfraItem label="VoIP"             value={voipCount}        icon={Phone} />
             <InfraItem label="SSL exp. < 30j"   value={certsExpiringSoon}    icon={AlertTriangle} alert />
             <InfraItem label="Dom. exp. < 30j"  value={domainsExpiringSoon}  icon={AlertCircle}   alert />
-          </div>
-        </div>
-      )}
-
-      {/* ── Tickets Zammad ── */}
-      {!isClient && zammadDash.configured && !zammadDash.error && (
-        <div className="mb-6">
-          <SectionLabel>Tickets</SectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {[
-              { label: 'Ouverts / Nouveaux', value: zammadDash.countOpen,    icon: Inbox,        color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
-              { label: 'En attente',          value: zammadDash.countPending, icon: Clock,        color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-              { label: 'Fermés',              value: zammadDash.countClosed,  icon: CheckCircle2, color: 'text-muted-foreground',               bg: 'bg-muted border-border' },
-              { label: 'Total',               value: zammadDash.totalCount,   icon: Hash,         color: 'text-muted-foreground',               bg: 'bg-muted border-border' },
-            ].map(({ label, value, icon: Icon, color, bg }) => (
-              <Link
-                key={label}
-                href={selectedClientId ? `/tickets?client=${selectedClientId}` : '/tickets'}
-                className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2 hover:bg-muted/60 transition-colors"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`p-1.5 rounded-md border flex-shrink-0 ${bg}`}>
-                    <Icon size={12} className={color} />
-                  </div>
-                  <span className="text-xs text-muted-foreground truncate">{label}</span>
-                </div>
-                <span className="text-sm font-bold tabular-nums flex-shrink-0">{value.toLocaleString('fr-FR')}</span>
-              </Link>
-            ))}
           </div>
         </div>
       )}

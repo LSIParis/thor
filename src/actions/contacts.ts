@@ -4,8 +4,6 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { fetchAllZammadUsers, fetchAllOrgs, upsertZammadUser } from '@/lib/zammad'
-
 export async function createContact(clientId: string, formData: FormData) {
   await requireAdmin()
   await prisma.contact.create({
@@ -115,128 +113,6 @@ export async function setContactsVisible(ids: string[], visible: boolean) {
   if (ids.length === 0) return
   await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { visible } })
   revalidatePath('/contacts')
-}
-
-// ── Synchronisation bidirectionnelle Zammad ────────────────────────────────────
-
-export async function syncContactsWithZammad(): Promise<{
-  pushed: number
-  imported: number
-  historical: number
-  error?: string
-}> {
-  await requireAdmin()
-
-  const zammadConfigured = !!process.env.ZAMMAD_URL && !!process.env.ZAMMAD_TOKEN
-  if (!zammadConfigured) {
-    return { pushed: 0, imported: 0, historical: 0, error: 'ZAMMAD_URL ou ZAMMAD_TOKEN non configuré' }
-  }
-
-  // Charger en parallèle : contacts Thor, orgs Zammad, users Zammad
-  const [thorContacts, zammadOrgs, zammadUsers] = await Promise.all([
-    prisma.contact.findMany({
-      select: {
-        id: true, firstName: true, lastName: true,
-        email: true, phone: true, zammadUserId: true, noSync: true,
-        client: { select: { name: true, noSync: true } },
-      },
-    }),
-    fetchAllOrgs(),
-    fetchAllZammadUsers(),
-  ])
-
-  // Index par email (lowercase) pour la correspondance
-  const orgByName  = new Map(zammadOrgs.map(o => [o.name.toLowerCase().trim(), o.id]))
-  const userByEmail = new Map(zammadUsers.filter(u => u.email).map(u => [u.email!.toLowerCase(), u]))
-  const thorByEmail = new Map(
-    thorContacts.filter(c => c.email).map(c => [c.email!.toLowerCase(), c]),
-  )
-  const thorByZammadId = new Map(
-    thorContacts.filter(c => c.zammadUserId).map(c => [c.zammadUserId!, c]),
-  )
-
-  let pushed     = 0
-  let imported   = 0
-  let historical = 0
-
-  // ── Thor → Zammad : pousser chaque contact avec email ──────────────────────
-  for (const contact of thorContacts) {
-    if (!contact.email || contact.noSync || contact.client.noSync) continue
-    const email = contact.email.toLowerCase()
-    const existing = userByEmail.get(email)
-    const orgId = orgByName.get(contact.client.name.toLowerCase().trim()) ?? null
-
-    const newId = await upsertZammadUser({
-      zammadId:       existing?.id,
-      firstname:      contact.firstName,
-      lastname:       contact.lastName,
-      email:          contact.email,
-      phone:          contact.phone,
-      organizationId: orgId,
-    })
-
-    if (newId) {
-      // Enregistrer le lien Zammad si nouveau
-      if (!contact.zammadUserId) {
-        await prisma.contact.update({
-          where: { id: contact.id },
-          data: { zammadUserId: newId },
-        })
-      }
-      pushed++
-    }
-  }
-
-  // ── Zammad → Thor : importer les users absents de Thor ─────────────────────
-  // Récupérer tous les clients Thor pour la résolution org → client
-  const thorClients = await prisma.client.findMany({ select: { id: true, name: true, noSync: true } })
-  const clientByName = new Map(
-    thorClients.filter(c => !c.noSync).map(c => [c.name.toLowerCase().trim(), c.id]),
-  )
-
-  for (const zUser of zammadUsers) {
-    if (!zUser.email) continue
-    const email = zUser.email.toLowerCase()
-
-    // Déjà dans Thor (par email ou par zammadUserId)
-    if (thorByEmail.has(email) || thorByZammadId.has(zUser.id)) continue
-
-    // Trouver le client Thor correspondant à l'organisation Zammad
-    const org = zUser.organization_id
-      ? zammadOrgs.find(o => o.id === zUser.organization_id)
-      : null
-    const clientId = org ? (clientByName.get(org.name.toLowerCase().trim()) ?? null) : null
-    if (!clientId) continue  // client absent ou noSync, on ne peut pas importer
-
-    await prisma.contact.create({
-      data: {
-        clientId,
-        firstName:    zUser.firstname,
-        lastName:     zUser.lastname,
-        email:        zUser.email,
-        phone:        zUser.phone ?? null,
-        zammadUserId: zUser.id,
-      },
-    })
-    imported++
-  }
-
-  // ── Marquer historique : contacts avec zammadUserId dont le user n'existe plus ─
-  const activeZammadIds = new Set(zammadUsers.map(u => u.id))
-  for (const contact of thorContacts) {
-    if (!contact.zammadUserId) continue
-    if (contact.noSync || contact.client.noSync) continue  // ne pas toucher les contacts noSync
-    if (!activeZammadIds.has(contact.zammadUserId)) {
-      await prisma.contact.update({
-        where: { id: contact.id },
-        data: { isHistorical: true },
-      })
-      historical++
-    }
-  }
-
-  revalidatePath('/contacts')
-  return { pushed, imported, historical }
 }
 
 // ── Synchronisation depuis Microsoft 365 ─────────────────────────────────────
