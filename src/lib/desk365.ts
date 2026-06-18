@@ -79,6 +79,45 @@ export async function createDesk365Company(name: string): Promise<{ ok: true } |
   return { ok: true }
 }
 
+export interface Desk365ContactData {
+  name: string
+  primary_email?: string | null
+  phone?: string | null
+  title?: string | null
+  company_name?: string | null
+}
+
+export async function fetchDesk365Contacts(): Promise<Desk365ContactData[]> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return []
+  return fetchAllPages<Desk365ContactData>(`${base}/contacts`)
+}
+
+export async function createDesk365Contact(contact: Desk365ContactData): Promise<{ ok: true } | { error: string }> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return { error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+
+  const res = await fetch(`${base}/contacts/create`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(contact),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    try {
+      const json = JSON.parse(text) as { description?: string; errors?: { message: string }[] }
+      return { error: json.errors?.[0]?.message ?? json.description ?? `HTTP ${res.status}` }
+    } catch {
+      return { error: `HTTP ${res.status}` }
+    }
+  }
+  return { ok: true }
+}
+
 export function desk365Configured(): boolean {
   return !!(process.env.DESK365_SUBDOMAIN && process.env.DESK365_API_KEY)
 }

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { ContactsView } from '@/components/contacts/contacts-view'
 import { AddContactDialog } from '@/components/contacts/add-contact-dialog'
 import { SyncM365Button } from '@/components/contacts/sync-m365-button'
+import { SyncDesk365ContactsButton } from '@/components/contacts/sync-desk365-contacts-button'
 import { ClientSelector } from '@/components/dashboard/client-selector'
 import { Download } from 'lucide-react'
 
@@ -122,6 +123,7 @@ export default async function ContactsPage({
           >
             <Download size={13} /> CSV
           </a>
+          {isAdmin && <SyncDesk365ContactsButton />}
           {isAdmin && <AddContactDialog clients={allClients} sites={allSites} />}
         </div>
       </div>

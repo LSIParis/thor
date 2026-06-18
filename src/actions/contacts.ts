@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { fetchDesk365Contacts, createDesk365Contact, desk365Configured } from '@/lib/desk365'
 export async function createContact(clientId: string, formData: FormData) {
   await requireAdmin()
   await prisma.contact.create({
@@ -113,6 +114,65 @@ export async function setContactsVisible(ids: string[], visible: boolean) {
   if (ids.length === 0) return
   await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { visible } })
   revalidatePath('/contacts')
+}
+
+// ── Synchronisation vers Desk365 ─────────────────────────────────────────────
+
+export async function syncVisibleContactsToDesk365(): Promise<{
+  created: number
+  skipped: number
+  error?: string
+}> {
+  await requireAdmin()
+
+  if (!desk365Configured()) {
+    return { created: 0, skipped: 0, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
+  }
+
+  const [thorContacts, desk365Contacts] = await Promise.all([
+    prisma.contact.findMany({
+      where: { visible: true },
+      select: {
+        firstName: true, lastName: true,
+        email: true, phone: true, role: true,
+        client: { select: { name: true } },
+      },
+    }),
+    fetchDesk365Contacts(),
+  ])
+
+  const existingEmails = new Set(
+    desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
+  )
+  const existingNames = new Set(
+    desk365Contacts.map(c => `${c.name?.toLowerCase().trim()}|${c.company_name?.toLowerCase().trim() ?? ''}`)
+  )
+
+  let created = 0
+  let skipped = 0
+
+  for (const c of thorContacts) {
+    const name = `${c.firstName} ${c.lastName}`.trim()
+    const email = c.email?.toLowerCase().trim() || null
+    const companyName = c.client.name
+
+    // Dédoublonnage par email, puis par nom+société
+    if (email && existingEmails.has(email)) { skipped++; continue }
+    if (!email && existingNames.has(`${name.toLowerCase()}|${companyName.toLowerCase()}`)) { skipped++; continue }
+
+    const result = await createDesk365Contact({
+      name,
+      primary_email: email,
+      phone: c.phone ?? null,
+      title: c.role ?? null,
+      company_name: companyName,
+    })
+
+    if ('error' in result) return { created, skipped, error: result.error }
+    created++
+  }
+
+  return { created, skipped }
 }
 
 // ── Synchronisation depuis Microsoft 365 ─────────────────────────────────────
