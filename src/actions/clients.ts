@@ -70,26 +70,31 @@ export async function syncClientsToDesk365(): Promise<{
     return { created: 0, skipped: 0, error: 'DESK365_SUBDOMAIN ou DESK365_API_KEY non configuré' }
   }
 
-  const [thorClients, desk365Names] = await Promise.all([
-    prisma.client.findMany({ where: { noSync: false }, select: { name: true }, orderBy: { name: 'asc' } }),
-    fetchDesk365Companies(),
-  ])
+  try {
+    const [thorClients, desk365Names] = await Promise.all([
+      prisma.client.findMany({ where: { noSync: false }, select: { name: true }, orderBy: { name: 'asc' } }),
+      fetchDesk365Companies(),
+    ])
 
-  const existing = new Set(desk365Names.map(n => n.toLowerCase().trim()))
+    const existing = new Set(desk365Names.map(n => n.toLowerCase().trim()))
 
-  let created = 0
-  let skipped = 0
-  for (const client of thorClients) {
-    if (existing.has(client.name.toLowerCase().trim())) {
-      skipped++
-      continue
+    let created = 0
+    let skipped = 0
+    for (const client of thorClients) {
+      if (existing.has(client.name.toLowerCase().trim())) {
+        skipped++
+        continue
+      }
+      const result = await createDesk365Company(client.name)
+      if ('error' in result) { skipped++; continue }
+      created++
     }
-    const result = await createDesk365Company(client.name)
-    if ('error' in result) return { created, skipped, error: result.error }
-    created++
-  }
 
-  return { created, skipped }
+    return { created, skipped }
+  } catch (e) {
+    console.error('[syncClientsToDesk365]', e)
+    return { created: 0, skipped: 0, error: e instanceof Error ? e.message : 'Erreur inconnue' }
+  }
 }
 
 export async function updateClientBilling(clientId: string, formData: FormData) {

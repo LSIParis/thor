@@ -46,15 +46,11 @@ export async function fetchDesk365Companies(): Promise<string[]> {
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
 
-  const [companies, contacts] = await Promise.all([
-    fetchAllPages<{ name?: string }>(`${base}/companies`),
-    fetchAllPages<{ company_name?: string | null }>(`${base}/contacts`),
-  ])
-
-  const seen = new Set<string>()
-  for (const c of companies) { if (c.name?.trim()) seen.add(c.name.trim()) }
-  for (const c of contacts)  { if (c.company_name?.trim()) seen.add(c.company_name.trim()) }
-  return [...seen].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+  const companies = await fetchAllPages<{ name?: string }>(`${base}/companies`)
+  return companies
+    .map(c => c.name?.trim())
+    .filter((n): n is string => !!n)
+    .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 }
 
 export async function createDesk365Company(name: string): Promise<{ ok: true } | { error: string }> {
@@ -83,14 +79,6 @@ export async function createDesk365Company(name: string): Promise<{ ok: true } |
       return { error: `HTTP ${res.status}` }
     }
   }
-  // Create a placeholder contact so the company appears in /contacts responses
-  await fetch(`${base}/contacts/create`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({ name, company_name: name }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
-  })
   return { ok: true }
 }
 
