@@ -199,6 +199,9 @@ export async function syncVisibleContactsToDesk365(): Promise<{
       created++
     }
 
+    const byName = (a: ContactRef, b: ContactRef) =>
+      a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+
     // Contacts noSync dans Thor présents dans Desk365 → à supprimer manuellement
     const toDelete = thorNoSync
       .filter(c => existingEmails.has(c.email!.toLowerCase().trim()))
@@ -207,6 +210,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         email: c.email!,
         company: c.client.name,
       }))
+      .sort(byName)
 
     // Contacts dans Desk365 absents de Thor (par email)
     const orphans = desk365Contacts
@@ -219,6 +223,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         email: c.primary_email!,
         company: c.company_name ?? '',
       }))
+      .sort(byName)
 
     return { created, skipped, toDelete, orphans }
   } catch (e) {
