@@ -141,7 +141,7 @@ export async function syncVisibleContactsToDesk365(): Promise<{
         },
       }),
       prisma.contact.findMany({
-        where: { visible: false, email: { not: null } },
+        where: { noSync: true, email: { not: null } },
         select: {
           firstName: true, lastName: true,
           email: true,
