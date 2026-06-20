@@ -17,7 +17,7 @@ export default async function EditClientPage({ params }: Props) {
   await requireAdmin()
   const t = await getTranslations('clients')
 
-  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true } })
+  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, cometUsername: true } })
   if (!client) notFound()
 
   const updateWithId = updateClient.bind(null, id)
@@ -50,6 +50,15 @@ export default async function EditClientPage({ params }: Props) {
               name="notes"
               defaultValue={client.notes ?? ''}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="cometUsername">Username Comet Backup</Label>
+            <Input
+              id="cometUsername"
+              name="cometUsername"
+              defaultValue={client.cometUsername ?? ''}
+              placeholder="ex: clientabc"
             />
           </div>
           <div className="flex items-center gap-2">

@@ -36,7 +36,8 @@ export async function updateClient(clientId: string, formData: FormData) {
       address: (formData.get('address') as string) || null,
       phone: (formData.get('phone') as string) || null,
       email: (formData.get('email') as string) || null,
-      notes: (formData.get('notes') as string) || null,
+      notes:         (formData.get('notes') as string) || null,
+      cometUsername: (formData.get('cometUsername') as string) || null,
       noSync,
     },
   })
