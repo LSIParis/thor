@@ -4,10 +4,13 @@ import { prisma } from '@/lib/db'
 import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { ClientSelector } from '@/components/dashboard/client-selector'
+import { fetchDesk365Tickets, desk365Configured, type Desk365Ticket } from '@/lib/desk365'
+import { fetchCometSummaries, cometConfigured, isCometSuccess, isCometError } from '@/lib/comet-backup'
 import {
   Users, Contact, Monitor, AlertTriangle,
   Globe, ShieldCheck, Server, LayoutGrid,
   Cloud, Phone, Building2, AlertCircle,
+  MessageSquare, HardDrive,
 } from 'lucide-react'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -42,6 +45,36 @@ function InfraItem({
   )
 }
 
+// ── Ticket helpers ─────────────────────────────────────────────────────────────
+
+function isActive(ticket: Desk365Ticket) {
+  return ticket.status !== 'Closed' && ticket.status !== 'Resolved'
+}
+
+const ACTIVE_STATUSES = [
+  { key: 'Attente client',    label: 'Attente client', cls: 'text-amber-600 dark:text-amber-400' },
+  { key: 'Client a rappeler', label: 'À rappeler',     cls: 'text-orange-600 dark:text-orange-400' },
+] as const
+
+const ACTIVE_PRIORITIES = [
+  { key: 1,  label: 'Faible',  cls: 'text-muted-foreground' },
+  { key: 5,  label: 'Normale', cls: 'text-blue-600 dark:text-blue-400' },
+  { key: 10, label: 'Haute',   cls: 'text-orange-600 dark:text-orange-400' },
+  { key: 20, label: 'Urgente', cls: 'text-destructive' },
+] as const
+
+function TicketStatusCard({ label, count, cls, icon: Icon }: { label: string; count: number; cls: string; icon: React.ElementType }) {
+  return (
+    <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon size={13} className="flex-shrink-0 text-muted-foreground" />
+        <span className="text-xs truncate text-muted-foreground">{label}</span>
+      </div>
+      <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${cls}`}>{count}</span>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
@@ -68,6 +101,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in6m = new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000)
 
+  // Récupérer d'abord les usernames Comet (nécessaire avant le Promise.all principal)
+  const cometClients = cometConfigured() && !isClient
+    ? await prisma.client.findMany({
+        where: accessFilter,
+        select: { cometUsername: true },
+      }).then(rows => rows.map(r => r.cometUsername).filter((u): u is string => !!u))
+    : []
+
   const [
     clientCount, contactCount, equipmentCount,
     dnsZoneCount, sslCertCount, hostingCount,
@@ -76,6 +117,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     equipmentRaw, dnsZones, sslExpiry, topClients,
     allClients,
     lastCronSetting,
+    allTickets,
+    cometSummaries,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
     prisma.contact.count({ where: { ...clientWhere, visible: true } }),
@@ -94,9 +137,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.sslCertificate.findMany({ where: { ...clientWhere, expiryDate: { gte: now, lte: in6m } }, select: { expiryDate: true } }),
     prisma.client.findMany({ where: clientFilter, select: { name: true, _count: { select: { equipment: true } } }, orderBy: { equipment: { _count: 'desc' } }, take: 8 }),
     !isClient
-      ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } })
-      : Promise.resolve([] as { id: string; name: string }[]),
+      ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true, cometUsername: true }, orderBy: { name: 'asc' } })
+      : Promise.resolve([] as { id: string; name: string; cometUsername: string | null }[]),
     prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
+    desk365Configured() ? fetchDesk365Tickets(3) : Promise.resolve([]),
+    cometClients.length > 0 ? fetchCometSummaries(cometClients) : Promise.resolve(new Map()),
   ])
 
   // Chart data
@@ -116,6 +161,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   const certExpiry = Object.entries(monthMap).map(([month, count]) => ({ month, count }))
   const topClientsByEquipment = topClients.filter((c) => c._count.equipment > 0).map((c) => ({ name: c.name, count: c._count.equipment }))
+
+  // Sauvegardes Comet
+  const cometMonitored = cometClients.length
+  const cometSuccess   = [...cometSummaries.values()].filter(s => s.hasRecentJob && isCometSuccess(s.lastJobStatus)).length
+  const cometError     = [...cometSummaries.values()].filter(s => s.hasRecentJob && isCometError(s.lastJobStatus)).length
+  const cometNoRecent  = cometMonitored - [...cometSummaries.values()].filter(s => s.hasRecentJob).length
+
+  // Tickets
+  const selectedClientName = selectedClientId
+    ? allClients.find(c => c.id === selectedClientId)?.name?.toLowerCase().trim()
+    : null
+  const activeTickets = allTickets
+    .filter(t => isActive(t))
+    .filter(t => !selectedClientName || t.company_name?.toLowerCase().trim() === selectedClientName)
+    .slice(0, 30)
 
   const lastCronRun = lastCronSetting?.value
     ? new Date(lastCronSetting.value).toLocaleString('fr-FR', {
@@ -160,6 +220,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <InfraItem label="VoIP"             value={voipCount}        icon={Phone} />
             <InfraItem label="SSL exp. < 30j"   value={certsExpiringSoon}    icon={AlertTriangle} alert />
             <InfraItem label="Dom. exp. < 30j"  value={domainsExpiringSoon}  icon={AlertCircle}   alert />
+          </div>
+        </div>
+      )}
+
+      {/* ── Sauvegardes Comet ── */}
+      {!isClient && cometConfigured() && (
+        <div className="mb-6">
+          <SectionLabel>Sauvegardes — Comet Backup ({cometMonitored})</SectionLabel>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            <InfraItem label="Surveillés"      value={cometMonitored} icon={HardDrive} />
+            <InfraItem label="Succès (48h)"    value={cometSuccess}   icon={HardDrive} />
+            <InfraItem label="Échecs (48h)"    value={cometError}     icon={HardDrive} alert />
+            <InfraItem label="Sans sauvegarde" value={cometNoRecent}  icon={HardDrive} alert />
+          </div>
+        </div>
+      )}
+
+      {/* ── Tickets Desk365 ── */}
+      {!isClient && (
+        <div className="mb-6">
+          <SectionLabel>Tickets actifs — Desk365 ({activeTickets.length})</SectionLabel>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {ACTIVE_STATUSES.map(({ key, label, cls }) => (
+              <TicketStatusCard
+                key={key}
+                label={label}
+                count={activeTickets.filter(t => t.status === key).length}
+                cls={cls}
+                icon={MessageSquare}
+              />
+            ))}
+            {ACTIVE_PRIORITIES.map(({ key, label, cls }) => (
+              <TicketStatusCard
+                key={key}
+                label={label}
+                count={activeTickets.filter(t => t.priority === key).length}
+                cls={cls}
+                icon={AlertCircle}
+              />
+            ))}
           </div>
         </div>
       )}
