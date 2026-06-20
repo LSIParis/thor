@@ -251,13 +251,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       )}
 
       {/* ── Wasabi (vue globale, aucun client sélectionné) ── */}
-      {!isClient && wasabiConfigured() && !selectedClientId && wasabiStats && (
+      {!isClient && wasabiConfigured() && !selectedClientId && (
         <div className="mb-6">
           <SectionLabel>Stockage — Wasabi</SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2.5">
-            <WasabiStatCard label="Buckets"  value={String(wasabiStats.bucketCount)}              icon={Database} />
-            <WasabiStatCard label="Objets"   value={wasabiStats.totalObjects.toLocaleString('fr-FR')} icon={HardDrive} />
-            <WasabiStatCard label="Stockage" value={fmtBytes(wasabiStats.totalBytes)}              icon={Cloud} />
+            <WasabiStatCard label="Buckets"  value={wasabiStats ? String(wasabiStats.bucketCount) : '—'}                          icon={Database} />
+            <WasabiStatCard label="Objets"   value={wasabiStats ? wasabiStats.totalObjects.toLocaleString('fr-FR') : '—'}         icon={HardDrive} />
+            <WasabiStatCard label="Stockage" value={wasabiStats ? fmtBytes(wasabiStats.totalBytes) : '—'}                         icon={Cloud} />
           </div>
         </div>
       )}

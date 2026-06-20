@@ -57,7 +57,8 @@ export async function fetchWasabiStats(): Promise<WasabiStats | null> {
     )
 
     return { bucketCount: buckets.length, totalObjects, totalBytes }
-  } catch {
+  } catch (err) {
+    console.error('[wasabi] fetchWasabiStats error:', err)
     return null
   }
 }
