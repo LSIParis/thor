@@ -6,11 +6,12 @@ import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { ClientSelector } from '@/components/dashboard/client-selector'
 import { fetchDesk365Tickets, desk365Configured, type Desk365Ticket } from '@/lib/desk365'
 import { fetchCometSummaries, cometConfigured, isCometSuccess, isCometError } from '@/lib/comet-backup'
+import { fetchWasabiStats, wasabiConfigured, fmtBytes, type WasabiStats } from '@/lib/wasabi'
 import {
   Users, Contact, Monitor, AlertTriangle,
   Globe, ShieldCheck, Server, LayoutGrid,
   Cloud, Phone, Building2, AlertCircle,
-  MessageSquare, HardDrive,
+  MessageSquare, HardDrive, Database,
 } from 'lucide-react'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -75,6 +76,18 @@ function TicketStatusCard({ label, count, cls, icon: Icon }: { label: string; co
   )
 }
 
+function WasabiStatCard({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
+  return (
+    <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon size={13} className="flex-shrink-0 text-muted-foreground" />
+        <span className="text-xs truncate text-muted-foreground">{label}</span>
+      </div>
+      <span className="text-sm font-bold tabular-nums flex-shrink-0">{value}</span>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
@@ -101,12 +114,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in6m = new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000)
 
-  // Récupérer d'abord les usernames Comet (nécessaire avant le Promise.all principal)
-  const cometClients = cometConfigured() && !isClient
-    ? await prisma.client.findMany({
-        where: accessFilter,
-        select: { cometUsername: true },
-      }).then(rows => rows.map(r => r.cometUsername).filter((u): u is string => !!u))
+  // Comet : seulement si un client est sélectionné
+  const cometClients = cometConfigured() && !isClient && selectedClientId
+    ? await prisma.client.findUnique({ where: { id: selectedClientId }, select: { cometUsername: true } })
+        .then(c => c?.cometUsername ? [c.cometUsername] : [])
     : []
 
   const [
@@ -119,6 +130,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     lastCronSetting,
     allTickets,
     cometSummaries,
+    wasabiStats,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
     prisma.contact.count({ where: { ...clientWhere, visible: true } }),
@@ -142,6 +154,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
     desk365Configured() ? fetchDesk365Tickets(3) : Promise.resolve([]),
     cometClients.length > 0 ? fetchCometSummaries(cometClients) : Promise.resolve(new Map()),
+    wasabiConfigured() && !isClient && !selectedClientId ? fetchWasabiStats() : Promise.resolve(null),
   ])
 
   // Chart data
@@ -224,15 +237,27 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {/* ── Sauvegardes Comet ── */}
-      {!isClient && cometConfigured() && (
+      {/* ── Sauvegardes Comet (client sélectionné) ── */}
+      {!isClient && cometConfigured() && selectedClientId && (
         <div className="mb-6">
-          <SectionLabel>Sauvegardes — Comet Backup ({cometMonitored})</SectionLabel>
+          <SectionLabel>Sauvegardes — Comet Backup</SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
             <InfraItem label="Surveillés"      value={cometMonitored} icon={HardDrive} />
             <InfraItem label="Succès (48h)"    value={cometSuccess}   icon={HardDrive} />
             <InfraItem label="Échecs (48h)"    value={cometError}     icon={HardDrive} alert />
             <InfraItem label="Sans sauvegarde" value={cometNoRecent}  icon={HardDrive} alert />
+          </div>
+        </div>
+      )}
+
+      {/* ── Wasabi (vue globale, aucun client sélectionné) ── */}
+      {!isClient && wasabiConfigured() && !selectedClientId && wasabiStats && (
+        <div className="mb-6">
+          <SectionLabel>Stockage — Wasabi</SectionLabel>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2.5">
+            <WasabiStatCard label="Buckets"  value={String(wasabiStats.bucketCount)}              icon={Database} />
+            <WasabiStatCard label="Objets"   value={wasabiStats.totalObjects.toLocaleString('fr-FR')} icon={HardDrive} />
+            <WasabiStatCard label="Stockage" value={fmtBytes(wasabiStats.totalBytes)}              icon={Cloud} />
           </div>
         </div>
       )}
