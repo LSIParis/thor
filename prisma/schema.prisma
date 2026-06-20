@@ -38,6 +38,7 @@ model Client {
   notes         String?
   isHistorical   Boolean      @default(false)
   noSync         Boolean      @default(false)
+  cometUsername  String?
   billingPeriod  String       @default("monthly")
   createdAt      DateTime     @default(now())
   users         UserClient[]
