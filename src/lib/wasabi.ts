@@ -10,10 +10,20 @@ export function wasabiConfigured(): boolean {
   return !!(process.env.WASABI_ACCESS_KEY && process.env.WASABI_SECRET_KEY)
 }
 
+function getEndpoint(): string {
+  return process.env.WASABI_ENDPOINT ?? 'https://s3.wasabisys.com'
+}
+
+function getRegion(): string {
+  // Dériver la région depuis l'endpoint: s3.eu-central-1.wasabisys.com → eu-central-1
+  const m = getEndpoint().match(/s3\.(.+?)\.wasabisys\.com/)
+  return m ? m[1] : 'us-east-1'
+}
+
 function createClient(): S3Client {
   return new S3Client({
-    region: process.env.WASABI_REGION ?? 'us-east-1',
-    endpoint: process.env.WASABI_ENDPOINT ?? 'https://s3.wasabisys.com',
+    region:   getRegion(),
+    endpoint: getEndpoint(),
     credentials: {
       accessKeyId:     process.env.WASABI_ACCESS_KEY!,
       secretAccessKey: process.env.WASABI_SECRET_KEY!,
