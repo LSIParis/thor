@@ -17,7 +17,7 @@ export default async function EditClientPage({ params }: Props) {
   await requireAdmin()
   const t = await getTranslations('clients')
 
-  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, cometUsername: true } })
+  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, cometUsername: true, cometPassword: true } })
   if (!client) notFound()
 
   const updateWithId = updateClient.bind(null, id)
@@ -53,12 +53,22 @@ export default async function EditClientPage({ params }: Props) {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="cometUsername">Username Comet Backup</Label>
+            <Label htmlFor="cometUsername">Identifiant Comet Backup</Label>
             <Input
               id="cometUsername"
               name="cometUsername"
               defaultValue={client.cometUsername ?? ''}
               placeholder="ex: clientabc"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="cometPassword">Mot de passe Comet Backup</Label>
+            <Input
+              id="cometPassword"
+              name="cometPassword"
+              type="password"
+              autoComplete="new-password"
+              placeholder={client.cometPassword ? '(inchangé si vide)' : 'Nouveau mot de passe'}
             />
           </div>
           <div className="flex items-center gap-2">

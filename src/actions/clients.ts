@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { fetchDesk365Companies, createDesk365Company, desk365Configured } from '@/lib/desk365'
+import { encrypt } from '@/lib/crypto'
 
 export async function createClient(formData: FormData) {
   await requireAdmin()
@@ -26,18 +27,24 @@ export async function updateClient(clientId: string, formData: FormData) {
   await requireAdmin()
   const noSync = formData.get('noSync') === 'true'
 
-  const current = await prisma.client.findUnique({ where: { id: clientId }, select: { noSync: true } })
+  const current = await prisma.client.findUnique({ where: { id: clientId }, select: { noSync: true, cometPassword: true } })
   const noSyncChanged = current?.noSync !== noSync
+
+  const newPassword = (formData.get('cometPassword') as string) || null
+  const cometPassword = newPassword
+    ? encrypt(newPassword)
+    : current?.cometPassword ?? null
 
   await prisma.client.update({
     where: { id: clientId },
     data: {
-      name: formData.get('name') as string,
-      address: (formData.get('address') as string) || null,
-      phone: (formData.get('phone') as string) || null,
-      email: (formData.get('email') as string) || null,
+      name:          formData.get('name') as string,
+      address:       (formData.get('address') as string) || null,
+      phone:         (formData.get('phone') as string) || null,
+      email:         (formData.get('email') as string) || null,
       notes:         (formData.get('notes') as string) || null,
       cometUsername: (formData.get('cometUsername') as string) || null,
+      cometPassword,
       noSync,
     },
   })

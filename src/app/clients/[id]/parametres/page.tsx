@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { Users, LayoutGrid, Receipt, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react'
+import { Users, LayoutGrid, Receipt, ChevronLeft, CheckCircle2, XCircle, HardDrive } from 'lucide-react'
+import { decrypt } from '@/lib/crypto'
+import { CredentialReveal } from '@/components/ui/credential-reveal'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -21,6 +23,8 @@ export default async function ClientParametresPage({ params }: Props) {
       id: true,
       name: true,
       billingPeriod: true,
+      cometUsername: true,
+      cometPassword: true,
       users: {
         select: {
           user: { select: { id: true, name: true, email: true, role: true } },
@@ -163,6 +167,46 @@ export default async function ClientParametresPage({ params }: Props) {
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">
               Aucun tenant Microsoft 365 configuré.{' '}
               <Link href={`/m365?client=${id}`} className="text-primary hover:underline">Ajouter →</Link>
+            </p>
+          )}
+        </section>
+
+        {/* ── Comet Backup ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <HardDrive size={14} className="text-primary" />
+              <span className="text-sm font-semibold">Comet Backup</span>
+            </div>
+            <Link href={`/clients/${id}/edit`}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              Modifier →
+            </Link>
+          </div>
+
+          {client.cometUsername ? (
+            <div className="px-4 py-3">
+              <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2 text-xs">
+                <span className="text-muted-foreground self-center">Identifiant</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="font-mono">{client.cometUsername}</span>
+                </span>
+
+                <span className="text-muted-foreground self-center">Mot de passe</span>
+                {client.cometPassword ? (
+                  <CredentialReveal value={decrypt(client.cometPassword)} />
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <XCircle size={12} className="text-amber-600" />
+                    <span className="text-amber-700 dark:text-amber-400">Non configuré</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="px-4 py-6 text-sm text-muted-foreground text-center">
+              Aucun compte Comet Backup configuré.{' '}
+              <Link href={`/clients/${id}/edit`} className="text-primary hover:underline">Configurer →</Link>
             </p>
           )}
         </section>

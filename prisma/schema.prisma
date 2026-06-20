@@ -39,6 +39,7 @@ model Client {
   isHistorical   Boolean      @default(false)
   noSync         Boolean      @default(false)
   cometUsername  String?
+  cometPassword  String?
   billingPeriod  String       @default("monthly")
   createdAt      DateTime     @default(now())
   users         UserClient[]
