@@ -1,76 +1,158 @@
-# Déploiement sur VPS avec Docker / Portainer
+# Mode d'emploi — Déploiement sur VPS
 
-## Prérequis VPS
+## Prérequis
 
-- Ubuntu 22.04+ / Debian 12+
-- Docker Engine + Docker Compose v2
-- Portainer CE (`https://votre-vps:9443`) — optionnel mais recommandé
-- Domaine DNS pointant vers le VPS (`thor.lsi-maintenance.fr`)
-- Ports 80 et 443 ouverts dans le pare-feu
+| Élément | Minimum |
+|---|---|
+| Serveur | Ubuntu 22.04 LTS ou Debian 12 |
+| RAM | 2 Go |
+| Disque | 20 Go |
+| Domaine | Enregistrement A pointant vers l'IP du VPS |
+| Ports | 80 et 443 ouverts dans le pare-feu |
 
 ---
 
-## 1. Préparer le VPS
+## Étape 1 — Installer Docker sur le VPS
+
+Se connecter en SSH puis exécuter :
 
 ```bash
-git clone https://github.com/votre-org/thor.git /opt/thor
-cd /opt/thor
+# Mettre à jour le système
+apt update && apt upgrade -y
 
-cp .env.example .env
-nano .env   # remplir toutes les valeurs obligatoires
+# Installer Docker (script officiel)
+curl -fsSL https://get.docker.com | sh
+
+# Vérifier l'installation
+docker --version
+docker compose version
 ```
 
-### Générer les secrets
+> Docker Compose v2 est inclus dans l'installation officielle (`docker compose`, sans tiret).
+
+---
+
+## Étape 2 — Cloner le projet
+
+```bash
+git clone https://github.com/LSIParis/thor.git /opt/thor
+cd /opt/thor
+```
+
+---
+
+## Étape 3 — Créer le fichier d'environnement
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+### Remplir les valeurs obligatoires
+
+**Générer les secrets :**
 
 ```bash
 # NEXTAUTH_SECRET
 openssl rand -base64 32
 
-# ENCRYPTION_KEY (exactement 64 chars hex)
+# ENCRYPTION_KEY (exactement 64 caractères hex)
 openssl rand -hex 32
 
 # CRON_SECRET
 openssl rand -hex 24
+
+# POSTGRES_PASSWORD
+openssl rand -base64 24
+```
+
+**Valeurs à saisir dans `.env` :**
+
+```env
+POSTGRES_PASSWORD=<mot de passe généré>
+NEXTAUTH_SECRET=<secret généré>
+ENCRYPTION_KEY=<clé hex générée>
+CRON_SECRET=<secret généré>
+NEXTAUTH_URL=https://thor.lsi-maintenance.fr
+DOMAIN=thor.lsi-maintenance.fr
+LETSENCRYPT_EMAIL=admin@lsi-maintenance.fr
+```
+
+**Services optionnels** (laisser vide pour désactiver) :
+
+```env
+DESK365_SUBDOMAIN=lsi-maintenance
+DESK365_API_KEY=...
+
+WASABI_ACCESS_KEY=...
+WASABI_SECRET_KEY=...
+
+COMET_SERVER_URL=https://backup.lsi-maintenance.fr
+COMET_ADMIN_USER=...
+COMET_ADMIN_PASS=...
+
+AXONAUT_API_KEY=...
+
+MAILGUN_API_KEY=...
+MAILGUN_DOMAIN=mg.lsi-maintenance.fr
+MAILGUN_FROM=LSI Maintenance <noreply@mg.lsi-maintenance.fr>
+LSI_NOTIFY_EMAIL=contact@lsi-maintenance.fr
 ```
 
 ---
 
-## 2. Obtenir le certificat SSL (première fois)
+## Étape 4 — Obtenir le certificat SSL (première fois uniquement)
+
+Le certificat Let's Encrypt doit être obtenu **avant** de démarrer la stack complète.
 
 ```bash
 cd /opt/thor
 
-# Démarrer nginx + certbot pour le challenge HTTP-01
+# 1. Démarrer uniquement nginx et certbot
 docker compose -f docker-compose.portainer.yml up -d nginx certbot
 
-# Demander le certificat
+# 2. Vérifier que nginx répond sur le port 80
+curl -I http://thor.lsi-maintenance.fr
+
+# 3. Demander le certificat
 docker compose -f docker-compose.portainer.yml run --rm certbot certonly \
   --webroot -w /var/www/certbot \
-  --email $LETSENCRYPT_EMAIL \
+  --email admin@lsi-maintenance.fr \
   --agree-tos --no-eff-email \
-  -d $DOMAIN
+  -d thor.lsi-maintenance.fr
 
-# Activer SSL dans nginx
+# 4. Redémarrer nginx pour activer HTTPS
 docker compose -f docker-compose.portainer.yml restart nginx
 ```
 
+> En cas d'erreur de rate limit Let's Encrypt, ajouter `--staging` pour tester, puis relancer sans `--staging` une fois le problème résolu.
+
 ---
 
-## 3. Déploiement complet
+## Étape 5 — Démarrer la stack complète
 
 ```bash
 cd /opt/thor
 docker compose -f docker-compose.portainer.yml up -d --build
 ```
 
-### Vérifier que tout tourne
+Suivre les logs pendant le démarrage :
+
+```bash
+docker compose -f docker-compose.portainer.yml logs -f app
+```
+
+Attendre le message `✓ Ready in Xms` puis vérifier :
 
 ```bash
 docker compose -f docker-compose.portainer.yml ps
-docker compose -f docker-compose.portainer.yml logs app --tail 50
 ```
 
-### Créer l'utilisateur admin initial
+Tous les services doivent être `Up` ou `healthy`.
+
+---
+
+## Étape 6 — Créer le compte administrateur
 
 ```bash
 docker compose -f docker-compose.portainer.yml exec app \
@@ -90,64 +172,70 @@ bcrypt.hash('ChangeMe123!',12).then(h=>
 "
 ```
 
+Se connecter sur `https://thor.lsi-maintenance.fr` avec :
+- Email : `admin@lsi-maintenance.fr`
+- Mot de passe : `ChangeMe123!`
+
+**Changer le mot de passe immédiatement** via Paramètres → Profil.
+
 ---
 
-## 4. Déploiement via Portainer UI
+## Déploiement via Portainer (alternative)
 
-### Stack depuis le dépôt Git
+### Installer Portainer
 
-1. Portainer → **Stacks** → **Add stack**
+```bash
+docker volume create portainer_data
+
+docker run -d \
+  --name portainer \
+  --restart=always \
+  -p 9443:9443 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest
+```
+
+Accéder à `https://votre-ip:9443` pour créer le compte admin Portainer.
+
+### Créer la stack depuis Portainer
+
+1. **Stacks** → **Add stack**
 2. Nom : `lsi-thor`
 3. Build method : **Repository**
-4. URL : `https://github.com/votre-org/thor`
-5. Compose path : `docker-compose.portainer.yml`
-6. Ajouter les variables d'environnement (voir tableau ci-dessous)
-7. **Deploy the stack**
+   - URL : `https://github.com/LSIParis/thor`
+   - Compose path : `docker-compose.portainer.yml`
+4. Onglet **Environment variables** → ajouter chaque variable du tableau ci-dessous
+5. **Deploy the stack**
 
-### Stack collée manuellement
+### Variables à saisir dans Portainer
 
-1. Portainer → **Stacks** → **Add stack** → **Web editor**
-2. Coller le contenu de `docker-compose.portainer.yml`
-3. Ajouter les variables d'environnement
-4. **Deploy the stack**
-
----
-
-## 5. Variables d'environnement
-
-### Obligatoires
-
-| Variable | Description | Générer avec |
-|---|---|---|
-| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | mot de passe fort |
-| `NEXTAUTH_SECRET` | Clé de session JWT | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY` | Chiffrement AES-256 (64 hex) | `openssl rand -hex 32` |
-| `CRON_SECRET` | Auth des tâches planifiées | `openssl rand -hex 24` |
-| `DOMAIN` | Domaine nginx + Let's Encrypt | ex: `thor.lsi-maintenance.fr` |
-| `LETSENCRYPT_EMAIL` | Email renouvellement SSL | ex: `admin@lsi-maintenance.fr` |
-
-### Services intégrés (optionnels)
-
-| Variable | Description |
+| Variable | Valeur |
 |---|---|
-| `DESK365_SUBDOMAIN` | Sous-domaine Desk365 (ex: `lsi-maintenance`) |
-| `DESK365_API_KEY` | Clé API Desk365 |
-| `WASABI_ACCESS_KEY` | Access Key Wasabi S3 |
-| `WASABI_SECRET_KEY` | Secret Key Wasabi S3 |
-| `COMET_SERVER_URL` | URL du serveur Comet Backup (ex: `https://backup.lsi-maintenance.fr`) |
-| `COMET_ADMIN_USER` | Identifiant admin Comet |
-| `COMET_ADMIN_PASS` | Mot de passe admin Comet |
-| `AXONAUT_API_KEY` | Clé API Axonaut |
-| `MAILGUN_API_KEY` | Clé API Mailgun |
-| `MAILGUN_DOMAIN` | Domaine Mailgun (ex: `mg.lsi-maintenance.fr`) |
-| `MAILGUN_FROM` | Expéditeur email (ex: `LSI <noreply@mg.lsi-maintenance.fr>`) |
-| `LSI_NOTIFY_EMAIL` | Destinataire des alertes cron |
+| `POSTGRES_PASSWORD` | mot de passe fort |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+| `ENCRYPTION_KEY` | `openssl rand -hex 32` |
+| `CRON_SECRET` | `openssl rand -hex 24` |
+| `DOMAIN` | `thor.lsi-maintenance.fr` |
+| `LETSENCRYPT_EMAIL` | `admin@lsi-maintenance.fr` |
+| `DESK365_SUBDOMAIN` | `lsi-maintenance` |
+| `DESK365_API_KEY` | clé API Desk365 |
+| `WASABI_ACCESS_KEY` | access key Wasabi |
+| `WASABI_SECRET_KEY` | secret key Wasabi |
+| `COMET_SERVER_URL` | `https://backup.lsi-maintenance.fr` |
+| `COMET_ADMIN_USER` | admin Comet |
+| `COMET_ADMIN_PASS` | mot de passe Comet |
+| `AXONAUT_API_KEY` | clé API Axonaut |
+| `MAILGUN_API_KEY` | clé API Mailgun |
+| `MAILGUN_DOMAIN` | `mg.lsi-maintenance.fr` |
+| `MAILGUN_FROM` | `LSI Maintenance <noreply@mg.lsi-maintenance.fr>` |
+| `LSI_NOTIFY_EMAIL` | `contact@lsi-maintenance.fr` |
 
-> Les variables optionnelles non renseignées désactivent silencieusement la fonctionnalité correspondante.
+> Le certificat SSL doit être obtenu manuellement (étape 4) avant le premier déploiement via Portainer.
 
 ---
 
-## 6. Mise à jour
+## Mise à jour de l'application
 
 ```bash
 cd /opt/thor
@@ -155,31 +243,78 @@ git pull
 docker compose -f docker-compose.portainer.yml up -d --build app
 ```
 
-Ou dans Portainer : **Stacks** → `lsi-thor` → **Update the stack** → **Pull and redeploy**
+Via Portainer : **Stacks** → `lsi-thor` → **Update the stack** → cocher **Re-pull image** → **Update the stack**.
 
 ---
 
-## 7. Sauvegarde
+## Sauvegarde
+
+### Base de données
 
 ```bash
-# Base de données
 docker compose -f docker-compose.portainer.yml exec postgres \
-  pg_dump -U lsi lsi_portal > backup_$(date +%Y%m%d_%H%M).sql
+  pg_dump -U lsi lsi_portal > /opt/backups/db_$(date +%Y%m%d_%H%M).sql
+```
 
-# Uploads (photos assets)
+### Fichiers uploadés (photos)
+
+```bash
+mkdir -p /opt/backups
 docker run --rm \
   -v thor_uploads:/data \
-  -v $(pwd):/backup \
-  alpine tar czf /backup/uploads_$(date +%Y%m%d).tar.gz /data
+  -v /opt/backups:/backup \
+  alpine tar czf /backup/uploads_$(date +%Y%m%d).tar.gz -C /data .
+```
+
+### Restaurer la base de données
+
+```bash
+cat backup.sql | docker compose -f docker-compose.portainer.yml exec -T postgres \
+  psql -U lsi lsi_portal
 ```
 
 ---
 
-## 8. Ports exposés
+## Résolution de problèmes
 
-| Port | Service |
-|---|---|
-| 80 | nginx — HTTP (redirection HTTPS) |
-| 443 | nginx — HTTPS |
-| 3000 | Next.js (interne uniquement) |
-| 5432 | PostgreSQL (interne uniquement) |
+### L'application ne démarre pas
+
+```bash
+docker compose -f docker-compose.portainer.yml logs app --tail 100
+```
+
+### Erreur de migration Prisma
+
+```bash
+docker compose -f docker-compose.portainer.yml exec app \
+  node_modules/prisma/build/index.js migrate status
+```
+
+### Nginx retourne une erreur 502
+
+L'application Next.js n'est pas encore prête. Attendre 30 secondes et vérifier :
+
+```bash
+docker compose -f docker-compose.portainer.yml ps app
+# Le healthcheck doit passer à "healthy"
+```
+
+### Certificat SSL expiré ou invalide
+
+```bash
+docker compose -f docker-compose.portainer.yml exec certbot \
+  certbot renew --force-renewal
+docker compose -f docker-compose.portainer.yml restart nginx
+```
+
+---
+
+## Ports et services
+
+| Port | Service | Accès |
+|---|---|---|
+| 80 | nginx — HTTP (→ HTTPS) | public |
+| 443 | nginx — HTTPS | public |
+| 9443 | Portainer | restreindre au besoin |
+| 3000 | Next.js | interne uniquement |
+| 5432 | PostgreSQL | interne uniquement |
