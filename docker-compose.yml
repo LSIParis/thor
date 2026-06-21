@@ -22,15 +22,32 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
+      # Base de données
       DATABASE_URL: postgresql://${POSTGRES_USER:-lsi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-lsi_portal}?schema=public
+      # Auth
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET requis}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Chiffrement
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY requis}
+      # Cron
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET requis}
+      # Email (Mailgun)
       MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
       MAILGUN_DOMAIN: ${MAILGUN_DOMAIN:-}
       MAILGUN_FROM: ${MAILGUN_FROM:-}
       LSI_NOTIFY_EMAIL: ${LSI_NOTIFY_EMAIL:-contact@lsi-maintenance.fr}
-      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET requis}
+      # Desk365 (ticketing)
+      DESK365_SUBDOMAIN: ${DESK365_SUBDOMAIN:-}
+      DESK365_API_KEY: ${DESK365_API_KEY:-}
+      # Wasabi (stockage S3)
+      WASABI_ACCESS_KEY: ${WASABI_ACCESS_KEY:-}
+      WASABI_SECRET_KEY: ${WASABI_SECRET_KEY:-}
+      # Comet Backup (monitoring sauvegardes)
+      COMET_SERVER_URL: ${COMET_SERVER_URL:-}
+      COMET_ADMIN_USER: ${COMET_ADMIN_USER:-}
+      COMET_ADMIN_PASS: ${COMET_ADMIN_PASS:-}
+      # Axonaut (CRM)
+      AXONAUT_API_KEY: ${AXONAUT_API_KEY:-}
     volumes:
       - uploads:/app/public/uploads
     depends_on:

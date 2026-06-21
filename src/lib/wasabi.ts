@@ -1,4 +1,5 @@
-import { S3Client, ListBucketsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetBucketLocationCommand } from '@aws-sdk/client-s3'
+import { unstable_cache } from 'next/cache'
 
 export type WasabiStats = {
   bucketCount: number
@@ -10,65 +11,101 @@ export function wasabiConfigured(): boolean {
   return !!(process.env.WASABI_ACCESS_KEY && process.env.WASABI_SECRET_KEY)
 }
 
-function getEndpoint(): string {
-  return process.env.WASABI_ENDPOINT ?? 'https://s3.wasabisys.com'
+const CREDS = () => ({
+  accessKeyId:     process.env.WASABI_ACCESS_KEY!,
+  secretAccessKey: process.env.WASABI_SECRET_KEY!,
+})
+
+function regionEndpoint(region: string): string {
+  return region === 'us-east-1'
+    ? 'https://s3.wasabisys.com'
+    : `https://s3.${region}.wasabisys.com`
 }
 
-function getRegion(): string {
-  // Dériver la région depuis l'endpoint: s3.eu-central-1.wasabisys.com → eu-central-1
-  const m = getEndpoint().match(/s3\.(.+?)\.wasabisys\.com/)
-  return m ? m[1] : 'us-east-1'
-}
-
-function createClient(): S3Client {
+function clientForRegion(region: string): S3Client {
   return new S3Client({
-    region:   getRegion(),
-    endpoint: getEndpoint(),
-    credentials: {
-      accessKeyId:     process.env.WASABI_ACCESS_KEY!,
-      secretAccessKey: process.env.WASABI_SECRET_KEY!,
-    },
+    region,
+    endpoint:       regionEndpoint(region),
+    credentials:    CREDS(),
     forcePathStyle: true,
   })
 }
 
+// Région en cache 24h — elle ne change jamais pour un bucket donné
+const getBucketRegion = unstable_cache(
+  async (bucketName: string): Promise<string> => {
+    const client = clientForRegion('us-east-1')
+    try {
+      const res = await client.send(new GetBucketLocationCommand({ Bucket: bucketName }))
+      return res.LocationConstraint ?? 'us-east-1'
+    } catch {
+      return 'us-east-1'
+    }
+  },
+  ['wasabi-bucket-region'],
+  { revalidate: 86400 },
+)
+
 export function fmtBytes(bytes: number): string {
   if (bytes < 1024 * 1024)           return `${(bytes / 1024).toFixed(1)} KB`
   if (bytes < 1024 * 1024 * 1024)   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+  if (bytes < 1024 ** 4)             return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+  return `${(bytes / 1024 ** 4).toFixed(2)} TB`
 }
 
-export async function fetchWasabiStats(): Promise<WasabiStats | null> {
-  if (!wasabiConfigured()) return null
+async function getBucketStats(name: string): Promise<{ objects: number; bytes: number }> {
+  const region = await getBucketRegion(name)
+  const client = clientForRegion(region)
 
-  try {
-    const client = createClient()
+  let objects = 0
+  let bytes   = 0
+  let token: string | undefined = undefined
 
-    const listResult = await client.send(new ListBucketsCommand({}))
-    const buckets = listResult.Buckets ?? []
+  do {
+    const page = await client.send(new ListObjectsV2Command({
+      Bucket:            name,
+      MaxKeys:           1000,
+      ContinuationToken: token,
+    }))
+    for (const obj of page.Contents ?? []) {
+      objects++
+      bytes += obj.Size ?? 0
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined
+  } while (token)
 
-    let totalObjects = 0
-    let totalBytes   = 0
-
-    // First page of each bucket (max 1000 objects) for a fast approximation
-    await Promise.all(
-      buckets.map(async ({ Name }) => {
-        if (!Name) return
-        try {
-          const res = await client.send(new ListObjectsV2Command({ Bucket: Name, MaxKeys: 1000 }))
-          for (const obj of res.Contents ?? []) {
-            totalObjects++
-            totalBytes += obj.Size ?? 0
-          }
-        } catch {
-          // Accès refusé ou bucket inaccessible — on ignore
-        }
-      })
-    )
-
-    return { bucketCount: buckets.length, totalObjects, totalBytes }
-  } catch (err) {
-    console.error('[wasabi] fetchWasabiStats error:', err)
-    return null
-  }
+  return { objects, bytes }
 }
+
+// Stats en cache 1h — recalcul en arrière-plan à expiration (stale-while-revalidate)
+export const fetchWasabiStats = unstable_cache(
+  async (): Promise<WasabiStats | null> => {
+    if (!wasabiConfigured()) return null
+
+    try {
+      const globalClient = clientForRegion('us-east-1')
+      const listResult   = await globalClient.send(new ListBucketsCommand({}))
+      const buckets      = listResult.Buckets ?? []
+
+      const results = await Promise.all(
+        buckets.map(({ Name }) => {
+          if (!Name) return Promise.resolve({ objects: 0, bytes: 0 })
+          return getBucketStats(Name).catch(err => {
+            console.error(`[wasabi] bucket ${Name}:`, err instanceof Error ? err.message : err)
+            return { objects: 0, bytes: 0 }
+          })
+        })
+      )
+
+      const totalObjects = results.reduce((s, r) => s + r.objects, 0)
+      const totalBytes   = results.reduce((s, r) => s + r.bytes,   0)
+
+      return { bucketCount: buckets.length, totalObjects, totalBytes }
+    } catch (err) {
+      console.error('[wasabi] fetchWasabiStats error:', err)
+      return null
+    }
+  },
+  ['wasabi-stats'],
+  { revalidate: 3600 },
+)

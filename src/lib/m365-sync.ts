@@ -118,8 +118,8 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
     u => u.userType !== 'Guest' && !u.userPrincipalName.includes('#EXT#')
   )
 
-  // Upsert accounts
-  for (const u of internalUsers) {
+  // Upsert accounts (tous les utilisateurs, y compris externes)
+  for (const u of users) {
     const licensed = u.assignedLicenses.length > 0
     const licenseType = licensed
       ? u.assignedLicenses.map((l) => skuMap[l.skuId] ?? l.skuId).join(', ')
@@ -183,5 +183,5 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
     data: { lastSyncAt: new Date() },
   })
 
-  return { synced: internalUsers.length }
+  return { synced: users.length }
 }

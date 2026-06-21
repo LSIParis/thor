@@ -5,8 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { ClientSelector } from '@/components/dashboard/client-selector'
 import { fetchDesk365Tickets, desk365Configured, type Desk365Ticket } from '@/lib/desk365'
-import { fetchCometSummaries, cometConfigured, isCometSuccess, isCometError } from '@/lib/comet-backup'
-import { fetchWasabiStats, wasabiConfigured, fmtBytes, type WasabiStats } from '@/lib/wasabi'
+import { fetchWasabiStats, wasabiConfigured, fmtBytes } from '@/lib/wasabi'
 import {
   Users, Contact, Monitor, AlertTriangle,
   Globe, ShieldCheck, Server, LayoutGrid,
@@ -114,12 +113,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in6m = new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000)
 
-  // Comet : seulement si un client est sélectionné
-  const cometClients = cometConfigured() && !isClient && selectedClientId
-    ? await prisma.client.findUnique({ where: { id: selectedClientId }, select: { cometUsername: true } })
-        .then(c => c?.cometUsername ? [c.cometUsername] : [])
-    : []
-
   const [
     clientCount, contactCount, equipmentCount,
     dnsZoneCount, sslCertCount, hostingCount,
@@ -129,7 +122,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     allClients,
     lastCronSetting,
     allTickets,
-    cometSummaries,
     wasabiStats,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
@@ -149,11 +141,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.sslCertificate.findMany({ where: { ...clientWhere, expiryDate: { gte: now, lte: in6m } }, select: { expiryDate: true } }),
     prisma.client.findMany({ where: clientFilter, select: { name: true, _count: { select: { equipment: true } } }, orderBy: { equipment: { _count: 'desc' } }, take: 8 }),
     !isClient
-      ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true, cometUsername: true }, orderBy: { name: 'asc' } })
-      : Promise.resolve([] as { id: string; name: string; cometUsername: string | null }[]),
+      ? prisma.client.findMany({ where: accessFilter, select: { id: true, name: true }, orderBy: { name: 'asc' } })
+      : Promise.resolve([] as { id: string; name: string }[]),
     prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
     desk365Configured() ? fetchDesk365Tickets(3) : Promise.resolve([]),
-    cometClients.length > 0 ? fetchCometSummaries(cometClients) : Promise.resolve(new Map()),
     wasabiConfigured() && !isClient && !selectedClientId ? fetchWasabiStats() : Promise.resolve(null),
   ])
 
@@ -174,12 +165,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
   const certExpiry = Object.entries(monthMap).map(([month, count]) => ({ month, count }))
   const topClientsByEquipment = topClients.filter((c) => c._count.equipment > 0).map((c) => ({ name: c.name, count: c._count.equipment }))
-
-  // Sauvegardes Comet
-  const cometMonitored = cometClients.length
-  const cometSuccess   = [...cometSummaries.values()].filter(s => s.hasRecentJob && isCometSuccess(s.lastJobStatus)).length
-  const cometError     = [...cometSummaries.values()].filter(s => s.hasRecentJob && isCometError(s.lastJobStatus)).length
-  const cometNoRecent  = cometMonitored - [...cometSummaries.values()].filter(s => s.hasRecentJob).length
 
   // Tickets
   const selectedClientName = selectedClientId
@@ -237,27 +222,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {/* ── Sauvegardes Comet (client sélectionné) ── */}
-      {!isClient && cometConfigured() && selectedClientId && (
-        <div className="mb-6">
-          <SectionLabel>Sauvegardes — Comet Backup</SectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            <InfraItem label="Surveillés"      value={cometMonitored} icon={HardDrive} />
-            <InfraItem label="Succès (48h)"    value={cometSuccess}   icon={HardDrive} />
-            <InfraItem label="Échecs (48h)"    value={cometError}     icon={HardDrive} alert />
-            <InfraItem label="Sans sauvegarde" value={cometNoRecent}  icon={HardDrive} alert />
-          </div>
-        </div>
-      )}
-
       {/* ── Wasabi (vue globale, aucun client sélectionné) ── */}
       {!isClient && wasabiConfigured() && !selectedClientId && (
         <div className="mb-6">
           <SectionLabel>Stockage — Wasabi</SectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2.5">
-            <WasabiStatCard label="Buckets"  value={wasabiStats ? String(wasabiStats.bucketCount) : '—'}                          icon={Database} />
-            <WasabiStatCard label="Objets"   value={wasabiStats ? wasabiStats.totalObjects.toLocaleString('fr-FR') : '—'}         icon={HardDrive} />
-            <WasabiStatCard label="Stockage" value={wasabiStats ? fmtBytes(wasabiStats.totalBytes) : '—'}                         icon={Cloud} />
+          <div className="grid grid-cols-3 gap-2.5">
+            <WasabiStatCard label="Buckets"  value={wasabiStats ? String(wasabiStats.bucketCount) : '—'}                      icon={Database} />
+            <WasabiStatCard label="Objets"   value={wasabiStats ? wasabiStats.totalObjects.toLocaleString('fr-FR') : '—'}     icon={HardDrive} />
+            <WasabiStatCard label="Stockage" value={wasabiStats ? fmtBytes(wasabiStats.totalBytes) : '—'}                     icon={Cloud} />
           </div>
         </div>
       )}

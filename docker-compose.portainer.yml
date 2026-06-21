@@ -2,9 +2,10 @@
 # LSI Maintenance — Client Portal
 # Stack Portainer avec nginx reverse-proxy + Let's Encrypt
 #
-# Variables d'environnement à définir dans Portainer → Stacks → Env :
-#   POSTGRES_PASSWORD, NEXTAUTH_SECRET, NEXTAUTH_URL, ENCRYPTION_KEY,
-#   DOMAIN (ex: thor.lsi-maintenance.fr), LETSENCRYPT_EMAIL
+# Variables à définir dans Portainer → Stacks → Env :
+#   Obligatoires : POSTGRES_PASSWORD, NEXTAUTH_SECRET, ENCRYPTION_KEY,
+#                  CRON_SECRET, DOMAIN, LETSENCRYPT_EMAIL
+#   Optionnelles : DESK365_*, WASABI_*, COMET_*, AXONAUT_API_KEY, MAILGUN_*
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -34,23 +35,62 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Base de données
       DATABASE_URL: postgresql://lsi:${POSTGRES_PASSWORD}@postgres:5432/lsi_portal?schema=public
+      # Auth
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?}
       NEXTAUTH_URL: https://${DOMAIN:-localhost}
+      # Chiffrement
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+      # Cron
+      CRON_SECRET: ${CRON_SECRET:?}
+      # Email (Mailgun)
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN:-}
+      MAILGUN_FROM: ${MAILGUN_FROM:-}
+      LSI_NOTIFY_EMAIL: ${LSI_NOTIFY_EMAIL:-contact@lsi-maintenance.fr}
+      # Desk365 (ticketing)
+      DESK365_SUBDOMAIN: ${DESK365_SUBDOMAIN:-}
+      DESK365_API_KEY: ${DESK365_API_KEY:-}
+      # Wasabi (stockage S3)
+      WASABI_ACCESS_KEY: ${WASABI_ACCESS_KEY:-}
+      WASABI_SECRET_KEY: ${WASABI_SECRET_KEY:-}
+      # Comet Backup (monitoring sauvegardes)
+      COMET_SERVER_URL: ${COMET_SERVER_URL:-}
+      COMET_ADMIN_USER: ${COMET_ADMIN_USER:-}
+      COMET_ADMIN_PASS: ${COMET_ADMIN_PASS:-}
+      # Axonaut (CRM)
+      AXONAUT_API_KEY: ${AXONAUT_API_KEY:-}
     volumes:
       - uploads:/app/public/uploads
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - lsi_net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/csrf"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - lsi_net
+
+  # ── Tâches planifiées ─────────────────────────────────────────────────────────
+  cron:
+    image: alpine:3.21
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+      APP_URL: http://app:3000
+    entrypoint: >
+      sh -c "printf '%s\n'
+        '*/15 * * * * wget -qO- \"$$APP_URL/api/cron/check-movements?secret=$$CRON_SECRET\" >> /var/log/cron.log 2>&1'
+        '0 2,14 * * * wget -qO- \"$$APP_URL/api/cron/sync-m365?secret=$$CRON_SECRET\" >> /var/log/cron.log 2>&1'
+        | crontab - && crond -f -d 8"
+    depends_on:
+      - app
+    networks:
+      - lsi_net
 
   # ── Nginx reverse-proxy ───────────────────────────────────────────────────────
   nginx:

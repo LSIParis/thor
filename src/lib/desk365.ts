@@ -122,3 +122,47 @@ export async function createDesk365Contact(contact: Desk365ContactData): Promise
 export function desk365Configured(): boolean {
   return !!(process.env.DESK365_SUBDOMAIN && process.env.DESK365_API_KEY)
 }
+
+// ── Tickets ───────────────────────────────────────────────────────────────────
+
+export type Desk365Ticket = {
+  ticket_number: number
+  subject: string
+  status: string
+  priority: number
+  contact_name: string | null
+  contact_email: string | null
+  company_name: string | null
+  assigned_to: string | null
+  category: string | null
+  created_on: string
+  updated_on: string
+  conversation_count: number
+}
+
+export async function fetchDesk365Tickets(maxPages = 3): Promise<Desk365Ticket[]> {
+  const base = BASE_URL()
+  const apiKey = process.env.DESK365_API_KEY
+  if (!base || !apiKey) return []
+
+  const all: Desk365Ticket[] = []
+  let nextUrl: string | null = `${base}/tickets`
+  let pages = 0
+
+  while (nextUrl && pages < maxPages) {
+    let res: Response
+    try {
+      res = await fetch(nextUrl, { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(10000) })
+    } catch { break }
+    if (!res.ok) break
+    let json: { tickets?: Desk365Ticket[]; next_page?: string | null }
+    try { json = await res.json() as typeof json } catch { break }
+    const items = json.tickets ?? []
+    if (items.length === 0) break
+    all.push(...items)
+    nextUrl = json.next_page ?? null
+    pages++
+  }
+
+  return all
+}

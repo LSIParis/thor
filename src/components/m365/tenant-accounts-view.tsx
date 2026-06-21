@@ -48,9 +48,12 @@ export function TenantAccountsView({
     })
   }
 
+  const internalAccounts = accounts.filter((a) => !a.userPrincipalName.includes('#EXT#'))
+  const externalAccounts = accounts.filter((a) => a.userPrincipalName.includes('#EXT#'))
+
   const displayed = filters.size > 0
-    ? accounts.filter((a) => a.licenseType && [...filters].some((f) => a.licenseType!.includes(f)))
-    : accounts
+    ? internalAccounts.filter((a) => a.licenseType && [...filters].some((f) => a.licenseType!.includes(f)))
+    : internalAccounts
 
   return (
     <>
@@ -99,7 +102,7 @@ export function TenantAccountsView({
         </div>
       )}
 
-      {/* Accounts table */}
+      {/* Comptes normaux */}
       {displayed.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -149,6 +152,42 @@ export function TenantAccountsView({
         <p className="px-4 py-6 text-sm text-muted-foreground/60 text-center">
           {filters.size > 0 ? `Aucun compte avec ${filters.size > 1 ? 'ces licences' : `la licence ${[...filters][0]}`}` : 'Aucun compte dans ce tenant'}
         </p>
+      )}
+
+      {/* Comptes externes (invités) */}
+      {externalAccounts.length > 0 && (
+        <div className="mt-4 border-t border-border pt-4">
+          <p className="px-4 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Comptes externes ({externalAccounts.length})
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/10">
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2 text-left">Nom</th>
+                  <th className="px-4 py-2 text-left">Email externe</th>
+                  <th className="px-4 py-2 text-left">Poste</th>
+                  <th className="px-4 py-2 text-center">Actif</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {externalAccounts.map((account) => (
+                  <tr key={account.id} className="hover:bg-muted/20 opacity-70">
+                    <td className="px-4 py-2 font-medium text-muted-foreground">{account.displayName}</td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{account.userPrincipalName}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{account.jobTitle ?? '—'}</td>
+                    <td className="px-4 py-2 text-center">
+                      {account.accountEnabled
+                        ? <CheckCircle2 size={14} className="text-emerald-500/60 mx-auto" />
+                        : <XCircle     size={14} className="text-muted-foreground/40 mx-auto" />
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </>
   )
