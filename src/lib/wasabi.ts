@@ -1,4 +1,4 @@
-import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetBucketLocationCommand } from '@aws-sdk/client-s3'
+import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetBucketLocationCommand, type ListObjectsV2CommandOutput } from '@aws-sdk/client-s3'
 import { unstable_cache } from 'next/cache'
 
 export type WasabiStats = {
@@ -62,7 +62,7 @@ async function getBucketStats(name: string): Promise<{ objects: number; bytes: n
   let token: string | undefined = undefined
 
   do {
-    const page = await client.send(new ListObjectsV2Command({
+    const page: ListObjectsV2CommandOutput = await client.send(new ListObjectsV2Command({
       Bucket:            name,
       MaxKeys:           1000,
       ContinuationToken: token,
