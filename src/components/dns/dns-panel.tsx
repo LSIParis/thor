@@ -240,7 +240,6 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
             ? <Badge variant="default" className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground uppercase">{zone.source}</Badge>
             : <Badge variant="outline" className="text-[10px] h-4 px-1.5">Manuel</Badge>
           }
-          {zone.registrar && <span className="text-xs text-muted-foreground font-normal">— {zone.registrar}</span>}
           {zone.nameservers && <span className="text-xs text-muted-foreground font-mono font-normal hidden xl:inline">{zone.nameservers}</span>}
           <ExpiryBadge date={zone.expiryDate} />
           {zone.autoRenew && <Badge variant="outline" className="text-[10px] h-4 px-1.5">Auto</Badge>}
