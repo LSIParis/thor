@@ -1,5 +1,4 @@
-import { DomainStatus } from '@prisma/client'
-export type GlobalStatus = DomainStatus
+export type GlobalStatus = 'OK' | 'WARNING' | 'ERROR'
 
 export type SpfResult = {
   found: boolean
