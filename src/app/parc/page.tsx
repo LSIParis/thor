@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { ParcList } from '@/components/parc/parc-list'
 import { RmmAgentsImportButton } from '@/components/equipment/rmm-agents-import-button'
 import { SyncAllRmmButton } from '@/components/parc/sync-all-rmm-button'
+import { AssociateEquipmentDialog } from '@/components/parc/associate-equipment-dialog'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
@@ -11,6 +12,7 @@ const EQ_SELECT = {
   id: true, type: true, operatingSystem: true, brand: true, model: true,
   serialNumber: true, ipAddress: true, ipType: true, rmmAgentId: true,
   notes: true, noSync: true, purchaseDate: true, warrantyDuration: true,
+  assignedToId: true,
   site:       { select: { id: true, name: true } },
   assignedTo: { select: { firstName: true, lastName: true, role: true } },
 } as const
@@ -69,6 +71,9 @@ export default async function ParcPage({
             <div className="flex items-center gap-2">
               {client?.tacticalRmmId && (
                 <RmmAgentsImportButton clientId={selectedClientId} />
+              )}
+              {equipment.length > 0 && (
+                <AssociateEquipmentDialog clientId={selectedClientId} equipment={equipment} />
               )}
               <Link
                 href={`/clients/${selectedClientId}/equipment/new`}

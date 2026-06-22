@@ -143,3 +143,24 @@ export async function deleteEquipmentBulk(ids: string[]) {
   await prisma.equipment.deleteMany({ where: { id: { in: ids } } })
   revalidatePath('/parc')
 }
+
+export async function updateEquipmentAssignments(
+  clientId: string,
+  assignments: { equipmentId: string; contactId: string | null }[],
+): Promise<{ success: true } | { error: string }> {
+  try {
+    await requireAdmin()
+    await prisma.$transaction(
+      assignments.map(({ equipmentId, contactId }) =>
+        prisma.equipment.update({
+          where: { id: equipmentId, clientId },
+          data: { assignedToId: contactId || null },
+        }),
+      ),
+    )
+    revalidatePath('/parc')
+    return { success: true }
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Erreur inconnue' }
+  }
+}
