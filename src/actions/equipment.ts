@@ -144,6 +144,13 @@ export async function deleteEquipmentBulk(ids: string[]) {
   revalidatePath('/parc')
 }
 
+export async function updateEquipmentTypeBulk(ids: string[], type: string) {
+  await requireAdmin()
+  if (ids.length === 0 || !type) return
+  await prisma.equipment.updateMany({ where: { id: { in: ids } }, data: { type } })
+  revalidatePath('/parc')
+}
+
 export async function updateEquipmentAssignments(
   clientId: string,
   assignments: { equipmentId: string; contactId: string | null }[],

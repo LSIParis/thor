@@ -7,7 +7,7 @@ import {
   UserRound, CalendarDays, ShieldCheck, Wifi as WifiIcon,
   Trash2, X, Loader2, MapPin,
 } from 'lucide-react'
-import { deleteEquipmentBulk } from '@/actions/equipment'
+import { deleteEquipmentBulk, updateEquipmentTypeBulk } from '@/actions/equipment'
 import { Button } from '@/components/ui/button'
 import { EditEquipmentDialog } from './edit-equipment-dialog'
 
@@ -28,6 +28,13 @@ type EquipmentRow = {
   site: { id: string; name: string } | null
   assignedTo: { firstName: string; lastName: string; role: string | null } | null
 }
+
+const EQUIPMENT_TYPES = [
+  'PC Fixe', 'PC Portable', 'Mac Fixe', 'Mac Portable',
+  'Serveur', 'Switch', 'Routeur / Firewall',
+  'Imprimante Personnelle', 'Imprimante Départementale',
+  'Box Internet', 'Autre',
+]
 
 const TYPE_ICON: Record<string, React.ElementType> = {
   'Serveur': Server,
@@ -68,6 +75,7 @@ export function ParcList({
 }) {
   const [selected, setSelected]     = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirm] = useState(false)
+  const [bulkType, setBulkType]     = useState('')
   const [isPending, start]          = useTransition()
   const router                      = useRouter()
 
@@ -87,11 +95,20 @@ export function ParcList({
     allSelected ? setSelected(new Set()) : setSelected(new Set(allIds))
   }
 
-  function clearSelection() { setSelected(new Set()); setConfirm(false) }
+  function clearSelection() { setSelected(new Set()); setConfirm(false); setBulkType('') }
 
   function handleBulkDelete() {
     start(async () => {
       await deleteEquipmentBulk(Array.from(selected))
+      clearSelection()
+      router.refresh()
+    })
+  }
+
+  function handleBulkTypeChange() {
+    if (!bulkType) return
+    start(async () => {
+      await updateEquipmentTypeBulk(Array.from(selected), bulkType)
       clearSelection()
       router.refresh()
     })
@@ -229,6 +246,30 @@ export function ParcList({
           <button onClick={toggleAll} className="text-xs text-muted-foreground hover:text-foreground">
             {allSelected ? 'Désélectionner tout' : 'Tout sélectionner'}
           </button>
+          <span className="text-border select-none">|</span>
+          <div className="flex items-center gap-1.5">
+            <select
+              value={bulkType}
+              onChange={(e) => setBulkType(e.target.value)}
+              disabled={isPending}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs focus:outline-none"
+            >
+              <option value="">Changer le type…</option>
+              {EQUIPMENT_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            {bulkType && (
+              <Button
+                size="sm"
+                onClick={handleBulkTypeChange}
+                disabled={isPending}
+                className="h-6 text-xs px-2 py-0"
+              >
+                {isPending ? <Loader2 size={10} className="animate-spin" /> : 'Appliquer'}
+              </Button>
+            )}
+          </div>
           <span className="text-border select-none">|</span>
           {confirmDelete ? (
             <div className="flex items-center gap-2">
