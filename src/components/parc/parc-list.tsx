@@ -156,15 +156,6 @@ export function ParcList({
                       {item.operatingSystem}
                     </span>
                   )}
-                  {item.rmmAgentId && (
-                    <span className="text-xs px-1.5 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 flex items-center gap-1">
-                      <WifiIcon size={9} /> RMM
-                    </span>
-                  )}
-                  {item.noSync
-                    ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
-                    : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
-                  }
                 </div>
 
                 <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-muted-foreground">
@@ -205,8 +196,17 @@ export function ParcList({
                 </div>
               </div>
 
-              {/* Right: type badge + edit */}
-              <div className="flex-shrink-0 flex items-center gap-2">
+              {/* Right: status badges + type badge + edit */}
+              <div className="flex-shrink-0 flex items-center gap-1.5">
+                {item.rmmAgentId && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 flex items-center gap-1">
+                    <WifiIcon size={9} /> RMM
+                  </span>
+                )}
+                {item.noSync
+                  ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
+                  : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
+                }
                 <span className={`text-xs px-1.5 py-0.5 rounded border ${colorClass} hidden sm:inline-block`}>
                   {item.type}
                 </span>
