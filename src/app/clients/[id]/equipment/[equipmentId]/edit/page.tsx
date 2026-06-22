@@ -36,6 +36,7 @@ export default async function EditEquipmentPage({ params }: Props) {
       select: {
         id: true, name: true,
         contacts: {
+          where: { visible: true, isHistorical: false },
           orderBy: { lastName: 'asc' },
           select: { id: true, firstName: true, lastName: true, role: true },
         },
@@ -47,7 +48,7 @@ export default async function EditEquipmentPage({ params }: Props) {
 
   // Contacts sans site
   const unsitedContacts = await prisma.contact.findMany({
-    where: { clientId: id, siteId: null },
+    where: { clientId: id, siteId: null, visible: true, isHistorical: false },
     orderBy: { lastName: 'asc' },
     select: { id: true, firstName: true, lastName: true, role: true },
   })
