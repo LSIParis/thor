@@ -28,30 +28,21 @@ export default async function EditEquipmentPage({ params }: Props) {
   const { id, equipmentId } = await params
   await requireAdmin()
 
-  const [equipment, sites] = await Promise.all([
+  const [equipment, sites, contacts] = await Promise.all([
     prisma.equipment.findUnique({ where: { id: equipmentId } }),
     prisma.site.findMany({
       where: { clientId: id },
       orderBy: [{ isDefault: 'desc' }, { isHeadquarters: 'desc' }, { name: 'asc' }],
-      select: {
-        id: true, name: true,
-        contacts: {
-          where: { visible: true, isHistorical: false },
-          orderBy: { lastName: 'asc' },
-          select: { id: true, firstName: true, lastName: true, role: true },
-        },
-      },
+      select: { id: true, name: true },
+    }),
+    prisma.contact.findMany({
+      where: { clientId: id, visible: true, isHistorical: false },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: { id: true, firstName: true, lastName: true, role: true },
     }),
   ])
 
   if (!equipment || equipment.clientId !== id) notFound()
-
-  // Contacts sans site
-  const unsitedContacts = await prisma.contact.findMany({
-    where: { clientId: id, siteId: null, visible: true, isHistorical: false },
-    orderBy: { lastName: 'asc' },
-    select: { id: true, firstName: true, lastName: true, role: true },
-  })
 
   const updateWithIds = updateEquipment.bind(null, equipmentId, id)
 
@@ -126,7 +117,7 @@ export default async function EditEquipmentPage({ params }: Props) {
                 defaultValue={equipment.siteId ?? ''}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="">— Aucun site</option>
+                <option value="">— Aucun site assigné</option>
                 {sites.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -141,20 +132,9 @@ export default async function EditEquipmentPage({ params }: Props) {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">— Non attribué</option>
-                {sites.map((s) => s.contacts.length > 0 && (
-                  <optgroup key={s.id} label={s.name}>
-                    {s.contacts.map((c) => (
-                      <option key={c.id} value={c.id}>{contactLabel(c)}</option>
-                    ))}
-                  </optgroup>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>{contactLabel(c)}</option>
                 ))}
-                {unsitedContacts.length > 0 && (
-                  <optgroup label="— Sans site —">
-                    {unsitedContacts.map((c) => (
-                      <option key={c.id} value={c.id}>{contactLabel(c)}</option>
-                    ))}
-                  </optgroup>
-                )}
               </select>
             </div>
           </div>
