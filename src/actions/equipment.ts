@@ -12,25 +12,19 @@ import { randomUUID } from 'crypto'
 
 export async function getEquipmentFormData(clientId: string) {
   await requireAdmin()
-  const [sites, unsitedContacts] = await Promise.all([
+  const [sites, contacts] = await Promise.all([
     prisma.site.findMany({
       where: { clientId },
       orderBy: [{ isDefault: 'desc' }, { isHeadquarters: 'desc' }, { name: 'asc' }],
-      select: {
-        id: true, name: true,
-        contacts: {
-          orderBy: { lastName: 'asc' },
-          select: { id: true, firstName: true, lastName: true, role: true },
-        },
-      },
+      select: { id: true, name: true },
     }),
     prisma.contact.findMany({
-      where: { clientId, siteId: null },
-      orderBy: { lastName: 'asc' },
+      where: { clientId },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: { id: true, firstName: true, lastName: true, role: true },
     }),
   ])
-  return { sites, unsitedContacts }
+  return { sites, contacts }
 }
 
 // ── Mise à jour depuis le dialog (sans redirect) ──────────────────────────────

@@ -17,7 +17,7 @@ const EQUIPMENT_TYPES = [
 ]
 
 type Contact = { id: string; firstName: string; lastName: string; role: string | null }
-type Site    = { id: string; name: string; contacts: Contact[] }
+type Site    = { id: string; name: string }
 
 type EquipmentRow = {
   id: string
@@ -60,7 +60,7 @@ export function EditEquipmentDialog({
 }) {
   const [open, setOpen]         = useState(false)
   const [sites, setSites]       = useState<Site[]>([])
-  const [unsited, setUnsited]   = useState<Contact[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const [isPending, start]      = useTransition()
@@ -73,7 +73,7 @@ export function EditEquipmentDialog({
       try {
         const data = await getEquipmentFormData(clientId)
         setSites(data.sites)
-        setUnsited(data.unsitedContacts)
+        setContacts(data.contacts)
       } finally {
         setLoading(false)
       }
@@ -201,26 +201,13 @@ export function EditEquipmentDialog({
 
                 {/* Attribué à */}
                 <Field label="Attribué à">
-                  <select name="assignedToId" defaultValue={item.assignedTo ? findContactId(sites, unsited, item.assignedTo) : ''} className={selectCls}>
+                  <select name="assignedToId" defaultValue={item.assignedTo ? findContactId(contacts, item.assignedTo) : ''} className={selectCls}>
                     <option value="">— Non attribué —</option>
-                    {sites.map((s) => s.contacts.length > 0 && (
-                      <optgroup key={s.id} label={s.name}>
-                        {s.contacts.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.firstName} {c.lastName}{c.role ? ` — ${c.role}` : ''}
-                          </option>
-                        ))}
-                      </optgroup>
+                    {contacts.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.firstName} {c.lastName}{c.role ? ` — ${c.role}` : ''}
+                      </option>
                     ))}
-                    {unsited.length > 0 && (
-                      <optgroup label="Sans site">
-                        {unsited.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.firstName} {c.lastName}{c.role ? ` — ${c.role}` : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
                   </select>
                 </Field>
 
@@ -300,21 +287,13 @@ export function EditEquipmentDialog({
 }
 
 function findContactId(
-  sites: Site[],
-  unsited: Contact[],
+  contacts: Contact[],
   assignedTo: { firstName: string; lastName: string } | null,
 ): string {
   if (!assignedTo) return ''
   const fn = assignedTo.firstName.toLowerCase()
   const ln = assignedTo.lastName.toLowerCase()
-  for (const s of sites) {
-    const match = s.contacts.find(
-      (c) => c.firstName.toLowerCase() === fn && c.lastName.toLowerCase() === ln,
-    )
-    if (match) return match.id
-  }
-  const match = unsited.find(
+  return contacts.find(
     (c) => c.firstName.toLowerCase() === fn && c.lastName.toLowerCase() === ln,
-  )
-  return match?.id ?? ''
+  )?.id ?? ''
 }

@@ -36,7 +36,7 @@ export default async function EditEquipmentPage({ params }: Props) {
       select: { id: true, name: true },
     }),
     prisma.contact.findMany({
-      where: { clientId: id, visible: true, isHistorical: false },
+      where: { clientId: id },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: { id: true, firstName: true, lastName: true, role: true },
     }),
