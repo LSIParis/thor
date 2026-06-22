@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { prisma } from '@/lib/db'
 import { ParcList } from '@/components/parc/parc-list'
 import { RmmAgentsImportButton } from '@/components/equipment/rmm-agents-import-button'
+import { SyncAllRmmButton } from '@/components/parc/sync-all-rmm-button'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
@@ -104,13 +105,16 @@ export default async function ParcPage({
   const clients = await prisma.client.findMany({
     where: { ...accessFilter, equipment: { some: {} } },
     select: {
-      id: true, name: true,
+      id: true, name: true, tacticalRmmId: true,
       equipment: { select: EQ_SELECT, orderBy: EQ_ORDER },
     },
     orderBy: { name: 'asc' },
   })
 
   const total = clients.reduce((a, c) => a + c.equipment.length, 0)
+  const rmmClientIds = clients
+    .filter((c) => c.tacticalRmmId)
+    .map((c) => c.id)
 
   return (
     <AppLayout>
@@ -121,6 +125,9 @@ export default async function ParcPage({
             {total} équipement{total !== 1 ? 's' : ''} · {clients.length} client{clients.length !== 1 ? 's' : ''}
           </p>
         </div>
+        {isAdmin && rmmClientIds.length > 0 && (
+          <SyncAllRmmButton clientIds={rmmClientIds} />
+        )}
       </div>
 
       {clients.length === 0 ? (

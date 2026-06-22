@@ -8,7 +8,10 @@ export default auth((req: NextRequest & { auth: any }) => {
 
   const isPublic =
     pathname === '/login' ||
-    pathname.startsWith('/api/auth')
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/verify')
 
   if (!isAuthenticated && !isPublic) {
     return NextResponse.redirect(new URL('/login', req.url))

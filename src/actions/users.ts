@@ -154,6 +154,9 @@ export async function requestPasswordReset(formData: FormData) {
     })
     const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
     const link = `${base}/reset-password/${token}`
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[reset-password] Lien de réinitialisation pour ${email} : ${link}`)
+    }
     await sendMail({
       to: email,
       subject: 'Réinitialisation de votre mot de passe LSI Portal',

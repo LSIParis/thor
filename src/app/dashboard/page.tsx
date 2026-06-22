@@ -37,8 +37,8 @@ function InfraItem({
   return (
     <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Icon size={13} className={`flex-shrink-0 ${alert && value > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-        <span className={`text-xs truncate ${alert && value > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>{label}</span>
+        <Icon size={13} className={`flex-shrink-0 ${alert && value > 0 ? 'text-destructive' : 'text-foreground/55'}`} />
+        <span className={`text-xs truncate ${alert && value > 0 ? 'text-destructive font-medium' : 'text-foreground/55'}`}>{label}</span>
       </div>
       <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${alert && value > 0 ? 'text-destructive' : ''}`}>{value}</span>
     </div>
@@ -67,8 +67,8 @@ function TicketStatusCard({ label, count, cls, icon: Icon }: { label: string; co
   return (
     <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Icon size={13} className="flex-shrink-0 text-muted-foreground" />
-        <span className="text-xs truncate text-muted-foreground">{label}</span>
+        <Icon size={13} className="flex-shrink-0 text-foreground/55" />
+        <span className="text-xs truncate text-foreground/55">{label}</span>
       </div>
       <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${cls}`}>{count}</span>
     </div>
@@ -79,8 +79,8 @@ function WasabiStatCard({ label, value, icon: Icon }: { label: string; value: st
   return (
     <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Icon size={13} className="flex-shrink-0 text-muted-foreground" />
-        <span className="text-xs truncate text-muted-foreground">{label}</span>
+        <Icon size={13} className="flex-shrink-0 text-foreground/55" />
+        <span className="text-xs truncate text-foreground/55">{label}</span>
       </div>
       <span className="text-sm font-bold tabular-nums flex-shrink-0">{value}</span>
     </div>

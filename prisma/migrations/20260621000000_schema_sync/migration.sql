@@ -1,5 +1,8 @@
 -- ── Role enum : ajouter CLIENT ───────────────────────────────────────────────
-ALTER TYPE "Role" ADD VALUE 'CLIENT';
+DO $$ BEGIN
+  ALTER TYPE "Role" ADD VALUE 'CLIENT';
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ── User : colonnes auth / vérification ──────────────────────────────────────
 ALTER TABLE "User"

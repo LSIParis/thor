@@ -199,6 +199,7 @@ model M365Account {
   accountEnabled    Boolean    @default(true)
   notes             String?
   m365CreatedAt     DateTime?
+  deletedAt         DateTime?
   createdAt         DateTime   @default(now())
   tenant            M365Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 

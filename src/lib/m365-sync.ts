@@ -11,6 +11,13 @@ type GraphUser = {
   createdDateTime: string | null
 }
 
+type DeletedUser = {
+  id: string
+  displayName: string
+  userPrincipalName: string
+  deletedDateTime: string
+}
+
 type SkuEntry = {
   skuId: string
   skuPartNumber: string
@@ -119,7 +126,9 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
   )
 
   // Upsert accounts (tous les utilisateurs, y compris externes)
+  const activeUpns = new Set<string>()
   for (const u of users) {
+    activeUpns.add(u.userPrincipalName)
     const licensed = u.assignedLicenses.length > 0
     const licenseType = licensed
       ? u.assignedLicenses.map((l) => skuMap[l.skuId] ?? l.skuId).join(', ')
@@ -127,9 +136,40 @@ export async function syncTenant(tenantDbId: string): Promise<{ synced: number }
 
     await prisma.m365Account.upsert({
       where: { tenantId_userPrincipalName: { tenantId: tenantDbId, userPrincipalName: u.userPrincipalName } },
-      update: { graphId: u.id, displayName: u.displayName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled, m365CreatedAt: u.createdDateTime ? new Date(u.createdDateTime) : undefined },
+      update: { graphId: u.id, displayName: u.displayName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled, m365CreatedAt: u.createdDateTime ? new Date(u.createdDateTime) : undefined, deletedAt: null },
       create: { tenantId: tenantDbId, graphId: u.id, displayName: u.displayName, userPrincipalName: u.userPrincipalName, jobTitle: u.jobTitle ?? null, licensed, licenseType, accountEnabled: u.accountEnabled, m365CreatedAt: u.createdDateTime ? new Date(u.createdDateTime) : null },
     })
+  }
+
+  // Comptes supprimés ce mois-ci via /directory/deletedItems
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  let deletedUrl: string | null =
+    `https://graph.microsoft.com/v1.0/directory/deletedItems/microsoft.graph.user` +
+    `?$select=id,displayName,userPrincipalName,deletedDateTime` +
+    `&$filter=deletedDateTime ge ${monthStart}&$top=999`
+
+  try {
+    while (deletedUrl) {
+      const res = await fetch(deletedUrl, { headers })
+      if (!res.ok) break
+      const data = await res.json() as { value: DeletedUser[]; '@odata.nextLink'?: string }
+      for (const du of data.value) {
+        await prisma.m365Account.upsert({
+          where: { tenantId_userPrincipalName: { tenantId: tenantDbId, userPrincipalName: du.userPrincipalName } },
+          update: { deletedAt: new Date(du.deletedDateTime) },
+          create: {
+            tenantId: tenantDbId, graphId: du.id,
+            displayName: du.displayName, userPrincipalName: du.userPrincipalName,
+            licensed: false, accountEnabled: false,
+            deletedAt: new Date(du.deletedDateTime),
+          },
+        })
+      }
+      deletedUrl = data['@odata.nextLink'] ?? null
+    }
+  } catch {
+    // Permission Directory.Read.All absente — on ignore silencieusement
   }
 
   // ── Sync contacts depuis les comptes actifs ───────────────────────────────

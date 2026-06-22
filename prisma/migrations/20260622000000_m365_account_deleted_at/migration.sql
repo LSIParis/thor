@@ -1,0 +1,1 @@
+ALTER TABLE "M365Account" ADD COLUMN "deletedAt" TIMESTAMP(3);
