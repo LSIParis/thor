@@ -49,7 +49,6 @@ export function TenantAccountsView({
     })
   }
 
-  const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const internalAccounts = accounts.filter((a) => !a.userPrincipalName.includes('#EXT#') && !a.deletedAt)
