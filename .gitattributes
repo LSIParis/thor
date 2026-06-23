@@ -1,0 +1,11 @@
+# Forcer LF pour les scripts shell (évite les problèmes CRLF sur Linux)
+*.sh text eol=lf
+*.sh linguist-language=Shell
+
+# Forcer LF pour les fichiers de configuration
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.env* text eol=lf
+Dockerfile text eol=lf
