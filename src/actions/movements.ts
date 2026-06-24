@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { sendMail } from '@/lib/mailer'
 import { generateHandoverHtml } from '@/lib/handover-html'
+import { htmlToPdf } from '@/lib/pdf'
 
 function parseMovementData(clientId: string, formData: FormData, overrideStatus?: string) {
   const type = formData.get('type') as string
@@ -133,11 +134,41 @@ export async function validateMovement(
   const recipient = full.client.email
   if (!recipient) return { emailSent: false, to: null }
 
-  const html = generateHandoverHtml(full, reprise ?? '')
+  const handoverHtml = generateHandoverHtml(full, reprise ?? '')
+  const pdfBuffer = await htmlToPdf(handoverHtml)
+
+  const firstName = full.firstName
+  const lastName  = full.lastName
+  const clientName = full.client.name
+
+  const emailBody = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
+<div style="max-width:560px;margin:32px auto;padding:0 16px">
+  <p style="margin:0 0 16px">Bonjour,</p>
+  <p style="margin:0 0 16px">
+    Veuillez trouver en pièce jointe le <strong>bon de prise en charge</strong>
+    pour <strong>${firstName} ${lastName}</strong>.
+  </p>
+  <p style="margin:0 0 24px">
+    Ce document est au format PDF. Vous pouvez l'ouvrir, le faire signer
+    et le conserver dans vos archives.
+  </p>
+  <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
+</div>
+</body></html>`
+
+  const safeName = `${lastName}-${firstName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+
   await sendMail({
     to: recipient,
-    subject: `Bon de prise en charge — ${full.firstName} ${full.lastName} (${full.client.name})`,
-    html,
+    subject: `Bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
+    html: emailBody,
+    attachment: {
+      data: pdfBuffer,
+      filename: `bon-prise-en-charge-${safeName}.pdf`,
+      contentType: 'application/pdf',
+    },
   })
 
   return { emailSent: true, to: recipient }

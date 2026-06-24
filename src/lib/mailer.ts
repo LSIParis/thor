@@ -11,7 +11,18 @@ function getClient() {
 
 export const LSI_EMAIL = process.env.LSI_NOTIFY_EMAIL ?? 'contact@lsi-maintenance.fr'
 
-export async function sendMail(opts: { to: string; subject: string; html: string }) {
+type Attachment = {
+  data: Buffer
+  filename: string
+  contentType: string
+}
+
+export async function sendMail(opts: {
+  to: string
+  subject: string
+  html: string
+  attachment?: Attachment
+}) {
   const client = getClient()
   if (!client) {
     console.warn('[mailer] MAILGUN_API_KEY non configuré — email non envoyé')
