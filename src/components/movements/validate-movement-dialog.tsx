@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, Loader2, Monitor, Laptop } from 'lucide-react'
+import { CheckCircle, Loader2, Monitor, Laptop, Mail, AlertCircle } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -26,6 +26,8 @@ const PC_ICON: Record<string, React.ElementType> = {
   'Mac Portable': Laptop,
 }
 
+type Result = { emailSent: boolean; to: string | null } | null
+
 export function ValidateMovementDialog({
   movementId,
   clientId,
@@ -40,6 +42,7 @@ export function ValidateMovementDialog({
   const [loading, setLoading]       = useState(false)
   const [selectedId, setSelectedId] = useState<string>('')
   const [reprise, setReprise]       = useState('')
+  const [result, setResult]         = useState<Result>(null)
   const [isPending, start]          = useTransition()
 
   async function handleOpen() {
@@ -47,6 +50,7 @@ export function ValidateMovementDialog({
     setLoading(true)
     setSelectedId('')
     setReprise('')
+    setResult(null)
     try {
       const data = await getClientPCs(clientId)
       setPcs(data)
@@ -57,12 +61,14 @@ export function ValidateMovementDialog({
 
   function handleConfirm() {
     start(async () => {
-      await validateMovement(movementId, clientId, selectedId || null)
-      // Ouvrir le PDF dans un nouvel onglet
-      const qs = reprise ? `?reprise=${encodeURIComponent(reprise)}` : ''
-      window.open(`/api/pdf/mouvement/${movementId}${qs}`, '_blank')
-      setOpen(false)
+      const res = await validateMovement(movementId, clientId, selectedId || null, reprise)
+      setResult(res)
     })
+  }
+
+  function handleClose() {
+    setOpen(false)
+    setResult(null)
   }
 
   return (
@@ -77,7 +83,7 @@ export function ValidateMovementDialog({
         Valider
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base flex items-center gap-2">
@@ -87,7 +93,34 @@ export function ValidateMovementDialog({
             <p className="text-sm text-muted-foreground pt-0.5">{movementName}</p>
           </DialogHeader>
 
-          {loading ? (
+          {/* ── Résultat après envoi ── */}
+          {result ? (
+            <div className="py-4 space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-emerald-700">Demande validée avec succès.</p>
+                </div>
+              </div>
+
+              {result.emailSent ? (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <Mail size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-700">Bon envoyé par e-mail</p>
+                    <p className="text-blue-600 text-xs mt-0.5">{result.to}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-amber-700">
+                    Aucun e-mail renseigné pour ce client — bon non envoyé.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="animate-spin text-muted-foreground" size={20} />
             </div>
@@ -171,25 +204,35 @@ export function ValidateMovementDialog({
           )}
 
           <DialogFooter className="mt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setOpen(false)}
-              disabled={isPending}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleConfirm}
-              disabled={isPending || loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              {isPending ? <Loader2 size={13} className="animate-spin mr-1.5" /> : null}
-              Valider et générer le PDF
-            </Button>
+            {result ? (
+              <Button type="button" size="sm" onClick={handleClose}>
+                Fermer
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClose}
+                  disabled={isPending}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirm}
+                  disabled={isPending || loading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {isPending
+                    ? <Loader2 size={13} className="animate-spin mr-1.5" />
+                    : <Mail size={13} className="mr-1.5" />}
+                  Valider et envoyer le bon
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

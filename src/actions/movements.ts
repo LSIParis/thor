@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
+import { sendMail } from '@/lib/mailer'
+import { generateHandoverHtml } from '@/lib/handover-html'
 
 function parseMovementData(clientId: string, formData: FormData, overrideStatus?: string) {
   const type = formData.get('type') as string
@@ -96,22 +98,49 @@ export async function validateMovement(
   movementId: string,
   clientId: string,
   equipmentId?: string | null,
-) {
+  reprise?: string,
+): Promise<{ emailSent: boolean; to: string | null }> {
   const session = await requireAuth()
-  if (session.user.role === 'CLIENT') return
+  if (session.user.role === 'CLIENT') return { emailSent: false, to: null }
 
   const m = await prisma.personnelMovement.findUnique({
     where: { id: movementId, status: 'DEMANDE_EFFECTUEE' },
   })
-  if (!m || m.clientId !== clientId) return
+  if (!m || m.clientId !== clientId) return { emailSent: false, to: null }
 
   const nextStatus = m.type === 'SORTIE' ? 'TERMINE' : 'ACTIF'
   await prisma.personnelMovement.update({
     where: { id: movementId },
     data: { status: nextStatus, assignedEquipmentId: equipmentId ?? null },
   })
+
+  // Récupérer les données complètes pour le bon
+  const full = await prisma.personnelMovement.findUnique({
+    where: { id: movementId },
+    include: {
+      client: { select: { name: true, email: true } },
+      assignedEquipment: {
+        select: { type: true, brand: true, model: true, serialNumber: true },
+      },
+    },
+  })
+
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
+
+  if (!full) return { emailSent: false, to: null }
+
+  const recipient = full.client.email
+  if (!recipient) return { emailSent: false, to: null }
+
+  const html = generateHandoverHtml(full, reprise ?? '')
+  await sendMail({
+    to: recipient,
+    subject: `Bon de prise en charge — ${full.firstName} ${full.lastName} (${full.client.name})`,
+    html,
+  })
+
+  return { emailSent: true, to: recipient }
 }
 
 export async function getClientPCs(clientId: string) {
