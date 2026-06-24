@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { writeFile, mkdir } from 'fs/promises'
 import { join, extname } from 'path'
@@ -55,7 +55,7 @@ export async function updateEquipmentInPlace(
         noSync:           formData.get('noSync') === 'true',
       },
     })
-    revalidatePath('/parc')
+    revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
     return { success: true }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Erreur inconnue' }
@@ -126,7 +126,7 @@ export async function updateEquipment(equipmentId: string, clientId: string, for
       ...(newPhotoPath ? { photoPath: newPhotoPath } : {}),
     },
   })
-  revalidatePath('/parc')
+  revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
   redirect(`/parc?client=${clientId}`)
 }
 
@@ -141,14 +141,14 @@ export async function deleteEquipmentBulk(ids: string[]) {
   await requireAdmin()
   if (ids.length === 0) return
   await prisma.equipment.deleteMany({ where: { id: { in: ids } } })
-  revalidatePath('/parc')
+  revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
 }
 
 export async function updateEquipmentTypeBulk(ids: string[], type: string) {
   await requireAdmin()
   if (ids.length === 0 || !type) return
   await prisma.equipment.updateMany({ where: { id: { in: ids } }, data: { type } })
-  revalidatePath('/parc')
+  revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
 }
 
 export async function updateEquipmentAssignments(
@@ -165,7 +165,7 @@ export async function updateEquipmentAssignments(
         }),
       ),
     )
-    revalidatePath('/parc')
+    revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
     return { success: true }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Erreur inconnue' }
