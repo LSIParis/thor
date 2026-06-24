@@ -4,7 +4,8 @@ import { useState, Fragment, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, validateMovement, deleteMovement } from '@/actions/movements'
+import { createMovement, transmitMovement, updateMovement, sendMovementRequest, cancelMovementRequest, deleteMovement } from '@/actions/movements'
+import { ValidateMovementDialog } from './validate-movement-dialog'
 import { LogIn, LogOut, Plus, X } from 'lucide-react'
 import { Tip } from '@/components/ui/tip'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -386,11 +387,11 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                             )}
                             {m.status === 'DEMANDE_EFFECTUEE' && canEdit && (
                               <Tip label="Valider la demande : passe en statut « Actif » (entrée) ou « Terminé » (sortie)">
-                                <Button variant="ghost" size="sm" type="button"
-                                  className="text-emerald-600 h-6 px-2 text-xs"
-                                  onClick={() => run(() => validateMovement(m.id, clientId))}>
-                                  Valider la demande
-                                </Button>
+                                <ValidateMovementDialog
+                                  movementId={m.id}
+                                  clientId={clientId}
+                                  movementName={`${m.firstName} ${m.lastName}${m.role ? ` — ${m.role}` : ''}`}
+                                />
                               </Tip>
                             )}
                           </div>

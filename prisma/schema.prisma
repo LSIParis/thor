@@ -104,29 +104,32 @@ model Equipment {
   noSync           Boolean   @default(false)
   rmmAgentId       String?   @unique
   createdAt        DateTime  @default(now())
-  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  site             Site?     @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  assignedTo       Contact?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  client             Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  site               Site?               @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  assignedTo         Contact?            @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  personnelMovements PersonnelMovement[]
 }
 
 model PersonnelMovement {
-  id               String   @id @default(cuid())
-  clientId         String
-  type             String   // "ENTREE" | "SORTIE"
-  entryType        String?  // "EMPLOI" | "STAGE" (ENTREE only)
-  internshipMonths Int?     // duration in months (STAGE only)
-  firstName        String
-  lastName         String
-  role             String?
-  mobile           String?
-  email            String?
-  accessVPN        Boolean  @default(false)
-  accessServer     Boolean  @default(false)
-  status           String   @default("EN_ATTENTE") // "EN_ATTENTE" | "ACTIF" | "TERMINE"
-  date             DateTime
-  notes            String?
-  createdAt        DateTime @default(now())
-  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                  String     @id @default(cuid())
+  clientId            String
+  type                String     // "ENTREE" | "SORTIE"
+  entryType           String?    // "EMPLOI" | "STAGE" (ENTREE only)
+  internshipMonths    Int?       // duration in months (STAGE only)
+  firstName           String
+  lastName            String
+  role                String?
+  mobile              String?
+  email               String?
+  accessVPN           Boolean    @default(false)
+  accessServer        Boolean    @default(false)
+  status              String     @default("EN_ATTENTE") // "EN_ATTENTE" | "ACTIF" | "TERMINE"
+  date                DateTime
+  notes               String?
+  assignedEquipmentId String?
+  createdAt           DateTime   @default(now())
+  client              Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedEquipment   Equipment? @relation(fields: [assignedEquipmentId], references: [id], onDelete: SetNull)
 }
 
 model License {

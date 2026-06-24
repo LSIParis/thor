@@ -92,7 +92,11 @@ export async function cancelMovementRequest(movementId: string, clientId: string
   revalidatePath('/mouvements')
 }
 
-export async function validateMovement(movementId: string, clientId: string) {
+export async function validateMovement(
+  movementId: string,
+  clientId: string,
+  equipmentId?: string | null,
+) {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return
 
@@ -104,10 +108,29 @@ export async function validateMovement(movementId: string, clientId: string) {
   const nextStatus = m.type === 'SORTIE' ? 'TERMINE' : 'ACTIF'
   await prisma.personnelMovement.update({
     where: { id: movementId },
-    data: { status: nextStatus },
+    data: { status: nextStatus, assignedEquipmentId: equipmentId ?? null },
   })
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
+}
+
+export async function getClientPCs(clientId: string) {
+  await requireAuth()
+  return prisma.equipment.findMany({
+    where: {
+      clientId,
+      type: { in: ['PC Fixe', 'PC Portable', 'Mac Fixe', 'Mac Portable'] },
+    },
+    select: {
+      id: true,
+      type: true,
+      brand: true,
+      model: true,
+      serialNumber: true,
+      assignedTo: { select: { firstName: true, lastName: true } },
+    },
+    orderBy: [{ brand: 'asc' }, { model: 'asc' }],
+  })
 }
 
 export async function updateMovement(movementId: string, clientId: string, formData: FormData) {
