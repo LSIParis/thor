@@ -5,7 +5,7 @@
 # Variables à définir dans Portainer → Stacks → Env :
 #   Obligatoires : POSTGRES_PASSWORD, NEXTAUTH_SECRET, ENCRYPTION_KEY,
 #                  CRON_SECRET, DOMAIN, LETSENCRYPT_EMAIL
-#   Optionnelles : DESK365_*, WASABI_*, COMET_*, AXONAUT_API_KEY, MAILGUN_*
+#   Optionnelles : DESK365_*, WASABI_*, COMET_*, AXONAUT_API_KEY, MAILGUN_*, DOCUSEAL_*
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -61,8 +61,12 @@ services:
       COMET_ADMIN_PASS: ${COMET_ADMIN_PASS:-}
       # Axonaut (CRM)
       AXONAUT_API_KEY: ${AXONAUT_API_KEY:-}
+      # DocuSeal (signature électronique)
+      DOCUSEAL_API_KEY: ${DOCUSEAL_API_KEY:-}
+      DOCUSEAL_API_URL: ${DOCUSEAL_API_URL:-https://api.docuseal.eu}
     volumes:
       - uploads:/app/public/uploads
+      - handovers:/app/public/handovers
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,6 +134,7 @@ services:
 volumes:
   postgres_data:
   uploads:
+  handovers:
   certbot_www:
   certbot_conf:
 

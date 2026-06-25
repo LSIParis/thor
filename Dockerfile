@@ -19,6 +19,18 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Chromium système pour Puppeteer (génération PDF) — le bundle npm ne tourne pas sur Alpine
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
@@ -33,9 +45,9 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 
-# Répertoire d'uploads persisté via volume
-RUN mkdir -p public/uploads/equipment && \
-    chown -R nextjs:nodejs public/uploads
+# Répertoires persistés via volumes
+RUN mkdir -p public/uploads/equipment public/handovers && \
+    chown -R nextjs:nodejs public/uploads public/handovers
 
 USER nextjs
 EXPOSE 3000

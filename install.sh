@@ -195,6 +195,23 @@ read -r AXONAUT_API_KEY
 
 echo ""
 
+# ── DocuSeal
+echo -e "  ${YELLOW}► Signature électronique (DocuSeal)${RESET}"
+echo -e "  ${DIM}Obtenez votre clé sur console.docuseal.eu → Settings → API${RESET}"
+ask "  Clé API DocuSeal : "
+read -r DOCUSEAL_API_KEY
+if [[ -n "$DOCUSEAL_API_KEY" ]]; then
+  ask "  URL API DocuSeal [https://api.docuseal.eu] : "
+  read -r DOCUSEAL_API_URL
+  DOCUSEAL_API_URL="${DOCUSEAL_API_URL:-https://api.docuseal.eu}"
+  ok "DocuSeal configuré (${DOCUSEAL_API_URL})"
+else
+  DOCUSEAL_API_URL="https://api.docuseal.eu"
+  warn "DocuSeal non configuré — la signature électronique sera désactivée."
+fi
+
+echo ""
+
 # ── Génération des secrets ────────────────────────────────────────────────────
 header "3/6  Génération des clés de sécurité"
 
@@ -243,6 +260,10 @@ WASABI_SECRET_KEY=${WASABI_SECRET_KEY:-}
 
 # ── CRM (Axonaut) ─────────────────────────────────────────────────────────────
 AXONAUT_API_KEY=${AXONAUT_API_KEY:-}
+
+# ── Signature électronique (DocuSeal) ─────────────────────────────────────────
+DOCUSEAL_API_KEY=${DOCUSEAL_API_KEY:-}
+DOCUSEAL_API_URL=${DOCUSEAL_API_URL:-https://api.docuseal.eu}
 EOF
 
 chmod 600 .env
@@ -405,6 +426,18 @@ echo -e "  Mot de passe : ${RED}${BOLD}Admin1234!${RESET}"
 echo ""
 echo -e "  ${RED}${BOLD}⚠  IMPORTANT : Changez le mot de passe dès votre première connexion !${RESET}"
 echo ""
+
+if [[ -n "${DOCUSEAL_API_KEY:-}" ]]; then
+  sep
+  echo ""
+  echo -e "  ${BOLD}Étape manuelle — Signature électronique (DocuSeal) :${RESET}"
+  echo -e "  Rendez-vous sur ${BLUE}https://console.docuseal.eu/webhooks${RESET}"
+  echo -e "  et ajoutez un webhook avec ces paramètres :"
+  echo -e "  URL    : ${BOLD}https://${DOMAIN}/api/docuseal/webhook${RESET}"
+  echo -e "  Événement : ${BOLD}form.completed${RESET}"
+  echo ""
+fi
+
 echo -e "  Les détails ont été sauvegardés dans : ${BOLD}install-info.txt${RESET}"
 echo ""
 sep
