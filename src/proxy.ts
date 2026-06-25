@@ -8,7 +8,6 @@ export default auth((req: NextRequest & { auth: any }) => {
 
   const isPublic =
     pathname === '/login' ||
-    pathname.startsWith('/api/auth') ||
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/verify')
@@ -29,5 +28,5 @@ export default auth((req: NextRequest & { auth: any }) => {
 })
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)'],
 }
