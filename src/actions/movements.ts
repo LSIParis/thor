@@ -189,6 +189,7 @@ export async function validateMovement(
       lastName,
       clientName,
       email: recipient,
+      baseFilename: filename.replace('.pdf', ''),
     })
     signingUrl = sigResult?.signingUrl ?? null
   }

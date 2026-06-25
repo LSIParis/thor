@@ -27,13 +27,14 @@ export async function createHandoverSignatureRequest(opts: {
   lastName: string
   clientName: string
   email: string
+  baseFilename: string
 }): Promise<SignatureRequestResult | null> {
   if (!configure()) {
     console.warn('[docuseal] DOCUSEAL_API_KEY non configuré — demande de signature ignorée')
     return null
   }
 
-  const { pdfBuffer, firstName, lastName, clientName, email } = opts
+  const { pdfBuffer, firstName, lastName, clientName, email, baseFilename } = opts
   const pdfBase64 = pdfBuffer.toString('base64')
   const docName = `Bon de prise en charge — ${firstName} ${lastName}`
 
@@ -73,6 +74,7 @@ export async function createHandoverSignatureRequest(opts: {
         name: `${firstName} ${lastName}`,
         email,
         role: 'Signataire',
+        metadata: { baseFilename },
       },
     ],
   })
