@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, Loader2, Monitor, Laptop, Mail, AlertCircle } from 'lucide-react'
+import { CheckCircle, Loader2, Monitor, Laptop, FileDown, Mail, AlertCircle, PenLine } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -26,7 +26,7 @@ const PC_ICON: Record<string, React.ElementType> = {
   'Mac Portable': Laptop,
 }
 
-type Result = { emailSent: boolean; to: string | null } | null
+type Result = { saved: boolean; filePath: string | null; emailSent: boolean; to: string | null; signingUrl: string | null } | null
 
 export function ValidateMovementDialog({
   movementId,
@@ -103,22 +103,63 @@ export function ValidateMovementDialog({
                 </div>
               </div>
 
-              {result.emailSent ? (
+              {result.saved && result.filePath && (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <Mail size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                  <FileDown size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-700">Bon envoyé par e-mail</p>
-                    <p className="text-blue-600 text-xs mt-0.5">{result.to}</p>
+                    <p className="font-medium text-blue-700">Bon de prise en charge enregistré</p>
+                    <a
+                      href={result.filePath}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 text-xs mt-0.5 underline underline-offset-2 hover:text-blue-800"
+                    >
+                      Télécharger le PDF
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {result.emailSent ? (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <Mail size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-emerald-700">Bon envoyé au nouvel arrivant</p>
+                    <p className="text-emerald-600 text-xs mt-0.5">{result.to}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-amber-700">
-                    Aucun e-mail renseigné pour ce client — bon non envoyé.
+                    Aucune adresse e-mail renseignée pour cet arrivant — bon non envoyé.
                   </p>
                 </div>
               )}
+
+              {result.signingUrl ? (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                  <PenLine size={16} className="text-violet-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-violet-700">Demande de signature envoyée via DocuSeal</p>
+                    <a
+                      href={result.signingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-violet-600 text-xs mt-0.5 underline underline-offset-2 hover:text-violet-800"
+                    >
+                      Aperçu de la demande
+                    </a>
+                  </div>
+                </div>
+              ) : result.emailSent ? (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-amber-700">
+                    DocuSeal non configuré — signature électronique non créée.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center py-10">
@@ -228,8 +269,8 @@ export function ValidateMovementDialog({
                 >
                   {isPending
                     ? <Loader2 size={13} className="animate-spin mr-1.5" />
-                    : <Mail size={13} className="mr-1.5" />}
-                  Valider et envoyer le bon
+                    : <FileDown size={13} className="mr-1.5" />}
+                  Valider et générer le bon
                 </Button>
               </>
             )}

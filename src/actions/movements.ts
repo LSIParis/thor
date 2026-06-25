@@ -3,9 +3,12 @@
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
-import { sendMail } from '@/lib/mailer'
 import { generateHandoverHtml } from '@/lib/handover-html'
 import { htmlToPdf } from '@/lib/pdf'
+import { sendMail } from '@/lib/mailer'
+import { createHandoverSignatureRequest } from '@/lib/docuseal'
+import { mkdir, writeFile } from 'fs/promises'
+import { join } from 'path'
 
 function parseMovementData(clientId: string, formData: FormData, overrideStatus?: string) {
   const type = formData.get('type') as string
@@ -100,14 +103,14 @@ export async function validateMovement(
   clientId: string,
   equipmentId?: string | null,
   reprise?: string,
-): Promise<{ emailSent: boolean; to: string | null }> {
+): Promise<{ saved: boolean; filePath: string | null; emailSent: boolean; to: string | null; signingUrl: string | null }> {
   const session = await requireAuth()
-  if (session.user.role === 'CLIENT') return { emailSent: false, to: null }
+  if (session.user.role === 'CLIENT') return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
 
   const m = await prisma.personnelMovement.findUnique({
     where: { id: movementId, status: 'DEMANDE_EFFECTUEE' },
   })
-  if (!m || m.clientId !== clientId) return { emailSent: false, to: null }
+  if (!m || m.clientId !== clientId) return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
 
   const nextStatus = m.type === 'SORTIE' ? 'TERMINE' : 'ACTIF'
   await prisma.personnelMovement.update({
@@ -129,49 +132,68 @@ export async function validateMovement(
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
 
-  if (!full) return { emailSent: false, to: null }
-
-  const recipient = full.client.email
-  if (!recipient) return { emailSent: false, to: null }
+  if (!full) return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
 
   const handoverHtml = generateHandoverHtml(full, reprise ?? '')
   const pdfBuffer = await htmlToPdf(handoverHtml)
 
-  const firstName = full.firstName
-  const lastName  = full.lastName
-  const clientName = full.client.name
+  const safeName = `${full.lastName}-${full.firstName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+  const timestamp = Date.now()
+  const filename = `bon-prise-en-charge-${safeName}-${timestamp}.pdf`
 
-  const emailBody = `<!DOCTYPE html>
+  const dir = join(process.cwd(), 'public', 'handovers')
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, filename), pdfBuffer)
+
+  const recipient = full.email
+  let emailSent = false
+  let signingUrl: string | null = null
+
+  if (recipient) {
+    const firstName = full.firstName
+    const lastName = full.lastName
+    const clientName = full.client.name
+
+    const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
 <div style="max-width:560px;margin:32px auto;padding:0 16px">
-  <p style="margin:0 0 16px">Bonjour,</p>
+  <p style="margin:0 0 16px">Bonjour ${firstName},</p>
   <p style="margin:0 0 16px">
     Veuillez trouver en pièce jointe le <strong>bon de prise en charge</strong>
-    pour <strong>${firstName} ${lastName}</strong>.
+    établi pour votre intégration chez <strong>${clientName}</strong>.
   </p>
   <p style="margin:0 0 24px">
-    Ce document est au format PDF. Vous pouvez l'ouvrir, le faire signer
-    et le conserver dans vos archives.
+    Ce document est au format PDF. Vous pouvez l'ouvrir, le signer et le retourner
+    à votre interlocuteur LSI Maintenance.
   </p>
   <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
 </div>
 </body></html>`
 
-  const safeName = `${lastName}-${firstName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+    await sendMail({
+      to: recipient,
+      subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
+      html: emailBody,
+      attachment: {
+        data: pdfBuffer,
+        filename: `bon-prise-en-charge-${safeName}.pdf`,
+        contentType: 'application/pdf',
+      },
+    })
+    emailSent = true
 
-  await sendMail({
-    to: recipient,
-    subject: `Bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
-    html: emailBody,
-    attachment: {
-      data: pdfBuffer,
-      filename: `bon-prise-en-charge-${safeName}.pdf`,
-      contentType: 'application/pdf',
-    },
-  })
+    const sigResult = await createHandoverSignatureRequest({
+      pdfBuffer,
+      firstName,
+      lastName,
+      clientName,
+      email: recipient,
+    })
+    signingUrl = sigResult?.signingUrl ?? null
+  }
 
-  return { emailSent: true, to: recipient }
+  return { saved: true, filePath: `/handovers/${filename}`, emailSent, to: recipient, signingUrl }
 }
 
 export async function getClientPCs(clientId: string) {

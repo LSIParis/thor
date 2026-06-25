@@ -6,6 +6,7 @@ const isProd = process.env.NODE_ENV === 'production'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  basePath: '/api/auth',
   providers: [
     Credentials({
       credentials: {
