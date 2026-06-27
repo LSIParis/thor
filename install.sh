@@ -212,6 +212,23 @@ fi
 
 echo ""
 
+# ── Tactical RMM
+echo -e "  ${YELLOW}► Supervision (Tactical RMM)${RESET}"
+echo -e "  ${DIM}URL de l'API (ex: https://api.mon-rmm.fr) — pas l'interface web${RESET}"
+ask "  URL de l'API Tactical RMM : "
+read -r RMM_BASE_URL
+if [[ -n "$RMM_BASE_URL" ]]; then
+  ask "  Clé API Tactical RMM : "
+  read -rs RMM_API_KEY
+  echo ""
+  ok "Tactical RMM configuré"
+else
+  RMM_API_KEY=""
+  warn "Tactical RMM non configuré — configurable plus tard dans les paramètres du portail."
+fi
+
+echo ""
+
 # ── Génération des secrets ────────────────────────────────────────────────────
 header "3/6  Génération des clés de sécurité"
 
@@ -365,9 +382,38 @@ echo ""
 
 if [[ $READY -eq 1 ]]; then
   ok "Application opérationnelle"
+
+  # Créer le compte administrateur initial
+  info "Création du compte administrateur..."
+  ADMIN_HASH=$(docker compose -f docker-compose.portainer.yml -p "$PROJECT_NAME" exec -T app \
+    node -e "require('bcryptjs').hash('Admin1234!', 12).then(h => process.stdout.write(h))" 2>/dev/null)
+  docker compose -f docker-compose.portainer.yml -p "$PROJECT_NAME" exec -T postgres \
+    psql -U lsi lsi_portal -c "
+      INSERT INTO \"User\" (id, name, email, \"passwordHash\", role, \"emailVerified\", \"createdAt\")
+      VALUES (gen_random_uuid(), 'Administrateur', 'admin@lsi-maintenance.fr', '${ADMIN_HASH}', 'ADMIN', true, now())
+      ON CONFLICT (email) DO NOTHING;
+    " &>/dev/null
+  ok "Compte administrateur créé (admin@lsi-maintenance.fr)"
+
+  # Configurer Tactical RMM si renseigné
+  if [[ -n "${RMM_BASE_URL:-}" ]]; then
+    info "Configuration de Tactical RMM en base..."
+    docker compose -f docker-compose.portainer.yml -p "$PROJECT_NAME" exec -T postgres \
+      psql -U lsi lsi_portal -c "
+        INSERT INTO \"AppSetting\" (id, key, value)
+        VALUES (gen_random_uuid(), 'RMM_BASE_URL', '${RMM_BASE_URL}')
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+        INSERT INTO \"AppSetting\" (id, key, value)
+        VALUES (gen_random_uuid(), 'RMM_API_KEY', '${RMM_API_KEY}')
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+      " &>/dev/null
+    ok "Tactical RMM configuré"
+  fi
 else
   warn "L'application n'est pas encore accessible."
   warn "Vérifiez les logs avec : docker compose -f docker-compose.portainer.yml -p lsi logs app"
+  warn "Une fois accessible, créez le compte admin manuellement :"
+  warn "  sudo bash install.sh  (relancer suffit, les données existantes sont conservées)"
 fi
 
 # ── Sauvegarder les informations ──────────────────────────────────────────────
