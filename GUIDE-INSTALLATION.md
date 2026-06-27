@@ -22,14 +22,15 @@ Préparez les éléments suivants avant de lancer l'installation.
 
 ### Optionnels (peuvent être ajoutés plus tard)
 
-| Service | À quoi ça sert | Clé à préparer |
+| Service | À quoi ça sert | Ce qu'il faut préparer |
 |---|---|---|
-| **Mailgun** | Envoi d'e-mails depuis le portail | Clé API + domaine Mailgun |
+| **Mailgun** | Envoi d'e-mails depuis le portail | Clé API, domaine Mailgun, email notifications interne |
 | **Desk365** | Gestion des tickets de support | Sous-domaine + clé API |
 | **Comet Backup** | Suivi des sauvegardes | URL serveur + identifiants admin |
 | **Wasabi S3** | Stockage de fichiers | Access Key + Secret Key |
 | **Axonaut** | Synchronisation CRM | Clé API |
 | **DocuSeal** | Signature électronique des bons | Clé API (console.docuseal.eu) |
+| **Tactical RMM** | Supervision des postes clients | URL de l'API + clé API |
 
 ---
 
@@ -116,20 +117,36 @@ Appuyez sur **Entrée** pour utiliser la valeur entre crochets, ou tapez votre a
 Pour chaque intégration, **appuyez sur Entrée** pour l'ignorer si vous n'avez pas la clé.  
 Elle pourra être ajoutée plus tard en éditant le fichier `.env`.
 
+---
+
 **Email (Mailgun)**
+
 ```
 Clé API Mailgun :
 ```
 Copiez-collez la clé API Mailgun. Si vous l'ignorez, les e-mails ne seront pas envoyés.
+
+Si vous saisissez la clé, trois questions supplémentaires s'affichent :
 
 ```
 Domaine Mailgun [mg.lsi-maintenance.fr] :
 ```
 Le sous-domaine Mailgun configuré dans votre compte. Appuyez sur Entrée pour la valeur par défaut.
 
+```
+Nom de l'expéditeur [LSI Maintenance <noreply@mg.lsi-maintenance.fr>] :
+```
+Le nom et l'adresse qui apparaîtront dans les e-mails envoyés par le portail. Appuyez sur Entrée pour la valeur par défaut.
+
+```
+Email interne LSI pour les notifications [contact@lsi-maintenance.fr] :
+```
+L'adresse e-mail interne LSI qui recevra les alertes et notifications du portail. Appuyez sur Entrée pour la valeur par défaut.
+
 ---
 
 **Tickets (Desk365)**
+
 ```
 Sous-domaine Desk365 (ex: lsi-maintenance) :
 ```
@@ -139,6 +156,7 @@ Si vous saisissez une valeur, la clé API vous sera demandée ensuite.
 ---
 
 **Sauvegardes (Comet Backup)**
+
 ```
 URL du serveur Comet (ex: https://backup.mon-domaine.fr) :
 ```
@@ -149,6 +167,7 @@ Le mot de passe ne s'affiche pas à l'écran lors de la saisie.
 ---
 
 **Stockage fichiers (Wasabi S3)**
+
 ```
 Access Key Wasabi :
 ```
@@ -158,6 +177,7 @@ La clé secrète vous sera demandée ensuite (ne s'affiche pas à l'écran).
 ---
 
 **CRM (Axonaut)**
+
 ```
 Clé API Axonaut :
 ```
@@ -166,6 +186,7 @@ La clé API de votre compte Axonaut.
 ---
 
 **Signature électronique (DocuSeal)**
+
 ```
 Clé API DocuSeal :
 ```
@@ -175,6 +196,17 @@ Récupérez cette clé sur [console.docuseal.eu](https://console.docuseal.eu) �
 URL API DocuSeal [https://api.docuseal.eu] :
 ```
 Laissez la valeur par défaut (appuyez sur Entrée) sauf si vous utilisez DocuSeal en mode auto-hébergé.
+
+---
+
+**Supervision (Tactical RMM)**
+
+```
+URL de l'API Tactical RMM :
+```
+L'URL de l'**API** de votre serveur Tactical RMM — pas l'interface web.  
+Exemple : `https://api.mon-rmm.fr` (commence généralement par `api.`).  
+Si vous saisissez une valeur, la clé API vous sera demandée ensuite (ne s'affiche pas à l'écran).
 
 ---
 
@@ -209,15 +241,17 @@ Le script obtient automatiquement un certificat SSL (HTTPS) via **Let's Encrypt*
 - **Si ça échoue** → causes possibles :
   - Le domaine ne pointe pas encore vers ce serveur (DNS non propagés)
   - Le port 80 est bloqué par le pare-feu de votre hébergeur
-  
+
   Dans ce cas, vous pouvez continuer sans SSL et relancer `sudo bash install.sh` une fois le problème résolu.
 
 ---
 
 ### Étape 6/6 — Démarrage du portail
 
-Le script démarre tous les services et attend que l'application soit prête.  
-Cette étape peut prendre 1 à 2 minutes.
+Le script démarre tous les services, attend que l'application soit prête (1 à 2 minutes), puis crée automatiquement :
+
+- le **compte administrateur** (`admin@lsi-maintenance.fr`)
+- la **configuration Tactical RMM** en base de données (si vous l'avez renseigné)
 
 ---
 
