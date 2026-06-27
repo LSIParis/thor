@@ -138,8 +138,16 @@ if [[ -n "$MAILGUN_API_KEY" ]]; then
   ask "  Domaine Mailgun [mg.lsi-maintenance.fr] : "
   read -r MAILGUN_DOMAIN
   MAILGUN_DOMAIN="${MAILGUN_DOMAIN:-mg.lsi-maintenance.fr}"
+  ask "  Nom de l'expéditeur [LSI Maintenance <noreply@${MAILGUN_DOMAIN}>] : "
+  read -r MAILGUN_FROM
+  MAILGUN_FROM="${MAILGUN_FROM:-LSI Maintenance <noreply@${MAILGUN_DOMAIN}>}"
+  ask "  Email interne LSI pour les notifications [contact@lsi-maintenance.fr] : "
+  read -r LSI_NOTIFY_EMAIL
+  LSI_NOTIFY_EMAIL="${LSI_NOTIFY_EMAIL:-contact@lsi-maintenance.fr}"
 else
   MAILGUN_DOMAIN="mg.lsi-maintenance.fr"
+  MAILGUN_FROM="LSI Maintenance <noreply@${MAILGUN_DOMAIN}>"
+  LSI_NOTIFY_EMAIL="contact@lsi-maintenance.fr"
 fi
 
 echo ""
@@ -259,8 +267,8 @@ LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
 # ── Email (Mailgun) ───────────────────────────────────────────────────────────
 MAILGUN_API_KEY=${MAILGUN_API_KEY:-}
 MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
-MAILGUN_FROM=LSI Maintenance <noreply@${MAILGUN_DOMAIN}>
-LSI_NOTIFY_EMAIL=${LETSENCRYPT_EMAIL}
+MAILGUN_FROM=${MAILGUN_FROM}
+LSI_NOTIFY_EMAIL=${LSI_NOTIFY_EMAIL}
 
 # ── Tickets (Desk365) ─────────────────────────────────────────────────────────
 DESK365_SUBDOMAIN=${DESK365_SUBDOMAIN:-}
