@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import axios from 'axios'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { decrypt } from '@/lib/crypto'
-import { fetchRmmClients, fetchRmmAgents, rmmAgentToEquipmentType } from '@/lib/rmm-client'
+import { fetchRmmClients, fetchRmmAgents, rmmAgentToEquipmentType, getRmmConfig } from '@/lib/rmm-client'
 
 // GET: diagnostic — try each candidate path and report status
 export async function GET(
@@ -17,17 +16,12 @@ export async function GET(
   const client = await prisma.client.findUnique({ where: { id: clientId } })
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
-  const [urlSetting, keySetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-  ])
-
-  if (!urlSetting?.value || !keySetting?.value) {
+  const rmm = getRmmConfig()
+  if (!rmm) {
     return NextResponse.json({ error: 'RMM non configuré' }, { status: 400 })
   }
-
-  const apiKey = decrypt(keySetting.value)
-  const base = urlSetting.value.replace(/\/$/, '')
+  const apiKey = rmm.apiKey
+  const base = rmm.baseUrl.replace(/\/$/, '')
   const candidates = ['/api/v3/agents/', '/api/v3/agents', '/agents/', '/agents', '/api/v2/agents/', '/api/v2/agents']
   const results: Record<string, string> = {}
 
@@ -75,21 +69,15 @@ export async function POST(
       return NextResponse.json({ error: "Ce client n'est pas lié à Tactical RMM" }, { status: 400 })
     }
 
-    const [urlSetting, keySetting] = await Promise.all([
-      prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-      prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-    ])
-
-    if (!urlSetting?.value || !keySetting?.value) {
+    const rmm = getRmmConfig()
+    if (!rmm) {
       return NextResponse.json({ error: 'RMM non configuré dans les paramètres' }, { status: 400 })
     }
-
-    const apiKey = decrypt(keySetting.value)
 
     // Resolve RMM client name (agents are filtered by client_name, not client_id)
     let rmmClientName: string
     try {
-      const rmmClients = await fetchRmmClients(urlSetting.value, apiKey)
+      const rmmClients = await fetchRmmClients(rmm.baseUrl, rmm.apiKey)
       const rmmClient = rmmClients.find((c) => String(c.id) === client.tacticalRmmId)
       if (!rmmClient) {
         return NextResponse.json(
@@ -107,7 +95,7 @@ export async function POST(
 
     let agents
     try {
-      agents = await fetchRmmAgents(urlSetting.value, apiKey, rmmClientName)
+      agents = await fetchRmmAgents(rmm.baseUrl, rmm.apiKey, rmmClientName)
     } catch (err: any) {
       const detail = err?.response?.status
         ? `HTTP ${err.response.status} — ${err.response.statusText}`

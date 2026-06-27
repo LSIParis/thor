@@ -289,6 +289,10 @@ AXONAUT_API_KEY=${AXONAUT_API_KEY:-}
 # ── Signature électronique (DocuSeal) ─────────────────────────────────────────
 DOCUSEAL_API_KEY=${DOCUSEAL_API_KEY:-}
 DOCUSEAL_API_URL=${DOCUSEAL_API_URL:-https://api.docuseal.eu}
+
+# ── Supervision (Tactical RMM) ────────────────────────────────────────────────
+RMM_BASE_URL=${RMM_BASE_URL:-}
+RMM_API_KEY=${RMM_API_KEY:-}
 EOF
 
 chmod 600 .env
@@ -402,21 +406,6 @@ if [[ $READY -eq 1 ]]; then
       ON CONFLICT (email) DO NOTHING;
     " &>/dev/null
   ok "Compte administrateur créé (admin@lsi-maintenance.fr)"
-
-  # Configurer Tactical RMM si renseigné
-  if [[ -n "${RMM_BASE_URL:-}" ]]; then
-    info "Configuration de Tactical RMM en base..."
-    docker compose -f docker-compose.portainer.yml -p "$PROJECT_NAME" exec -T postgres \
-      psql -U lsi lsi_portal -c "
-        INSERT INTO \"AppSetting\" (id, key, value)
-        VALUES (gen_random_uuid(), 'RMM_BASE_URL', '${RMM_BASE_URL}')
-        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-        INSERT INTO \"AppSetting\" (id, key, value)
-        VALUES (gen_random_uuid(), 'RMM_API_KEY', '${RMM_API_KEY}')
-        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-      " &>/dev/null
-    ok "Tactical RMM configuré"
-  fi
 else
   warn "L'application n'est pas encore accessible."
   warn "Vérifiez les logs avec : docker compose -f docker-compose.portainer.yml -p lsi logs app"

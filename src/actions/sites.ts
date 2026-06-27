@@ -3,8 +3,7 @@
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
-import { fetchRmmClients, fetchRmmAgents } from '@/lib/rmm-client'
-import { decrypt } from '@/lib/crypto'
+import { fetchRmmClients, fetchRmmAgents, getRmmConfig } from '@/lib/rmm-client'
 
 const siteFields = (formData: FormData) => ({
   name:           formData.get('name') as string,
@@ -58,14 +57,13 @@ export async function importSitesFromRmm(
 ): Promise<{ created: number; skipped: number; error?: string }> {
   await requireAdmin()
 
-  const [urlSetting, keySetting, client] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
+  const rmm = getRmmConfig()
+  const [client] = await Promise.all([
     prisma.client.findUnique({ where: { id: clientId }, select: { tacticalRmmId: true, noSync: true } }),
   ])
 
-  if (!urlSetting?.value || !keySetting?.value) {
-    return { created: 0, skipped: 0, error: 'RMM non configuré (voir Paramètres)' }
+  if (!rmm) {
+    return { created: 0, skipped: 0, error: 'RMM non configuré' }
   }
   if (client?.noSync) {
     return { created: 0, skipped: 0, error: 'Synchronisation désactivée pour ce client.' }
@@ -74,12 +72,10 @@ export async function importSitesFromRmm(
     return { created: 0, skipped: 0, error: 'Ce client n\'est pas lié à TacticalRMM' }
   }
 
-  const apiKey = decrypt(keySetting.value)
-
   // Resolve the RMM client name (agents are filtered by client_name, not by ID)
   let rmmClientName: string
   try {
-    const rmmClients = await fetchRmmClients(urlSetting.value, apiKey)
+    const rmmClients = await fetchRmmClients(rmm.baseUrl, rmm.apiKey)
     const match = rmmClients.find((c) => String(c.id) === client.tacticalRmmId)
     if (!match) return { created: 0, skipped: 0, error: 'Client introuvable dans TacticalRMM' }
     rmmClientName = match.name
@@ -90,7 +86,7 @@ export async function importSitesFromRmm(
 
   let agents
   try {
-    agents = await fetchRmmAgents(urlSetting.value, apiKey, rmmClientName)
+    agents = await fetchRmmAgents(rmm.baseUrl, rmm.apiKey, rmmClientName)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur RMM'
     return { created: 0, skipped: 0, error: msg }

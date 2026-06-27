@@ -64,6 +64,9 @@ services:
       # DocuSeal (signature électronique)
       DOCUSEAL_API_KEY: ${DOCUSEAL_API_KEY:-}
       DOCUSEAL_API_URL: ${DOCUSEAL_API_URL:-https://api.docuseal.eu}
+      # Tactical RMM (supervision)
+      RMM_BASE_URL: ${RMM_BASE_URL:-}
+      RMM_API_KEY: ${RMM_API_KEY:-}
     volumes:
       - uploads:/app/public/uploads
       - handovers:/app/public/handovers

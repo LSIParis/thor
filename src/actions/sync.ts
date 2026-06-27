@@ -2,8 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
-import { fetchRmmClients, createRmmClient, renameRmmClient, deleteRmmClient } from '@/lib/rmm-client'
-import { decrypt } from '@/lib/crypto'
+import { fetchRmmClients, createRmmClient, renameRmmClient, deleteRmmClient, getRmmConfig } from '@/lib/rmm-client'
 import { revalidatePath } from 'next/cache'
 
 export interface SyncClient {
@@ -25,9 +24,7 @@ function normalize(s: string) {
 export async function loadSyncData(): Promise<SyncData> {
   await requireAdmin()
 
-  const [urlSetting, keySetting, localClients] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
+  const [localClients] = await Promise.all([
     prisma.client.findMany({
       orderBy: { name: 'asc' },
       select: { id: true, name: true, tacticalRmmId: true },
@@ -37,15 +34,16 @@ export async function loadSyncData(): Promise<SyncData> {
   let rmmClients: { id: string; name: string }[] = []
   let rmmError: string | undefined
 
-  if (urlSetting?.value && keySetting?.value) {
+  const rmm = getRmmConfig()
+  if (rmm) {
     try {
-      const raw = await fetchRmmClients(urlSetting.value, decrypt(keySetting.value))
+      const raw = await fetchRmmClients(rmm.baseUrl, rmm.apiKey)
       rmmClients = raw.map((c) => ({ id: String(c.id), name: c.name }))
     } catch (err: unknown) {
       rmmError = err instanceof Error ? err.message : 'Erreur RMM'
     }
   } else {
-    rmmError = 'RMM non configuré (voir Paramètres)'
+    rmmError = 'RMM non configuré'
   }
 
   return { rmmClients, localClients, rmmError }
@@ -69,12 +67,9 @@ export async function createClientInRmm(
   name: string
 ): Promise<{ rmmId: string | null; error?: string }> {
   await requireAdmin()
-  const [urlSetting, keySetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-  ])
-  if (!urlSetting?.value || !keySetting?.value) return { rmmId: null, error: 'RMM non configuré' }
-  const rmmId = await createRmmClient(urlSetting.value, decrypt(keySetting.value), name)
+  const rmm = getRmmConfig()
+  if (!rmm) return { rmmId: null, error: 'RMM non configuré' }
+  const rmmId = await createRmmClient(rmm.baseUrl, rmm.apiKey, name)
   if (!rmmId) return { rmmId: null, error: 'Échec création RMM' }
   await prisma.client.update({ where: { id: localClientId }, data: { tacticalRmmId: rmmId } })
   revalidatePath('/clients')
@@ -87,12 +82,9 @@ export async function renameClientInRmm(
   newName: string
 ): Promise<{ error?: string }> {
   await requireAdmin()
-  const [urlSetting, keySetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-  ])
-  if (!urlSetting?.value || !keySetting?.value) return { error: 'RMM non configuré' }
-  const result = await renameRmmClient(urlSetting.value, decrypt(keySetting.value), rmmId, newName)
+  const rmm = getRmmConfig()
+  if (!rmm) return { error: 'RMM non configuré' }
+  const result = await renameRmmClient(rmm.baseUrl, rmm.apiKey, rmmId, newName)
   if ('error' in result) return { error: result.error }
   revalidatePath('/clients')
   return {}
@@ -103,12 +95,9 @@ export async function deleteClientFromRmm(
   rmmId: string
 ): Promise<{ error?: string }> {
   await requireAdmin()
-  const [urlSetting, keySetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-  ])
-  if (!urlSetting?.value || !keySetting?.value) return { error: 'RMM non configuré' }
-  const result = await deleteRmmClient(urlSetting.value, decrypt(keySetting.value), rmmId)
+  const rmm = getRmmConfig()
+  if (!rmm) return { error: 'RMM non configuré' }
+  const result = await deleteRmmClient(rmm.baseUrl, rmm.apiKey, rmmId)
   if ('error' in result) return { error: result.error }
   await prisma.client.update({ where: { id: localClientId }, data: { tacticalRmmId: null } })
   revalidatePath('/clients')

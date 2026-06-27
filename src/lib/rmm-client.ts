@@ -32,6 +32,13 @@ export interface RmmAgent {
   serial_number: string
 }
 
+export function getRmmConfig(): { baseUrl: string; apiKey: string } | null {
+  const baseUrl = process.env.RMM_BASE_URL
+  const apiKey = process.env.RMM_API_KEY
+  if (!baseUrl || !apiKey) return null
+  return { baseUrl, apiKey }
+}
+
 const CANDIDATE_PATHS = [
   '/api/v3/clients/',
   '/clients/',

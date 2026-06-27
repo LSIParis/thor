@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { decrypt } from '@/lib/crypto'
-import { fetchRmmClients } from '@/lib/rmm-client'
+import { fetchRmmClients, getRmmConfig } from '@/lib/rmm-client'
 
 export async function POST() {
   const session = await auth()
@@ -10,20 +9,14 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [urlSetting, keySetting] = await Promise.all([
-    prisma.appSetting.findUnique({ where: { key: 'RMM_BASE_URL' } }),
-    prisma.appSetting.findUnique({ where: { key: 'RMM_API_KEY' } }),
-  ])
-
-  if (!urlSetting?.value || !keySetting?.value) {
+  const rmm = getRmmConfig()
+  if (!rmm) {
     return NextResponse.json({ error: 'RMM not configured' }, { status: 400 })
   }
 
-  const apiKey = decrypt(keySetting.value)
-
   let rmmClients
   try {
-    rmmClients = await fetchRmmClients(urlSetting.value, apiKey)
+    rmmClients = await fetchRmmClients(rmm.baseUrl, rmm.apiKey)
     if (!Array.isArray(rmmClients)) {
       return NextResponse.json({ error: "L'URL RMM renvoie une page HTML — vérifiez l'URL (doit être le domaine api., ex: https://api.lsiparis.tech)" }, { status: 502 })
     }
