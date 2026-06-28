@@ -28,22 +28,31 @@ export async function createHandoverSignatureRequest(opts: {
   clientName: string
   email: string
   baseFilename: string
+  type?: 'ENTREE' | 'SORTIE'
 }): Promise<SignatureRequestResult | null> {
   if (!configure()) {
     console.warn('[docuseal] DOCUSEAL_API_KEY non configuré — demande de signature ignorée')
     return null
   }
 
-  const { pdfBuffer, firstName, lastName, clientName, email, baseFilename } = opts
+  const { pdfBuffer, firstName, lastName, clientName, email, baseFilename, type = 'ENTREE' } = opts
   const pdfBase64 = pdfBuffer.toString('base64')
   const docName = `Bon de prise en charge — ${firstName} ${lastName}`
+
+  const isSortie = type === 'SORTIE'
+  const emailSubject = isSortie
+    ? `Signature requise : sortie de ${firstName} ${lastName}`
+    : `Signature requise : ${docName}`
+  const emailBody = isSortie
+    ? `Bonjour,\n\nLa demande de sortie pour ${firstName} ${lastName} chez ${clientName} a été traitée.\n\nVeuillez signer le bon de prise en charge en cliquant sur le bouton ci-dessous.\n\nCordialement,\nLSI Maintenance\n\n{{submitter.link}}`
+    : `Bonjour ${firstName},\n\nVeuillez signer votre bon de prise en charge en cliquant sur le bouton ci-dessous.\n\nCordialement,\nLSI Maintenance\n\n{{submitter.link}}`
 
   const submission = await (docuseal as any).createSubmissionFromPdf({
     name: `${docName} (${clientName})`,
     send_email: true,
     message: {
-      subject: `Signature requise : ${docName}`,
-      body: `Bonjour ${firstName},\n\nVeuillez signer votre bon de prise en charge en cliquant sur le bouton ci-dessous.\n\nCordialement,\nLSI Maintenance\n\n{{submitter.link}}`,
+      subject: emailSubject,
+      body: emailBody,
     },
     documents: [
       {

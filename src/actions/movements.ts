@@ -185,6 +185,17 @@ export async function validateMovement(
         },
       })
       emailSent = true
+
+      const sigResult = await createHandoverSignatureRequest({
+        pdfBuffer,
+        firstName,
+        lastName,
+        clientName,
+        email: recipient,
+        baseFilename: filename.replace('.pdf', ''),
+        type: 'SORTIE',
+      })
+      signingUrl = sigResult?.signingUrl ?? null
     }
   } else {
     // Pour une entrée, envoyer le bon à l'employé
