@@ -43,19 +43,19 @@ function buildTypeLabel(type: string, entryType: string | null, internshipMonths
 
 
 export async function createMovement(clientId: string, formData: FormData) {
-  await requireAuth()
+  const session = await requireAuth()
 
   const data = parseMovementData(clientId, formData)
-  await prisma.personnelMovement.create({ data })
+  await prisma.personnelMovement.create({ data: { ...data, requestedByEmail: session.user.email } })
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
 }
 
 export async function transmitMovement(clientId: string, formData: FormData) {
-  await requireAuth()
+  const session = await requireAuth()
 
   const data = parseMovementData(clientId, formData, 'DEMANDE_EFFECTUEE')
-  await prisma.personnelMovement.create({ data })
+  await prisma.personnelMovement.create({ data: { ...data, requestedByEmail: session.user.email } })
 
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
@@ -79,7 +79,10 @@ export async function sendMovementRequest(movementId: string, clientId: string) 
 
   await prisma.personnelMovement.update({
     where: { id: movementId },
-    data: { status: 'DEMANDE_EFFECTUEE' },
+    data: {
+      status: 'DEMANDE_EFFECTUEE',
+      requestedByEmail: session.user.email ?? m.requestedByEmail,
+    },
   })
 
   revalidatePath(`/clients/${clientId}`)
@@ -145,16 +148,49 @@ export async function validateMovement(
   await mkdir(dir, { recursive: true })
   await writeFile(join(dir, filename), pdfBuffer)
 
-  const recipient = full.email
+  const firstName = full.firstName
+  const lastName = full.lastName
+  const clientName = full.client.name
   let emailSent = false
   let signingUrl: string | null = null
 
-  if (recipient) {
-    const firstName = full.firstName
-    const lastName = full.lastName
-    const clientName = full.client.name
+  if (full.type === 'SORTIE') {
+    // Pour une sortie, notifier l'émetteur de la demande (pas l'employé qui part)
+    const recipient = full.requestedByEmail
+    if (recipient) {
+      const emailBody = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
+<div style="max-width:560px;margin:32px auto;padding:0 16px">
+  <p style="margin:0 0 16px">Bonjour,</p>
+  <p style="margin:0 0 16px">
+    La demande de sortie pour <strong>${firstName} ${lastName}</strong>
+    chez <strong>${clientName}</strong> a été traitée par LSI Maintenance.
+  </p>
+  <p style="margin:0 0 16px">
+    Veuillez trouver en pièce jointe le <strong>bon de prise en charge</strong> correspondant.
+  </p>
+  <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
+</div>
+</body></html>`
 
-    const emailBody = `<!DOCTYPE html>
+      await sendMail({
+        to: recipient,
+        subject: `Demande de sortie traitée — ${firstName} ${lastName} (${clientName})`,
+        html: emailBody,
+        attachment: {
+          data: pdfBuffer,
+          filename: `bon-prise-en-charge-${safeName}.pdf`,
+          contentType: 'application/pdf',
+        },
+      })
+      emailSent = true
+    }
+  } else {
+    // Pour une entrée, envoyer le bon à l'employé
+    const recipient = full.email
+    if (recipient) {
+      const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
 <div style="max-width:560px;margin:32px auto;padding:0 16px">
@@ -171,30 +207,32 @@ export async function validateMovement(
 </div>
 </body></html>`
 
-    await sendMail({
-      to: recipient,
-      subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
-      html: emailBody,
-      attachment: {
-        data: pdfBuffer,
-        filename: `bon-prise-en-charge-${safeName}.pdf`,
-        contentType: 'application/pdf',
-      },
-    })
-    emailSent = true
+      await sendMail({
+        to: recipient,
+        subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
+        html: emailBody,
+        attachment: {
+          data: pdfBuffer,
+          filename: `bon-prise-en-charge-${safeName}.pdf`,
+          contentType: 'application/pdf',
+        },
+      })
+      emailSent = true
 
-    const sigResult = await createHandoverSignatureRequest({
-      pdfBuffer,
-      firstName,
-      lastName,
-      clientName,
-      email: recipient,
-      baseFilename: filename.replace('.pdf', ''),
-    })
-    signingUrl = sigResult?.signingUrl ?? null
+      const sigResult = await createHandoverSignatureRequest({
+        pdfBuffer,
+        firstName,
+        lastName,
+        clientName,
+        email: recipient,
+        baseFilename: filename.replace('.pdf', ''),
+      })
+      signingUrl = sigResult?.signingUrl ?? null
+    }
   }
 
-  return { saved: true, filePath: `/handovers/${filename}`, emailSent, to: recipient, signingUrl }
+  const emailTo = full.type === 'SORTIE' ? (full.requestedByEmail ?? null) : (full.email ?? null)
+  return { saved: true, filePath: `/handovers/${filename}`, emailSent, to: emailTo, signingUrl }
 }
 
 export async function getClientPCs(clientId: string) {

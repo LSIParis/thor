@@ -127,6 +127,7 @@ model PersonnelMovement {
   date                DateTime
   notes               String?
   assignedEquipmentId String?
+  requestedByEmail    String?
   createdAt           DateTime   @default(now())
   client              Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   assignedEquipment   Equipment? @relation(fields: [assignedEquipmentId], references: [id], onDelete: SetNull)
