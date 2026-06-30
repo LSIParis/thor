@@ -33,6 +33,11 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
 
   const clients = await getSidebarClients(session.user.id, isAdmin)
 
+  const pendingMovements =
+    session.user.role !== 'CLIENT'
+      ? await prisma.personnelMovement.count({ where: { status: 'DEMANDE_EFFECTUEE' } })
+      : 0
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
@@ -41,6 +46,7 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
         locale={locale}
         linkedClientId={linkedClientId}
         clients={clients}
+        pendingMovements={pendingMovements}
       />
       <IdleTimer />
       <main className="flex-1 overflow-y-auto bg-background p-6">

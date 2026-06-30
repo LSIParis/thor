@@ -19,13 +19,14 @@ interface SidebarProps {
   locale: string
   linkedClientId?: string | null
   clients?: { id: string; name: string }[]
+  pendingMovements?: number
 }
 
 type NavChild = { href: string; label: string; icon: React.ElementType }
-type NavItem = { href: string; label: string; icon: React.ElementType; children?: NavChild[] }
+type NavItem = { href: string; label: string; icon: React.ElementType; badge?: number; children?: NavChild[] }
 
 
-export function Sidebar({ userRole, userName, locale, linkedClientId, clients = [] }: SidebarProps) {
+export function Sidebar({ userRole, userName, locale, linkedClientId, clients = [], pendingMovements = 0 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -44,6 +45,12 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
     setOpenSections((prev) => ({ ...prev, [href]: !prev[href] }))
   }
 
+  const Badge = ({ count }: { count: number }) => (
+    <span className="ml-auto flex-shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+
   const navItems: NavItem[] =
     userRole === 'CLIENT'
       ? [
@@ -51,7 +58,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
           ...(linkedClientId
             ? [{ href: `/clients/${linkedClientId}`, label: 'Mon espace', icon: Users }]
             : []),
-          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight, badge: pendingMovements || undefined },
         ]
       : [
           { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -61,7 +68,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
             { href: '/contacts', label: 'Contacts',   icon: User },
           ]},
           { href: '/parc',    label: 'Parc',     icon: Monitor },
-          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight },
+          { href: '/mouvements', label: 'Entrées / Sorties', icon: ArrowLeftRight, badge: pendingMovements || undefined },
           { href: '/dns',         label: 'DNS & Mails',   icon: Globe },
           { href: '/m365',        label: 'Microsoft 365', icon: LayoutGrid },
           { href: '/saas',        label: 'Autre SaaS',    icon: Boxes },
@@ -108,7 +115,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
 
       {/* Nav items */}
       <nav className="flex-1 py-2 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon, children }) => {
+        {navItems.map(({ href, label, icon: Icon, badge, children }) => {
           if (!children) {
             return (
               <Link
@@ -122,8 +129,14 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
                 )}
               >
-                <Icon size={16} className="flex-shrink-0" />
+                <span className="relative flex-shrink-0">
+                  <Icon size={16} />
+                  {collapsed && badge ? (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                  ) : null}
+                </span>
                 {!collapsed && <span>{label}</span>}
+                {!collapsed && badge ? <Badge count={badge} /> : null}
               </Link>
             )
           }
