@@ -47,52 +47,63 @@ export async function createHandoverSignatureRequest(opts: {
     ? `Bonjour,\n\nLa demande de sortie pour ${firstName} ${lastName} chez ${clientName} a été traitée.\n\nVeuillez signer le bon de prise en charge en cliquant sur le bouton ci-dessous.\n\nCordialement,\nLSI Maintenance\n\n{{submitter.link}}`
     : `Bonjour ${firstName},\n\nVeuillez signer votre bon de prise en charge en cliquant sur le bouton ci-dessous.\n\nCordialement,\nLSI Maintenance\n\n{{submitter.link}}`
 
-  const submission = await (docuseal as any).createSubmissionFromPdf({
-    name: `${docName} (${clientName})`,
-    send_email: true,
-    message: {
-      subject: emailSubject,
-      body: emailBody,
-    },
-    documents: [
-      {
-        name: docName,
-        file: pdfBase64,
-        fields: [
-          {
-            name: 'Signature réceptionnaire',
-            type: 'signature',
-            role: 'Signataire',
-            required: true,
-            areas: [
-              {
-                // Zone "Signature du réceptionnaire" (colonne gauche, bas de page A4)
-                x: 0.05,
-                y: 0.75,
-                w: 0.40,
-                h: 0.09,
-                page: 1,
-              },
-            ],
-          },
-        ],
+  let submission: any
+  try {
+    submission = await (docuseal as any).createSubmissionFromPdf({
+      name: `${docName} (${clientName})`,
+      send_email: true,
+      message: {
+        subject: emailSubject,
+        body: emailBody,
       },
-    ],
-    submitters: [
-      {
-        name: `${firstName} ${lastName}`,
-        email,
-        role: 'Signataire',
-        metadata: { baseFilename },
-      },
-    ],
-  })
+      documents: [
+        {
+          name: docName,
+          file: pdfBase64,
+          fields: [
+            {
+              name: 'Signature réceptionnaire',
+              type: 'signature',
+              role: 'Signataire',
+              required: true,
+              areas: [
+                {
+                  // Zone "Signature du réceptionnaire" (colonne gauche, bas de page A4)
+                  x: 0.05,
+                  y: 0.75,
+                  w: 0.40,
+                  h: 0.09,
+                  page: 1,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      submitters: [
+        {
+          name: `${firstName} ${lastName}`,
+          email,
+          role: 'Signataire',
+          metadata: { baseFilename },
+        },
+      ],
+    })
+  } catch (err) {
+    console.error('[docuseal] Erreur lors de la création de la demande de signature:', err)
+    return null
+  }
 
   const submitter = submission?.submitters?.[0]
-  if (!submitter) return null
+  if (!submitter) {
+    console.error('[docuseal] Réponse inattendue — pas de submitter:', JSON.stringify(submission))
+    return null
+  }
 
+  const signingUrl = submitter.embed_src ?? `https://docuseal.eu/s/${submitter.slug}`
+  console.log(`[docuseal] Demande créée — submission #${submission.id}, lien: ${signingUrl}`)
   return {
     submissionId: submission.id,
-    signingUrl: submitter.embed_src ?? `https://docuseal.eu/s/${submitter.slug}`,
+    signingUrl,
   }
 }
