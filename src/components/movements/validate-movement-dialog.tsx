@@ -182,6 +182,17 @@ export function ValidateMovementDialog({
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Avertissement si aucun email destinataire */}
+              {!recipientEmail && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700">
+                  <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                  <span>
+                    Aucune adresse e-mail renseignée — le bon sera généré mais <strong>aucun mail ne sera envoyé</strong>.
+                    Renseignez l&apos;adresse sur la fiche avant de valider.
+                  </span>
+                </div>
+              )}
+
               {/* Sélection du PC */}
               <div className="space-y-2">
                 <p className="text-sm font-medium">PC attribué (optionnel)</p>
