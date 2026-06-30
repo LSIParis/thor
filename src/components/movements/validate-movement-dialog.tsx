@@ -32,10 +32,12 @@ export function ValidateMovementDialog({
   movementId,
   clientId,
   movementName,
+  recipientEmail,
 }: {
   movementId: string
   clientId: string
   movementName: string
+  recipientEmail?: string | null
 }) {
   const [open, setOpen]             = useState(false)
   const [pcs, setPcs]               = useState<PC[]>([])
@@ -93,8 +95,21 @@ export function ValidateMovementDialog({
             <p className="text-sm text-muted-foreground pt-0.5">{movementName}</p>
           </DialogHeader>
 
-          {/* ── Résultat après envoi ── */}
-          {result ? (
+          {/* ── Envoi en cours ── */}
+          {isPending ? (
+            <div className="py-8 flex flex-col items-center gap-4 text-center">
+              <Loader2 size={28} className="animate-spin text-emerald-600" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Validation en cours…</p>
+                <p className="text-xs text-muted-foreground">
+                  Génération du bon de prise en charge et envoi du mail
+                  {recipientEmail ? (
+                    <> à <span className="font-mono text-foreground">{recipientEmail}</span></>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+          ) : result ? (
             <div className="py-4 space-y-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <CheckCircle size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />

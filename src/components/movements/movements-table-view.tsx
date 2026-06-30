@@ -486,6 +486,7 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                                   movementId={m.id}
                                   clientId={m.clientId}
                                   movementName={`${m.firstName} ${m.lastName}${m.role ? ` — ${m.role}` : ''}`}
+                                  recipientEmail={m.type === 'SORTIE' ? m.requestedByEmail : m.email}
                                 />
                               </Tip>
                             )}

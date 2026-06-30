@@ -391,6 +391,7 @@ export function MovementList({ movements, clientId, canEdit, isClient }: Props) 
                                   movementId={m.id}
                                   clientId={clientId}
                                   movementName={`${m.firstName} ${m.lastName}${m.role ? ` — ${m.role}` : ''}`}
+                                  recipientEmail={m.type === 'SORTIE' ? m.requestedByEmail : m.email}
                                 />
                               </Tip>
                             )}
