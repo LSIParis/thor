@@ -253,6 +253,12 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
         >
           {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /><span>Réduire</span></>}
         </button>
+
+        {!collapsed && (
+          <div className="px-3 pb-2 pt-0.5 font-mono text-[9px] text-muted-foreground/40 select-none">
+            v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_BUILD_SHA}
+          </div>
+        )}
       </div>
     </aside>
   )
