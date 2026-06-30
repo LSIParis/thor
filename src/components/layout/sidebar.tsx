@@ -11,6 +11,7 @@ import {
   LayoutGrid, Boxes, Cloud, HardDrive, Phone, Monitor, Globe, MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { UpdateBadge } from './update-badge'
 
 interface SidebarProps {
   userRole: string
@@ -253,6 +254,8 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
         >
           {collapsed ? <ChevronRight size={14} /> : <><ChevronLeft size={14} /><span>Réduire</span></>}
         </button>
+
+        {!collapsed && userRole === 'ADMIN' && <UpdateBadge />}
 
         {!collapsed && (
           <div className="px-3 pb-2 pt-0.5 font-mono text-[9px] text-muted-foreground/40 select-none">
