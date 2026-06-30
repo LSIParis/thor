@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/access'
 import { AppLayout } from '@/components/layout/app-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { BackupSection } from '@/components/admin/backup-section'
 
 export default async function SettingsPage() {
   await requireAdmin()
@@ -36,6 +37,16 @@ export default async function SettingsPage() {
             Ces paramètres sont définis dans le fichier <code className="text-xs bg-muted px-1 py-0.5 rounded">.env</code> du serveur.
             Pour les modifier, éditez ce fichier puis redémarrez l&apos;application.
           </p>
+        </div>
+
+        <hr className="border-border" />
+
+        <div className="space-y-1">
+          <h2 className="text-lg font-medium">Sauvegarde & Restauration</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Backup complet de la base de données PostgreSQL.
+          </p>
+          <BackupSection />
         </div>
       </div>
     </AppLayout>
