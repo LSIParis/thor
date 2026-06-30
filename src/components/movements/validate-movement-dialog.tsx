@@ -139,7 +139,9 @@ export function ValidateMovementDialog({
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                   <Mail size={16} className="text-emerald-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-emerald-700">Bon envoyé au nouvel arrivant</p>
+                    <p className="font-medium text-emerald-700">
+                      {result.signingUrl ? 'Lien de signature envoyé via DocuSeal' : 'Bon envoyé par e-mail (PDF)'}
+                    </p>
                     <p className="text-emerald-600 text-xs mt-0.5">{result.to}</p>
                   </div>
                 </div>
@@ -147,7 +149,7 @@ export function ValidateMovementDialog({
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-amber-700">
-                    Aucune adresse e-mail renseignée pour cet arrivant — bon non envoyé.
+                    Aucune adresse e-mail renseignée — bon non envoyé.
                   </p>
                 </div>
               )}

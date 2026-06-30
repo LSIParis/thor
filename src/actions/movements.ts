@@ -155,10 +155,25 @@ export async function validateMovement(
   let signingUrl: string | null = null
 
   if (full.type === 'SORTIE') {
-    // Pour une sortie, notifier l'émetteur de la demande (pas l'employé qui part)
     const recipient = full.requestedByEmail
     if (recipient) {
-      const emailBody = `<!DOCTYPE html>
+      const sigResult = await createHandoverSignatureRequest({
+        pdfBuffer,
+        firstName,
+        lastName,
+        clientName,
+        email: recipient,
+        baseFilename: filename.replace('.pdf', ''),
+        type: 'SORTIE',
+      })
+      signingUrl = sigResult?.signingUrl ?? null
+
+      if (sigResult) {
+        // DocuSeal envoie lui-même l'email avec le lien de signature
+        emailSent = true
+      } else {
+        // Fallback : DocuSeal non configuré → on envoie le PDF par email
+        const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
 <div style="max-width:560px;margin:32px auto;padding:0 16px">
@@ -173,19 +188,22 @@ export async function validateMovement(
   <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
 </div>
 </body></html>`
-
-      await sendMail({
-        to: recipient,
-        subject: `Demande de sortie traitée — ${firstName} ${lastName} (${clientName})`,
-        html: emailBody,
-        attachment: {
-          data: pdfBuffer,
-          filename: `bon-prise-en-charge-${safeName}.pdf`,
-          contentType: 'application/pdf',
-        },
-      })
-      emailSent = true
-
+        await sendMail({
+          to: recipient,
+          subject: `Demande de sortie traitée — ${firstName} ${lastName} (${clientName})`,
+          html: emailBody,
+          attachment: {
+            data: pdfBuffer,
+            filename: `bon-prise-en-charge-${safeName}.pdf`,
+            contentType: 'application/pdf',
+          },
+        })
+        emailSent = true
+      }
+    }
+  } else {
+    const recipient = full.email
+    if (recipient) {
       const sigResult = await createHandoverSignatureRequest({
         pdfBuffer,
         firstName,
@@ -193,15 +211,16 @@ export async function validateMovement(
         clientName,
         email: recipient,
         baseFilename: filename.replace('.pdf', ''),
-        type: 'SORTIE',
+        type: 'ENTREE',
       })
       signingUrl = sigResult?.signingUrl ?? null
-    }
-  } else {
-    // Pour une entrée, envoyer le bon à l'employé
-    const recipient = full.email
-    if (recipient) {
-      const emailBody = `<!DOCTYPE html>
+
+      if (sigResult) {
+        // DocuSeal envoie lui-même l'email avec le lien de signature
+        emailSent = true
+      } else {
+        // Fallback : DocuSeal non configuré → on envoie le PDF par email
+        const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
 <div style="max-width:560px;margin:32px auto;padding:0 16px">
@@ -217,28 +236,18 @@ export async function validateMovement(
   <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
 </div>
 </body></html>`
-
-      await sendMail({
-        to: recipient,
-        subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
-        html: emailBody,
-        attachment: {
-          data: pdfBuffer,
-          filename: `bon-prise-en-charge-${safeName}.pdf`,
-          contentType: 'application/pdf',
-        },
-      })
-      emailSent = true
-
-      const sigResult = await createHandoverSignatureRequest({
-        pdfBuffer,
-        firstName,
-        lastName,
-        clientName,
-        email: recipient,
-        baseFilename: filename.replace('.pdf', ''),
-      })
-      signingUrl = sigResult?.signingUrl ?? null
+        await sendMail({
+          to: recipient,
+          subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
+          html: emailBody,
+          attachment: {
+            data: pdfBuffer,
+            filename: `bon-prise-en-charge-${safeName}.pdf`,
+            contentType: 'application/pdf',
+          },
+        })
+        emailSent = true
+      }
     }
   }
 
