@@ -139,7 +139,9 @@ volumes:
   uploads:
   handovers:
   certbot_www:
+    external: true
   certbot_conf:
+    external: true
 
 networks:
   lsi_net:
