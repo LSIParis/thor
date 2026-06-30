@@ -4,6 +4,7 @@ function configure(): boolean {
   const key = process.env.DOCUSEAL_API_KEY
   if (!key) return false
   const url = process.env.DOCUSEAL_API_URL ?? 'https://api.docuseal.eu'
+  console.log(`[docuseal] configure → ${url}`)
   docuseal.configure({ key, url })
   return true
 }

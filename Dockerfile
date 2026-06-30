@@ -47,8 +47,8 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 
 # Répertoires persistés via volumes + cache Next.js accessible en écriture
-RUN mkdir -p public/uploads/equipment public/handovers .next/cache && \
-    chown -R nextjs:nodejs public/uploads public/handovers .next/cache
+RUN mkdir -p public/uploads/equipment public/handovers && \
+    chown -R nextjs:nodejs public/uploads public/handovers .next
 
 USER nextjs
 EXPOSE 3000
