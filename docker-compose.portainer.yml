@@ -140,8 +140,10 @@ volumes:
   handovers:
   certbot_www:
     external: true
+    name: lsi_certbot_www
   certbot_conf:
     external: true
+    name: lsi_certbot_conf
 
 networks:
   lsi_net:
