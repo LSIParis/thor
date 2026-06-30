@@ -45,9 +45,9 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 
-# Répertoires persistés via volumes
-RUN mkdir -p public/uploads/equipment public/handovers && \
-    chown -R nextjs:nodejs public/uploads public/handovers
+# Répertoires persistés via volumes + cache Next.js accessible en écriture
+RUN mkdir -p public/uploads/equipment public/handovers .next/cache && \
+    chown -R nextjs:nodejs public/uploads public/handovers .next/cache
 
 USER nextjs
 EXPOSE 3000
