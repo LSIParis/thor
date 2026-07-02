@@ -490,6 +490,21 @@ export function MovementsTableView({ movements, clients, canEdit, isClient }: Pr
                                 />
                               </Tip>
                             )}
+                            {m.docusealSlug && !m.docusealSignedAt && (
+                              <Tip label="Ouvrir le formulaire de signature DocuSeal dans l'app">
+                                <a
+                                  href={`/mouvements/${m.id}/signer`}
+                                  className="inline-flex items-center h-6 px-2 text-xs font-medium text-violet-700 hover:text-violet-900 hover:underline"
+                                >
+                                  Signer
+                                </a>
+                              </Tip>
+                            )}
+                            {m.docusealSignedAt && (
+                              <span className="inline-flex items-center h-6 px-2 text-xs font-medium text-emerald-600">
+                                Signé
+                              </span>
+                            )}
                           </div>
                         </td>
                       )}

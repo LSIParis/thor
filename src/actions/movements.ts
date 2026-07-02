@@ -163,6 +163,7 @@ export async function validateMovement(
         lastName,
         clientName,
         email: recipient,
+        clientEmail: full.client.email ?? undefined,
         baseFilename: filename.replace('.pdf', ''),
         type: 'SORTIE',
       })
@@ -171,6 +172,11 @@ export async function validateMovement(
       if (sigResult) {
         // DocuSeal envoie lui-même l'email avec le lien de signature
         emailSent = true
+        // Persiste le slug pour permettre la (re)signature embarquée depuis la fiche
+        await prisma.personnelMovement.update({
+          where: { id: movementId },
+          data: { docusealSlug: sigResult.slug, docusealSubmissionId: sigResult.submissionId },
+        })
       } else {
         // Fallback : DocuSeal non configuré → on envoie le PDF par email
         const emailBody = `<!DOCTYPE html>
@@ -210,6 +216,7 @@ export async function validateMovement(
         lastName,
         clientName,
         email: recipient,
+        clientEmail: full.client.email ?? undefined,
         baseFilename: filename.replace('.pdf', ''),
         type: 'ENTREE',
       })
@@ -218,6 +225,11 @@ export async function validateMovement(
       if (sigResult) {
         // DocuSeal envoie lui-même l'email avec le lien de signature
         emailSent = true
+        // Persiste le slug pour permettre la (re)signature embarquée depuis la fiche
+        await prisma.personnelMovement.update({
+          where: { id: movementId },
+          data: { docusealSlug: sigResult.slug, docusealSubmissionId: sigResult.submissionId },
+        })
       } else {
         // Fallback : DocuSeal non configuré → on envoie le PDF par email
         const emailBody = `<!DOCTYPE html>

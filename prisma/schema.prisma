@@ -128,6 +128,9 @@ model PersonnelMovement {
   notes               String?
   assignedEquipmentId String?
   requestedByEmail    String?
+  docusealSlug         String?    // slug du signataire DocuSeal (URL /s/{slug}) pour re-signature
+  docusealSubmissionId Int?       // id de submission DocuSeal, pour lier le webhook au mouvement
+  docusealSignedAt     DateTime?  // renseigné par le webhook form.completed
   createdAt           DateTime   @default(now())
   client              Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   assignedEquipment   Equipment? @relation(fields: [assignedEquipmentId], references: [id], onDelete: SetNull)
