@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getClientPCs, validateMovement } from '@/actions/movements'
+import { DocusealSignForm } from './docuseal-sign-form'
 
 type PC = {
   id: string
@@ -45,6 +46,7 @@ export function ValidateMovementDialog({
   const [selectedId, setSelectedId] = useState<string>('')
   const [reprise, setReprise]       = useState('')
   const [result, setResult]         = useState<Result>(null)
+  const [showSign, setShowSign]     = useState(false)
   const [isPending, start]          = useTransition()
 
   async function handleOpen() {
@@ -53,6 +55,7 @@ export function ValidateMovementDialog({
     setSelectedId('')
     setReprise('')
     setResult(null)
+    setShowSign(false)
     try {
       const data = await getClientPCs(clientId)
       setPcs(data)
@@ -155,19 +158,39 @@ export function ValidateMovementDialog({
               )}
 
               {result.signingUrl ? (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                  <PenLine size={16} className="text-violet-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-violet-700">Demande de signature envoyée via DocuSeal</p>
-                    <a
-                      href={result.signingUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-violet-600 text-xs mt-0.5 underline underline-offset-2 hover:text-violet-800"
-                    >
-                      Aperçu de la demande
-                    </a>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                    <PenLine size={16} className="text-violet-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm flex-1">
+                      <p className="font-medium text-violet-700">Demande de signature envoyée via DocuSeal</p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowSign((v) => !v)}
+                          className="text-violet-700 text-xs font-medium underline underline-offset-2 hover:text-violet-900"
+                        >
+                          {showSign ? 'Masquer le formulaire' : 'Signer maintenant'}
+                        </button>
+                        <a
+                          href={result.signingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-violet-600 text-xs underline underline-offset-2 hover:text-violet-800"
+                        >
+                          Ouvrir dans un onglet
+                        </a>
+                      </div>
+                    </div>
                   </div>
+                  {showSign && (
+                    <div className="rounded-lg border overflow-y-auto max-h-[60vh]">
+                      <DocusealSignForm
+                        src={result.signingUrl}
+                        email={result.to}
+                        onComplete={() => setShowSign(false)}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : result.emailSent ? (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
