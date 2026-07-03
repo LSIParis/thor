@@ -1,4 +1,5 @@
 import { S3Client, ListBucketsCommand, ListObjectsV2Command, GetBucketLocationCommand, type ListObjectsV2CommandOutput } from '@aws-sdk/client-s3'
+import { NodeHttpHandler } from '@smithy/node-http-handler'
 import { unstable_cache } from 'next/cache'
 
 export type WasabiStats = {
@@ -28,6 +29,7 @@ function clientForRegion(region: string): S3Client {
     endpoint:       regionEndpoint(region),
     credentials:    CREDS(),
     forcePathStyle: true,
+    requestHandler: new NodeHttpHandler({ requestTimeout: 8000, connectionTimeout: 5000 }),
   })
 }
 
