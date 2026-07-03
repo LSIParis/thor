@@ -343,12 +343,12 @@ export function ValidateMovementDialog({
                 </div>
               )}
 
-              {/* Sélection du PC */}
+              {/* Sélection du matériel */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">PC attribué (optionnel)</p>
+                <p className="text-sm font-medium">Matériel attribué (optionnel)</p>
                 {pcs.length === 0 ? (
                   <p className="text-sm text-muted-foreground italic">
-                    Aucun PC enregistré pour ce client.
+                    Aucun matériel enregistré pour ce client.
                   </p>
                 ) : (
                   <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
@@ -363,7 +363,7 @@ export function ValidateMovementDialog({
                         onChange={() => setSelectedId('')}
                         className="accent-primary"
                       />
-                      <span className="text-sm text-muted-foreground italic">— Aucun PC attribué</span>
+                      <span className="text-sm text-muted-foreground italic">— Aucun matériel attribué</span>
                     </label>
 
                     {pcs.map((pc) => {

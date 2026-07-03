@@ -283,10 +283,7 @@ export async function validateMovement(
 export async function getClientPCs(clientId: string) {
   await requireAuth()
   return prisma.equipment.findMany({
-    where: {
-      clientId,
-      type: { in: ['PC Fixe', 'PC Portable', 'Mac Fixe', 'Mac Portable'] },
-    },
+    where: { clientId },
     select: {
       id: true,
       type: true,
