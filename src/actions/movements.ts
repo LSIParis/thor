@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
-import { generateHandoverHtml } from '@/lib/handover-html'
+import { generateAttributionHtml, generateRepriseHtml, type Accessory } from '@/lib/handover-html'
 import { htmlToPdf } from '@/lib/pdf'
 import { sendMail } from '@/lib/mailer'
 import { createHandoverSignatureRequest } from '@/lib/docuseal'
@@ -106,14 +106,15 @@ export async function validateMovement(
   clientId: string,
   equipmentId?: string | null,
   reprise?: string,
-): Promise<{ saved: boolean; filePath: string | null; emailSent: boolean; to: string | null; signingUrl: string | null }> {
+  accessories?: Accessory[],
+): Promise<{ saved: boolean; attributionPath: string | null; reprisePath: string | null; emailSent: boolean; to: string | null; signingUrl: string | null }> {
   const session = await requireAuth()
-  if (session.user.role === 'CLIENT') return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
+  if (session.user.role === 'CLIENT') return { saved: false, attributionPath: null, reprisePath: null, emailSent: false, to: null, signingUrl: null }
 
   const m = await prisma.personnelMovement.findUnique({
     where: { id: movementId, status: 'DEMANDE_EFFECTUEE' },
   })
-  if (!m || m.clientId !== clientId) return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
+  if (!m || m.clientId !== clientId) return { saved: false, attributionPath: null, reprisePath: null, emailSent: false, to: null, signingUrl: null }
 
   const nextStatus = m.type === 'SORTIE' ? 'TERMINE' : 'ACTIF'
   await prisma.personnelMovement.update({
@@ -121,7 +122,6 @@ export async function validateMovement(
     data: { status: nextStatus, assignedEquipmentId: equipmentId ?? null },
   })
 
-  // Récupérer les données complètes pour le bon
   const full = await prisma.personnelMovement.findUnique({
     where: { id: movementId },
     include: {
@@ -135,50 +135,50 @@ export async function validateMovement(
   revalidatePath(`/clients/${clientId}`)
   revalidatePath('/mouvements')
 
-  if (!full) return { saved: false, filePath: null, emailSent: false, to: null, signingUrl: null }
-
-  const handoverHtml = generateHandoverHtml(full, reprise ?? '')
-  const pdfBuffer = await htmlToPdf(handoverHtml)
+  if (!full) return { saved: false, attributionPath: null, reprisePath: null, emailSent: false, to: null, signingUrl: null }
 
   const safeName = `${full.lastName}-${full.firstName}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const timestamp = Date.now()
-  const filename = `bon-prise-en-charge-${safeName}-${timestamp}.pdf`
-
   const dir = join(process.cwd(), 'public', 'handovers')
   await mkdir(dir, { recursive: true })
-  await writeFile(join(dir, filename), pdfBuffer)
 
   const firstName = full.firstName
   const lastName = full.lastName
   const clientName = full.client.name
   let emailSent = false
   let signingUrl: string | null = null
+  let attributionPath: string | null = null
+  let reprisePath: string | null = null
 
   if (full.type === 'SORTIE') {
+    // Bon de reprise — document principal pour une sortie
+    const repriseHtml = generateRepriseHtml(full, reprise ?? '')
+    const reprisePdf = await htmlToPdf(repriseHtml)
+    const repriseFilename = `bon-reprise-${safeName}-${timestamp}.pdf`
+    await writeFile(join(dir, repriseFilename), reprisePdf)
+    reprisePath = `/handovers/${repriseFilename}`
+
     const recipient = full.requestedByEmail
     if (recipient) {
       const sigResult = await createHandoverSignatureRequest({
-        pdfBuffer,
+        pdfBuffer: reprisePdf,
         firstName,
         lastName,
         clientName,
         email: recipient,
         clientEmail: full.client.email ?? undefined,
-        baseFilename: filename.replace('.pdf', ''),
+        baseFilename: repriseFilename.replace('.pdf', ''),
         type: 'SORTIE',
       })
       signingUrl = sigResult?.signingUrl ?? null
 
       if (sigResult) {
-        // DocuSeal envoie lui-même l'email avec le lien de signature
         emailSent = true
-        // Persiste le slug pour permettre la (re)signature embarquée depuis la fiche
         await prisma.personnelMovement.update({
           where: { id: movementId },
           data: { docusealSlug: sigResult.slug, docusealSubmissionId: sigResult.submissionId },
         })
       } else {
-        // Fallback : DocuSeal non configuré → on envoie le PDF par email
         const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
@@ -189,7 +189,7 @@ export async function validateMovement(
     chez <strong>${clientName}</strong> a été traitée par LSI Maintenance.
   </p>
   <p style="margin:0 0 16px">
-    Veuillez trouver en pièce jointe le <strong>bon de prise en charge</strong> correspondant.
+    Veuillez trouver en pièce jointe le <strong>bon de reprise de matériel</strong> correspondant.
   </p>
   <p style="margin:0">Cordialement,<br><strong>LSI Maintenance</strong></p>
 </div>
@@ -199,8 +199,8 @@ export async function validateMovement(
           subject: `Demande de sortie traitée — ${firstName} ${lastName} (${clientName})`,
           html: emailBody,
           attachment: {
-            data: pdfBuffer,
-            filename: `bon-prise-en-charge-${safeName}.pdf`,
+            data: reprisePdf,
+            filename: `bon-reprise-${safeName}.pdf`,
             contentType: 'application/pdf',
           },
         })
@@ -208,37 +208,50 @@ export async function validateMovement(
       }
     }
   } else {
+    // Bon d'attribution — document principal pour une entrée
+    const attrHtml = generateAttributionHtml(full, accessories ?? [])
+    const attrPdf = await htmlToPdf(attrHtml)
+    const attrFilename = `bon-attribution-${safeName}-${timestamp}.pdf`
+    await writeFile(join(dir, attrFilename), attrPdf)
+    attributionPath = `/handovers/${attrFilename}`
+
+    // Bon de reprise si du matériel est récupéré lors de l'entrée
+    if (reprise?.trim()) {
+      const repriseHtml = generateRepriseHtml(full, reprise)
+      const reprisePdf = await htmlToPdf(repriseHtml)
+      const repriseFilename = `bon-reprise-${safeName}-${timestamp}.pdf`
+      await writeFile(join(dir, repriseFilename), reprisePdf)
+      reprisePath = `/handovers/${repriseFilename}`
+    }
+
     const recipient = full.email
     if (recipient) {
       const sigResult = await createHandoverSignatureRequest({
-        pdfBuffer,
+        pdfBuffer: attrPdf,
         firstName,
         lastName,
         clientName,
         email: recipient,
         clientEmail: full.client.email ?? undefined,
-        baseFilename: filename.replace('.pdf', ''),
+        baseFilename: attrFilename.replace('.pdf', ''),
         type: 'ENTREE',
       })
       signingUrl = sigResult?.signingUrl ?? null
 
       if (sigResult) {
-        // DocuSeal envoie lui-même l'email avec le lien de signature
         emailSent = true
-        // Persiste le slug pour permettre la (re)signature embarquée depuis la fiche
         await prisma.personnelMovement.update({
           where: { id: movementId },
           data: { docusealSlug: sigResult.slug, docusealSubmissionId: sigResult.submissionId },
         })
       } else {
-        // Fallback : DocuSeal non configuré → on envoie le PDF par email
         const emailBody = `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0;padding:0">
 <div style="max-width:560px;margin:32px auto;padding:0 16px">
   <p style="margin:0 0 16px">Bonjour ${firstName},</p>
   <p style="margin:0 0 16px">
-    Veuillez trouver en pièce jointe le <strong>bon de prise en charge</strong>
+    Veuillez trouver en pièce jointe le <strong>bon d'attribution de matériel</strong>
     établi pour votre intégration chez <strong>${clientName}</strong>.
   </p>
   <p style="margin:0 0 24px">
@@ -250,11 +263,11 @@ export async function validateMovement(
 </body></html>`
         await sendMail({
           to: recipient,
-          subject: `Votre bon de prise en charge — ${firstName} ${lastName} (${clientName})`,
+          subject: `Votre bon d'attribution de matériel — ${firstName} ${lastName} (${clientName})`,
           html: emailBody,
           attachment: {
-            data: pdfBuffer,
-            filename: `bon-prise-en-charge-${safeName}.pdf`,
+            data: attrPdf,
+            filename: `bon-attribution-${safeName}.pdf`,
             contentType: 'application/pdf',
           },
         })
@@ -264,7 +277,7 @@ export async function validateMovement(
   }
 
   const emailTo = full.type === 'SORTIE' ? (full.requestedByEmail ?? null) : (full.email ?? null)
-  return { saved: true, filePath: `/handovers/${filename}`, emailSent, to: emailTo, signingUrl }
+  return { saved: true, attributionPath, reprisePath, emailSent, to: emailTo, signingUrl }
 }
 
 export async function getClientPCs(clientId: string) {
