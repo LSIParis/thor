@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
-import { generateAttributionHtml, generateRepriseHtml, type Accessory } from '@/lib/handover-html'
+import { generateAttributionHtml, generateRepriseHtml, type Accessory, type EmailAccountAction } from '@/lib/handover-html'
 import { htmlToPdf } from '@/lib/pdf'
 import { sendMail } from '@/lib/mailer'
 import { createHandoverSignatureRequest } from '@/lib/docuseal'
@@ -107,6 +107,7 @@ export async function validateMovement(
   equipmentId?: string | null,
   reprise?: string,
   accessories?: Accessory[],
+  emailAccount?: EmailAccountAction,
 ): Promise<{ saved: boolean; attributionPath: string | null; reprisePath: string | null; emailSent: boolean; to: string | null; signingUrl: string | null }> {
   const session = await requireAuth()
   if (session.user.role === 'CLIENT') return { saved: false, attributionPath: null, reprisePath: null, emailSent: false, to: null, signingUrl: null }
@@ -152,7 +153,7 @@ export async function validateMovement(
 
   if (full.type === 'SORTIE') {
     // Bon de reprise — document principal pour une sortie
-    const repriseHtml = generateRepriseHtml(full, reprise ?? '')
+    const repriseHtml = generateRepriseHtml(full, reprise ?? '', emailAccount ?? null)
     const reprisePdf = await htmlToPdf(repriseHtml)
     const repriseFilename = `bon-reprise-${safeName}-${timestamp}.pdf`
     await writeFile(join(dir, repriseFilename), reprisePdf)
@@ -217,7 +218,7 @@ export async function validateMovement(
 
     // Bon de reprise si du matériel est récupéré lors de l'entrée
     if (reprise?.trim()) {
-      const repriseHtml = generateRepriseHtml(full, reprise)
+      const repriseHtml = generateRepriseHtml(full, reprise, null)
       const reprisePdf = await htmlToPdf(repriseHtml)
       const repriseFilename = `bon-reprise-${safeName}-${timestamp}.pdf`
       await writeFile(join(dir, repriseFilename), reprisePdf)

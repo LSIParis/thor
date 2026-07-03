@@ -28,7 +28,7 @@ export async function GET(
   }
 
   const html = type === 'reprise'
-    ? generateRepriseHtml(m, reprise, true)
+    ? generateRepriseHtml(m, reprise, null, true)
     : generateAttributionHtml(m, [], true)
 
   return new NextResponse(html, {

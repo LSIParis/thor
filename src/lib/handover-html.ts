@@ -49,6 +49,11 @@ export type MovementForHandover = {
 
 export type Accessory = { name: string; qty?: number }
 
+export type EmailAccountAction =
+  | { action: 'redirect'; to: string }
+  | { action: 'delete' }
+  | null
+
 function baseStyles(printable: boolean): string {
   const printCss = printable ? `
     @page { size: A4 portrait; margin: 2cm 2.2cm; }
@@ -170,6 +175,7 @@ export function generateAttributionHtml(
 export function generateRepriseHtml(
   m: MovementForHandover,
   reprise: string,
+  emailAccount: EmailAccountAction = null,
   printable = false,
 ): string {
   const dateDoc = new Date(m.date).toLocaleDateString('fr-FR')
@@ -220,6 +226,17 @@ export function generateRepriseHtml(
     <div style="border:1px solid #d1d5db;border-radius:4px;min-height:60px;padding:8px 10px;font-size:10.5pt;color:#111;white-space:pre-wrap">
       ${reprise ? esc(reprise) : '<span style="color:#9ca3af;font-style:italic">Aucun matériel listé</span>'}
     </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Compte E-mail</div>
+    <table>
+      ${emailAccount?.action === 'redirect'
+        ? `${row('Action', 'Rediriger le courrier')}${row('Destinataire', emailAccount.to)}`
+        : emailAccount?.action === 'delete'
+          ? row('Action', 'Supprimer le compte')
+          : row('Action', 'Aucune action définie')}
+    </table>
   </div>
 
   <div class="sig-grid">

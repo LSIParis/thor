@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, Loader2, Monitor, Laptop, FileDown, Mail, AlertCircle, PenLine, Plus, X, Package } from 'lucide-react'
+import { CheckCircle, Loader2, Monitor, Laptop, FileDown, Mail, AlertCircle, PenLine, Plus, X, Package, AtSign } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getClientPCs, validateMovement } from '@/actions/movements'
 import { DocusealSignForm } from './docuseal-sign-form'
-import type { Accessory } from '@/lib/handover-html'
+import type { Accessory, EmailAccountAction } from '@/lib/handover-html'
 
 type PC = {
   id: string
@@ -28,7 +28,7 @@ const PC_ICON: Record<string, React.ElementType> = {
   'Mac Portable': Laptop,
 }
 
-type Step = 'accessories' | 'form' | 'pending' | 'result'
+type Step = 'accessories' | 'form' | 'email' | 'result'
 
 type Result = {
   saved: boolean
@@ -61,6 +61,8 @@ export function ValidateMovementDialog({
   const [accessories, setAccessories]   = useState<Accessory[]>([])
   const [newAccName, setNewAccName]     = useState('')
   const [newAccQty, setNewAccQty]       = useState('')
+  const [emailAction, setEmailAction]   = useState<'redirect' | 'delete' | 'none'>('none')
+  const [emailRedirectTo, setEmailRedirectTo] = useState('')
   const [result, setResult]             = useState<Result>(null)
   const [showSign, setShowSign]         = useState(false)
   const [isPending, start]              = useTransition()
@@ -74,6 +76,8 @@ export function ValidateMovementDialog({
     setAccessories([])
     setNewAccName('')
     setNewAccQty('')
+    setEmailAction('none')
+    setEmailRedirectTo('')
     setResult(null)
     setShowSign(false)
     try {
@@ -97,9 +101,19 @@ export function ValidateMovementDialog({
     setAccessories((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  function buildEmailAccount(): EmailAccountAction {
+    if (emailAction === 'redirect' && emailRedirectTo.trim())
+      return { action: 'redirect', to: emailRedirectTo.trim() }
+    if (emailAction === 'delete')
+      return { action: 'delete' }
+    return null
+  }
+
   function handleConfirm() {
     start(async () => {
-      const res = await validateMovement(movementId, clientId, selectedId || null, reprise, accessories)
+      const res = await validateMovement(
+        movementId, clientId, selectedId || null, reprise, accessories, buildEmailAccount(),
+      )
       setResult(res)
       setStep('result')
     })
@@ -111,7 +125,7 @@ export function ValidateMovementDialog({
     setStep('accessories')
   }
 
-  const isLoading = step === 'pending' || isPending
+  const isLoading = isPending
 
   return (
     <>
@@ -330,7 +344,7 @@ export function ValidateMovementDialog({
               </div>
             </div>
 
-          ) : (
+          ) : step === 'form' ? (
             /* ── Étape 2 : PC + reprise ── */
             <div className="space-y-4">
               {!recipientEmail && (
@@ -418,58 +432,114 @@ export function ValidateMovementDialog({
                 </p>
               </div>
             </div>
-          )}
+
+          ) : step === 'email' ? (
+            /* ── Étape e-mail (SORTIE) ── */
+            <div className="space-y-4">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs text-violet-700">
+                <AtSign size={13} className="flex-shrink-0 mt-0.5" />
+                <span>
+                  Définissez ce que vous souhaitez faire du compte e-mail de{' '}
+                  <strong>{movementName.split(' — ')[0]}</strong> après son départ.
+                  Cette information sera inscrite sur le bon de reprise.
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {/* Option : Rediriger */}
+                <label className={`flex items-start gap-3 px-3 py-3 rounded-lg border cursor-pointer transition-colors ${
+                  emailAction === 'redirect' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'
+                }`}>
+                  <input
+                    type="radio"
+                    name="emailAction"
+                    value="redirect"
+                    checked={emailAction === 'redirect'}
+                    onChange={() => setEmailAction('redirect')}
+                    className="accent-primary mt-0.5"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <span className="text-sm font-medium">Rediriger vers quelqu'un</span>
+                    {emailAction === 'redirect' && (
+                      <Input
+                        value={emailRedirectTo}
+                        onChange={(e) => setEmailRedirectTo(e.target.value)}
+                        placeholder="Nom et/ou adresse e-mail du destinataire"
+                        className="text-sm"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                </label>
+
+                {/* Option : Supprimer */}
+                <label className={`flex items-center gap-3 px-3 py-3 rounded-lg border cursor-pointer transition-colors ${
+                  emailAction === 'delete' ? 'border-destructive/60 bg-destructive/5' : 'border-border hover:bg-muted/40'
+                }`}>
+                  <input
+                    type="radio"
+                    name="emailAction"
+                    value="delete"
+                    checked={emailAction === 'delete'}
+                    onChange={() => setEmailAction('delete')}
+                    className="accent-destructive"
+                  />
+                  <span className="text-sm font-medium">Supprimer le compte</span>
+                </label>
+
+                {/* Option : Aucune action */}
+                <label className={`flex items-center gap-3 px-3 py-3 rounded-lg border cursor-pointer transition-colors ${
+                  emailAction === 'none' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'
+                }`}>
+                  <input
+                    type="radio"
+                    name="emailAction"
+                    value="none"
+                    checked={emailAction === 'none'}
+                    onChange={() => setEmailAction('none')}
+                    className="accent-primary"
+                  />
+                  <span className="text-sm font-medium text-muted-foreground">Aucune action pour l'instant</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
 
           <DialogFooter className="mt-4">
             {step === 'result' ? (
-              <Button type="button" size="sm" onClick={handleClose}>
-                Fermer
-              </Button>
-            ) : step === 'accessories' ? (
+              <Button type="button" size="sm" onClick={handleClose}>Fermer</Button>
+            ) : isPending ? null : step === 'accessories' ? (
               <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClose}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setStep('form')}
-                  disabled={loading}
-                >
-                  Suivant →
-                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={handleClose}>Annuler</Button>
+                <Button type="button" size="sm" onClick={() => setStep('form')} disabled={loading}>Suivant →</Button>
               </>
-            ) : !isPending && !loading ? (
+            ) : step === 'form' ? (
               <>
                 {movementType === 'ENTREE' && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStep('accessories')}
-                  >
-                    ← Retour
-                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setStep('accessories')}>← Retour</Button>
                 )}
+                <Button type="button" variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>Annuler</Button>
                 <Button
                   type="button"
-                  variant="ghost"
                   size="sm"
-                  onClick={handleClose}
-                  disabled={isPending}
+                  onClick={() => movementType === 'SORTIE' ? setStep('email') : handleConfirm()}
+                  disabled={loading}
+                  className={movementType === 'ENTREE' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
                 >
-                  Annuler
+                  {movementType === 'SORTIE'
+                    ? 'Suivant →'
+                    : <><FileDown size={13} className="mr-1.5" />Valider et générer les bons</>}
                 </Button>
+              </>
+            ) : step === 'email' ? (
+              <>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setStep('form')}>← Retour</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>Annuler</Button>
                 <Button
                   type="button"
                   size="sm"
                   onClick={handleConfirm}
-                  disabled={isPending || loading}
+                  disabled={isPending || (emailAction === 'redirect' && !emailRedirectTo.trim())}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   {isPending
