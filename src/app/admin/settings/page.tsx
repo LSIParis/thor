@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BackupSection } from '@/components/admin/backup-section'
+import { ClearMovementsSection } from '@/components/admin/clear-movements-section'
 
 export default async function SettingsPage() {
   await requireAdmin()
@@ -47,6 +48,16 @@ export default async function SettingsPage() {
             Backup complet de la base de données PostgreSQL.
           </p>
           <BackupSection />
+        </div>
+
+        <hr className="border-border" />
+
+        <div className="space-y-1">
+          <h2 className="text-lg font-medium">Maintenance des données</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Suppression en masse des enregistrements.
+          </p>
+          <ClearMovementsSection />
         </div>
       </div>
     </AppLayout>
