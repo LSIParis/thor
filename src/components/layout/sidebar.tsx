@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Users, Settings, ChevronLeft, ChevronRight,
-  LogOut, User, ArrowLeftRight, ChevronDown,
+  LogOut, User, ArrowLeftRight, ChevronDown, Wrench,
   LayoutGrid, Boxes, Cloud, HardDrive, Phone, Monitor, Globe, MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -75,6 +75,7 @@ export function Sidebar({ userRole, userName, locale, linkedClientId, clients = 
           { href: '/cloud',       label: 'Cloud',         icon: Cloud },
           { href: '/sauvegarde',  label: 'Sauvegarde',    icon: HardDrive },
           { href: '/voip', label: 'Tél. VoIP', icon: Phone },
+          ...(userRole === 'ADMIN' ? [{ href: '/admin/settings', label: 'Maintenance', icon: Wrench }] : []),
         ]
 
   const switchLocale = () => {
