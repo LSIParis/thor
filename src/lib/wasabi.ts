@@ -29,6 +29,7 @@ function clientForRegion(region: string): S3Client {
     endpoint:       regionEndpoint(region),
     credentials:    CREDS(),
     forcePathStyle: true,
+    maxAttempts:    1,
     requestHandler: new NodeHttpHandler({ requestTimeout: 8000, connectionTimeout: 5000 }),
   })
 }
