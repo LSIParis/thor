@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache'
+
 const BASE_URL = () => {
   const sub = process.env.DESK365_SUBDOMAIN
   if (!sub) return null
@@ -140,7 +142,7 @@ export type Desk365Ticket = {
   conversation_count: number
 }
 
-export async function fetchDesk365Tickets(maxPages = 3): Promise<Desk365Ticket[]> {
+async function _fetchDesk365Tickets(maxPages: number): Promise<Desk365Ticket[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
@@ -166,3 +168,10 @@ export async function fetchDesk365Tickets(maxPages = 3): Promise<Desk365Ticket[]
 
   return all
 }
+
+// Cache 5 minutes — les tickets ne changent pas à la seconde près
+export const fetchDesk365Tickets = unstable_cache(
+  (maxPages = 3) => _fetchDesk365Tickets(maxPages),
+  ['desk365-tickets'],
+  { revalidate: 300 },
+)
