@@ -1,12 +1,10 @@
 import { requireAuth } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { Globe, Building2, Shield, AlertTriangle, CheckCircle, XCircle, TriangleAlert } from 'lucide-react'
+import { Globe, Shield, AlertTriangle, CheckCircle, XCircle, TriangleAlert } from 'lucide-react'
 import { DnsCheckPanel, ZoneCheckButton } from '@/components/dns/dns-check-panel'
 import { AddDnsZoneDialog } from '@/components/dns/add-dns-zone-dialog'
 import { DeleteDnsZoneButton } from '@/components/dns/delete-dns-zone-button'
-import { ImportRegistrarDialog } from '@/components/dns/import-registrar-dialog'
-import { RegistrarRowActions } from '@/components/dns/registrar-row-actions'
 import { ClientSelector } from '@/components/dashboard/client-selector'
 
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
@@ -60,24 +58,18 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const in90 = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
 
-  const [allClients, zones, certs, allRegistrars] = await Promise.all([
+  const [allClients, zones, certs] = await Promise.all([
     prisma.client.findMany({
       where: accessFilter,
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
-    // Tableau plat de toutes les zones avec leur dernier résultat de check
     prisma.dnsZone.findMany({
-      where: { registrar: { client: clientFilter } },
-      orderBy: [{ registrar: { client: { name: 'asc' } } }, { domain: 'asc' }],
+      where: { client: clientFilter },
+      orderBy: [{ client: { name: 'asc' } }, { domain: 'asc' }],
       select: {
         id: true, domain: true, nameservers: true, expiryDate: true, autoRenew: true, source: true,
-        registrar: {
-          select: {
-            id: true, name: true, clientId: true,
-            client: { select: { id: true, name: true } },
-          },
-        },
+        client: { select: { id: true, name: true } },
         checkResults: {
           orderBy: { checkedAt: 'desc' },
           take: 1,
@@ -89,11 +81,6 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
       where: { client: clientFilter },
       include: { client: { select: { id: true, name: true } } },
       orderBy: [{ client: { name: 'asc' } }, { domain: 'asc' }],
-    }),
-    prisma.registrar.findMany({
-      where: { client: accessFilter },
-      select: { id: true, clientId: true, name: true },
-      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -114,8 +101,7 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <ClientSelector clients={allClients} selectedId={selectedClientId} basePath="/dns" />
-          <ImportRegistrarDialog clients={allClients} selectedClientId={selectedClientId} />
-          <AddDnsZoneDialog clients={allClients} registrars={allRegistrars} selectedClient={selectedClient} />
+          <AddDnsZoneDialog clients={allClients} selectedClient={selectedClient} />
         </div>
       </div>
 
@@ -147,7 +133,6 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
                 <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-2 text-left">Domaine</th>
                   {isAdmin && !selectedClientId && <th className="px-4 py-2 text-left hidden md:table-cell">Client</th>}
-                  <th className="px-4 py-2 text-left hidden lg:table-cell">Registrar</th>
                   <th className="px-4 py-2 text-left hidden md:table-cell">Nameservers</th>
                   <th className="px-4 py-2 text-left">Expiration</th>
                   <th className="px-4 py-2 text-center hidden sm:table-cell">Auto</th>
@@ -166,12 +151,11 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
                       <td className="px-4 py-2 font-mono text-xs font-medium">{z.domain}</td>
                       {isAdmin && !selectedClientId && (
                         <td className="px-4 py-2 text-xs hidden md:table-cell">
-                          <Link href={`/clients/${z.registrar.client.id}?tab=dns`} className="hover:text-primary transition-colors">
-                            {z.registrar.client.name}
+                          <Link href={`/clients/${z.client.id}?tab=dns`} className="hover:text-primary transition-colors">
+                            {z.client.name}
                           </Link>
                         </td>
                       )}
-                      <td className="px-4 py-2 text-xs text-muted-foreground hidden lg:table-cell">{z.registrar.name}</td>
                       <td className="px-4 py-2 text-xs text-muted-foreground font-mono truncate max-w-[160px] hidden md:table-cell">{z.nameservers ?? '—'}</td>
                       <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                         {fmt(z.expiryDate)}

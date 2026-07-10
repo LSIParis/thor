@@ -10,23 +10,18 @@ import {
   createDnsZone, deleteDnsZone, createDnsRecord, deleteDnsRecord,
   createSslCertificate, deleteSslCertificate,
   createHosting, deleteHosting,
-  createRegistrar, deleteRegistrar,
 } from '@/actions/dns'
 import { Globe, Shield, Server, Trash2, Plus, ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { RegistrarBanner } from './registrar-banner'
-import type { Registrar, DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig } from '@prisma/client'
+import type { DnsZone, DnsRecord, SslCertificate, Hosting } from '@prisma/client'
 
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
-type RegistrarWithZones = Registrar & { dnsZones: ZoneWithRecords[] }
 
 interface DnsPanelProps {
   clientId: string
-  registrars: RegistrarWithZones[]
+  zones: ZoneWithRecords[]
   certs: SslCertificate[]
   hostings: Hosting[]
   canEdit: boolean
-  registrarConfigs: RegistrarConfig[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -50,154 +45,57 @@ function ExpiryBadge({ date }: { date: Date | null }) {
 
 // ── DNS Zones ─────────────────────────────────────────────────────────────────
 
-const KNOWN_REGISTRARS = [
-  'OVH', 'Gandi', 'LWS', 'Ionos', 'Infomaniak', 'Namecheap', 'GoDaddy',
-  'Cloudflare', 'PlanetHoster', 'Amen', 'Online.net', 'Scaleway', 'Letshost', 'Hébergeur Europe',
-]
-
-function NewRegistrarDialog({ clientId }: { clientId: string }) {
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState('')
-  const [isCustom, setIsCustom] = useState(false)
-  const [customName, setCustomName] = useState('')
-
-  const name = isCustom ? customName : selected
-
-  function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value
-    setIsCustom(val === '__custom__')
-    setSelected(val === '__custom__' ? '' : val)
-    setCustomName('')
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setSelected(''); setIsCustom(false); setCustomName('') } }}>
-      <DialogTrigger asChild>
-        <Button size="sm"><Plus size={14} className="mr-1.5" /> Nouveau registrar</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Nouveau registrar</DialogTitle>
-        </DialogHeader>
-        <form
-          action={async (fd) => { await createRegistrar(clientId, fd); setOpen(false) }}
-          className="space-y-4"
-        >
-          <div className="space-y-1.5">
-            <Label className="text-xs">Registrar *</Label>
-            <select
-              value={isCustom ? '__custom__' : selected}
-              onChange={handleSelect}
-              className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-              required={!isCustom}
-            >
-              <option value="">— Choisir —</option>
-              {KNOWN_REGISTRARS.map(r => <option key={r} value={r}>{r}</option>)}
-              <option value="__custom__">Autre…</option>
-            </select>
-            {isCustom
-              ? <Input name="name" value={customName} onChange={e => setCustomName(e.target.value)}
-                  required autoFocus placeholder="Nom du registrar…" className="h-8 text-sm" />
-              : <input type="hidden" name="name" value={name} />
-            }
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Notes <span className="text-muted-foreground">(optionnel)</span></Label>
-            <Input name="notes" placeholder="Compte client, référence…" className="h-8 text-sm" />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={!name}>Enregistrer</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function DnsZonesTab({ clientId, registrars, canEdit }: { clientId: string; registrars: RegistrarWithZones[]; canEdit: boolean }) {
-  const [zoneFormForRegistrar, setZoneFormForRegistrar] = useState<string | null>(null)
+function DnsZonesTab({ clientId, zones, canEdit }: { clientId: string; zones: ZoneWithRecords[]; canEdit: boolean }) {
+  const [showZoneForm, setShowZoneForm] = useState(false)
 
   return (
     <div>
       {canEdit && (
-        <div className="mb-4 flex gap-2">
-          <NewRegistrarDialog clientId={clientId} />
+        <div className="mb-4">
+          <Button size="sm" onClick={() => setShowZoneForm(!showZoneForm)}>
+            <Plus size={14} className="mr-1.5" /> Ajouter un domaine
+          </Button>
         </div>
       )}
 
-      {registrars.length === 0 && (
-        <p className="text-muted-foreground text-sm">Aucun registrar configuré.</p>
-      )}
-
-      {registrars.map(registrar => (
-        <div key={registrar.id} className="mb-4 rounded-lg border border-border overflow-hidden">
-          {/* En-tête registrar */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-secondary/50">
-            <div className="flex items-center gap-2">
-              <Globe size={14} className="text-primary" />
-              <span className="text-sm font-semibold">{registrar.name}</span>
-              <span className="text-xs text-muted-foreground">— {registrar.dnsZones.length} domaine{registrar.dnsZones.length !== 1 ? 's' : ''}</span>
+      {showZoneForm && canEdit && (
+        <form action={async (fd) => { await createDnsZone(clientId, fd); setShowZoneForm(false) }}
+          className="mb-4 p-4 rounded-lg border border-border bg-card space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Domaine *</Label>
+              <Input name="domain" required placeholder="lsiparis.fr" className="h-8 text-sm font-mono" />
             </div>
-            {canEdit && (
-              <div className="flex gap-1">
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
-                  onClick={() => setZoneFormForRegistrar(zoneFormForRegistrar === registrar.id ? null : registrar.id)}>
-                  <Plus size={12} className="mr-1" /> Domaine
-                </Button>
-                <form action={deleteRegistrar.bind(null, registrar.id, clientId)}>
-                  <Button variant="ghost" size="sm" type="submit" className="text-destructive h-7 px-2"><Trash2 size={13} /></Button>
-                </form>
-              </div>
-            )}
+            <div className="space-y-1">
+              <Label className="text-xs">NS (nameservers)</Label>
+              <Input name="nameservers" placeholder="ns1.ovh.net, ns2.ovh.net" className="h-8 text-sm font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Date d&apos;enregistrement</Label>
+              <Input name="registrationDate" type="date" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Date d&apos;expiration</Label>
+              <Input name="expiryDate" type="date" className="h-8 text-sm" />
+            </div>
+            <div className="flex items-end gap-2 pb-1">
+              <input type="checkbox" id="ar-zone" name="autoRenew" className="rounded" />
+              <Label htmlFor="ar-zone" className="text-xs">Renouvellement auto</Label>
+            </div>
           </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">Enregistrer</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowZoneForm(false)}>Annuler</Button>
+          </div>
+        </form>
+      )}
 
-          {/* Formulaire ajout zone */}
-          {zoneFormForRegistrar === registrar.id && canEdit && (
-            <form action={async (fd) => { await createDnsZone(registrar.id, fd); setZoneFormForRegistrar(null) }}
-              className="p-4 border-b border-border bg-card space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Domaine *</Label>
-                  <Input name="domain" required placeholder="lsiparis.fr" className="h-8 text-sm font-mono" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">NS (nameservers)</Label>
-                  <Input name="nameservers" placeholder="ns1.ovh.net, ns2.ovh.net" className="h-8 text-sm font-mono" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Date d'enregistrement</Label>
-                  <Input name="registrationDate" type="date" className="h-8 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Date d'expiration</Label>
-                  <Input name="expiryDate" type="date" className="h-8 text-sm" />
-                </div>
-                <div className="flex items-end gap-2 pb-1">
-                  <input type="checkbox" id={`ar-${registrar.id}`} name="autoRenew" className="rounded" />
-                  <Label htmlFor={`ar-${registrar.id}`} className="text-xs">Renouvellement auto</Label>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm">Enregistrer</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setZoneFormForRegistrar(null)}>Annuler</Button>
-              </div>
-            </form>
-          )}
+      {zones.length === 0 && !showZoneForm && (
+        <p className="text-muted-foreground text-sm">Aucun domaine configuré.</p>
+      )}
 
-          {/* Zones du registrar */}
-          {registrar.dnsZones.length === 0 && zoneFormForRegistrar !== registrar.id && (
-            <p className="text-muted-foreground text-xs italic px-4 py-3">Aucun domaine.</p>
-          )}
-          {registrar.dnsZones.map(zone => (
-            <ZoneSection
-              key={zone.id}
-              zone={zone}
-              clientId={clientId}
-              canEdit={canEdit && zone.source === 'manual'}
-            />
-          ))}
-        </div>
+      {zones.map(zone => (
+        <ZoneSection key={zone.id} zone={zone} clientId={clientId} canEdit={canEdit && zone.source === 'manual'} />
       ))}
     </div>
   )
@@ -220,7 +118,6 @@ function ZoneSection({ zone, clientId, canEdit }: { zone: ZoneWithRecords; clien
         setImportResult(`Erreur : ${data.error}`)
       } else {
         setImportResult(`${data.imported} enregistrements importés (${data.types?.join(', ')})`)
-        // Refresh page to show new records
         window.location.reload()
       }
     } catch {
@@ -385,11 +282,11 @@ function SslTab({ clientId, certs, canEdit }: { clientId: string; certs: SslCert
               </select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date d'émission</Label>
+              <Label className="text-xs">Date d&apos;émission</Label>
               <Input name="issuedDate" type="date" className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date d'expiration</Label>
+              <Label className="text-xs">Date d&apos;expiration</Label>
               <Input name="expiryDate" type="date" className="h-8 text-sm" />
             </div>
             <div className="flex items-end gap-2 pb-1">
@@ -545,26 +442,16 @@ function HostingTab({ clientId, hostings, canEdit }: { clientId: string; hosting
 
 // ── Panel principal ───────────────────────────────────────────────────────────
 
-export function DnsPanel({ clientId, registrars, certs, hostings, canEdit, registrarConfigs }: DnsPanelProps) {
-  const allZones = registrars.flatMap(r => r.dnsZones)
-  const totalZones = allZones.length
+export function DnsPanel({ clientId, zones, certs, hostings, canEdit }: DnsPanelProps) {
   return (
     <div>
-      {(canEdit || registrarConfigs.length > 0) && (
-        <RegistrarBanner
-          clientId={clientId}
-          configs={registrarConfigs}
-          dnsZones={allZones}
-          canEdit={canEdit}
-        />
-      )}
       <Tabs defaultValue="zones">
         <TabsList className="mb-4">
-          <TabsTrigger value="zones"><Globe size={13} className="mr-1.5" />Zones DNS ({totalZones})</TabsTrigger>
+          <TabsTrigger value="zones"><Globe size={13} className="mr-1.5" />Zones DNS ({zones.length})</TabsTrigger>
           <TabsTrigger value="ssl"><Shield size={13} className="mr-1.5" />Certificats SSL ({certs.length})</TabsTrigger>
           <TabsTrigger value="hosting"><Server size={13} className="mr-1.5" />Hébergements ({hostings.length})</TabsTrigger>
         </TabsList>
-        <TabsContent value="zones"><DnsZonesTab clientId={clientId} registrars={registrars} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="zones"><DnsZonesTab clientId={clientId} zones={zones} canEdit={canEdit} /></TabsContent>
         <TabsContent value="ssl"><SslTab clientId={clientId} certs={certs} canEdit={canEdit} /></TabsContent>
         <TabsContent value="hosting"><HostingTab clientId={clientId} hostings={hostings} canEdit={canEdit} /></TabsContent>
       </Tabs>

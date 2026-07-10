@@ -8,20 +8,20 @@ import {
 const COLORS = ['#0ea5e9', '#14b8a6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#6366f1']
 
 interface EquipmentByType { type: string; count: number }
-interface DnsByRegistrar { registrar: string; count: number }
+interface DnsByClient { client: string; count: number }
 interface CertExpiry { month: string; count: number }
 interface TopClient { name: string; count: number }
 
 interface DashboardChartsProps {
   equipmentByType: EquipmentByType[]
-  dnsByRegistrar: DnsByRegistrar[]
+  dnsByClient: DnsByClient[]
   certExpiry: CertExpiry[]
   topClientsByEquipment: TopClient[]
 }
 
 export function DashboardCharts({
   equipmentByType,
-  dnsByRegistrar,
+  dnsByClient,
   certExpiry,
   topClientsByEquipment,
 }: DashboardChartsProps) {
@@ -52,25 +52,25 @@ export function DashboardCharts({
         )}
       </div>
 
-      {/* DNS par registrar */}
+      {/* DNS par client */}
       <div className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-medium text-muted-foreground mb-4">Zones DNS par registrar</h2>
-        {dnsByRegistrar.length === 0 ? (
+        <h2 className="text-sm font-medium text-muted-foreground mb-4">Zones DNS par client</h2>
+        {dnsByClient.length === 0 ? (
           <p className="text-xs text-muted-foreground">Aucune donnée</p>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
-                data={dnsByRegistrar}
+                data={dnsByClient}
                 dataKey="count"
-                nameKey="registrar"
+                nameKey="client"
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
                 label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                 labelLine={false}
               >
-                {dnsByRegistrar.map((_, i) => (
+                {dnsByClient.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>

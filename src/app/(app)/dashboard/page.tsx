@@ -93,7 +93,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     : accessFilter
 
   const clientWhere = { client: clientFilter }
-  const dnsZoneWhere = { registrar: { client: clientFilter } }
+  const dnsZoneWhere = { client: clientFilter }
 
   const now = new Date()
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -122,7 +122,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.sslCertificate.count({ where: { ...clientWhere, expiryDate: { gte: now, lte: in30 } } }),
     prisma.dnsZone.count({ where: { ...dnsZoneWhere, expiryDate: { gte: now, lte: in30 } } }),
     prisma.equipment.groupBy({ by: ['type'], where: clientWhere, _count: { id: true }, orderBy: { _count: { id: 'desc' } } }),
-    prisma.dnsZone.findMany({ where: dnsZoneWhere, select: { registrar: { select: { name: true } }, source: true } }),
+    prisma.dnsZone.findMany({ where: dnsZoneWhere, select: { client: { select: { name: true } }, source: true } }),
     prisma.sslCertificate.findMany({ where: { ...clientWhere, expiryDate: { gte: now, lte: in6m } }, select: { expiryDate: true } }),
     prisma.client.findMany({ where: clientFilter, select: { name: true, _count: { select: { equipment: true } } }, orderBy: { equipment: { _count: 'desc' } }, take: 8 }),
     !isClient
@@ -134,12 +134,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Chart data
   const equipmentByType = equipmentRaw.map((r) => ({ type: r.type, count: r._count.id }))
-  const registrarMap: Record<string, number> = {}
+  const clientMap: Record<string, number> = {}
   for (const z of dnsZones) {
-    const key = z.registrar?.name ?? z.source ?? 'Manuel'
-    registrarMap[key] = (registrarMap[key] ?? 0) + 1
+    const key = z.client?.name ?? 'Manuel'
+    clientMap[key] = (clientMap[key] ?? 0) + 1
   }
-  const dnsByRegistrar = Object.entries(registrarMap).map(([registrar, count]) => ({ registrar, count })).sort((a, b) => b.count - a.count)
+  const dnsByClient = Object.entries(clientMap).map(([client, count]) => ({ client, count })).sort((a, b) => b.count - a.count)
   const monthMap: Record<string, number> = {}
   const monthFmt = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: '2-digit' })
   for (const c of sslExpiry) {
@@ -239,7 +239,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <SectionLabel>Analyses</SectionLabel>
           <DashboardCharts
             equipmentByType={equipmentByType}
-            dnsByRegistrar={dnsByRegistrar}
+            dnsByClient={dnsByClient}
             certExpiry={certExpiry}
             topClientsByEquipment={topClientsByEquipment}
           />

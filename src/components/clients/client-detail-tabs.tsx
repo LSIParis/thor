@@ -13,7 +13,7 @@ import type {
   Contact, Equipment,
   NextcloudService, NextcloudServer,
   VoipService, VoipEquipment, VoipTrunk, VoipExtension,
-  Registrar, DnsZone, DnsRecord, SslCertificate, Hosting, RegistrarConfig,
+  DnsZone, DnsRecord, SslCertificate, Hosting,
   PersonnelMovement,
 } from '@prisma/client'
 
@@ -23,7 +23,6 @@ type VoipServiceWithChildren = VoipService & {
 }
 type EquipmentWithContact = Equipment & { assignedTo: Contact | null }
 type ZoneWithRecords = DnsZone & { records: DnsRecord[] }
-type RegistrarWithZones = Registrar & { dnsZones: ZoneWithRecords[] }
 
 interface ClientDetailTabsProps {
   clientId: string
@@ -31,10 +30,9 @@ interface ClientDetailTabsProps {
   equipment: EquipmentWithContact[]
   nextcloudServices: ServiceWithServers[]
   voipServices: VoipServiceWithChildren[]
-  registrars: RegistrarWithZones[]
+  dnsZones: ZoneWithRecords[]
   sslCerts: SslCertificate[]
   hostings: Hosting[]
-  registrarConfigs: RegistrarConfig[]
   movements: PersonnelMovement[]
   canEdit: boolean
   isClient?: boolean
@@ -44,15 +42,14 @@ interface ClientDetailTabsProps {
 export function ClientDetailTabs({
   clientId, contacts, equipment,
   nextcloudServices, voipServices,
-  registrars, sslCerts, hostings, registrarConfigs,
+  dnsZones, sslCerts, hostings,
   movements, canEdit, isClient, hasRmmLink,
 }: ClientDetailTabsProps) {
   const t = useTranslations('clients')
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get('tab') ?? 'contacts'
 
-  const totalZones = registrars.reduce((s, r) => s + r.dnsZones.length, 0)
-  const dnsTotal = totalZones + sslCerts.length + hostings.length
+  const dnsTotal = dnsZones.length + sslCerts.length + hostings.length
 
   return (
     <Tabs defaultValue={defaultTab}>
@@ -73,10 +70,9 @@ export function ClientDetailTabs({
       <TabsContent value="dns" className="mt-4">
         <DnsPanel
           clientId={clientId}
-          registrars={registrars}
+          zones={dnsZones}
           certs={sslCerts}
           hostings={hostings}
-          registrarConfigs={registrarConfigs}
           canEdit={canEdit}
         />
       </TabsContent>

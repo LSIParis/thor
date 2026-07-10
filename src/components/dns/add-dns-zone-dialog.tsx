@@ -7,15 +7,12 @@ import { createDnsZoneFromPage } from '@/actions/dns'
 import { Plus, X, Loader2, Check } from 'lucide-react'
 
 interface Client { id: string; name: string }
-interface Registrar { id: string; clientId: string; name: string }
 
 export function AddDnsZoneDialog({
   clients,
-  registrars,
   selectedClient,
 }: {
   clients: Client[]
-  registrars: Registrar[]
   selectedClient?: Client | null
 }) {
   const [open, setOpen]           = useState(false)
@@ -24,8 +21,6 @@ export function AddDnsZoneDialog({
   const [clientSel, setClientSel] = useState(selectedClient?.id ?? '')
   const [isPending, start]        = useTransition()
   const router                    = useRouter()
-
-  const filteredRegistrars = registrars.filter(r => r.clientId === clientSel)
 
   function handleOpen() {
     setOpen(true); setDone(false); setError(null)
@@ -74,15 +69,19 @@ export function AddDnsZoneDialog({
 
                 {/* Client */}
                 {selectedClient ? (
-                  <div className="text-sm text-muted-foreground">
-                    Client : <span className="font-medium text-foreground">{selectedClient.name}</span>
-                  </div>
+                  <>
+                    <input type="hidden" name="clientId" value={selectedClient.id} />
+                    <div className="text-sm text-muted-foreground">
+                      Client : <span className="font-medium text-foreground">{selectedClient.name}</span>
+                    </div>
+                  </>
                 ) : (
                   <div>
                     <label className="block text-sm font-medium mb-1">
                       Client <span className="text-destructive">*</span>
                     </label>
                     <select
+                      name="clientId"
                       required
                       value={clientSel}
                       onChange={e => setClientSel(e.target.value)}
@@ -95,31 +94,6 @@ export function AddDnsZoneDialog({
                     </select>
                   </div>
                 )}
-
-                {/* Registrar */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Registrar <span className="text-destructive">*</span>
-                  </label>
-                  {filteredRegistrars.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">
-                      {clientSel
-                        ? 'Aucun registrar pour ce client — créez-en un depuis la page DNS.'
-                        : 'Sélectionnez d\'abord un client.'}
-                    </p>
-                  ) : (
-                    <select
-                      name="registrarId"
-                      required
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">— Sélectionner —</option>
-                      {filteredRegistrars.map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
 
                 {/* Domaine */}
                 <div>
@@ -137,7 +111,7 @@ export function AddDnsZoneDialog({
                 {/* Expiration */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Date d'expiration
+                    Date d&apos;expiration
                     <span className="text-muted-foreground text-xs font-normal ml-1">(optionnel)</span>
                   </label>
                   <input
@@ -168,7 +142,7 @@ export function AddDnsZoneDialog({
 
                 <div className="flex justify-end gap-2 pt-1">
                   <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button type="submit" size="sm" disabled={isPending || filteredRegistrars.length === 0}>
+                  <Button type="submit" size="sm" disabled={isPending || !clientSel}>
                     {isPending
                       ? <><Loader2 size={14} className="animate-spin mr-1.5" />Création…</>
                       : <><Plus size={14} className="mr-1.5" />Créer</>
