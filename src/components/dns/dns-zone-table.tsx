@@ -95,10 +95,14 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
             </thead>
             <tbody className="divide-y divide-border/60">
               {zones.map(z => {
-                const isSelected = z.id === selectedId
-                const isExpired  = z.expiryDate && z.expiryDate < now
-                const isExpiring = z.expiryDate && z.expiryDate >= now && z.expiryDate <= in90
-                const lastCheck  = z.checkResults[0] ?? null
+                const isSelected  = z.id === selectedId
+                const expiryDate  = z.expiryDate ? new Date(z.expiryDate as unknown as string) : null
+                const isExpired   = expiryDate && expiryDate < now
+                const isExpiring  = expiryDate && expiryDate >= now && expiryDate <= in90
+                const rawCheck    = z.checkResults[0] ?? null
+                const lastCheck   = rawCheck
+                  ? { ...rawCheck, checkedAt: new Date(rawCheck.checkedAt as unknown as string) }
+                  : null
 
                 return (
                   <tr
@@ -122,7 +126,7 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                       {z.nameservers ?? '—'}
                     </td>
                     <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                      {fmt(z.expiryDate)}
+                      {fmt(expiryDate)}
                     </td>
                     <td className="px-4 py-2 text-center text-xs text-muted-foreground hidden sm:table-cell">
                       {z.autoRenew ? '✓' : '—'}
