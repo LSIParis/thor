@@ -33,9 +33,15 @@ export async function AppLayout({ children }: { children: React.ReactNode }) {
 
   const clients = await getSidebarClients(session.user.id, isAdmin)
 
+  const getPendingMovements = unstable_cache(
+    () => prisma.personnelMovement.count({ where: { status: 'DEMANDE_EFFECTUEE' } }),
+    ['pending-movements'],
+    { revalidate: 30 },
+  )
+
   const pendingMovements =
     session.user.role !== 'CLIENT'
-      ? await prisma.personnelMovement.count({ where: { status: 'DEMANDE_EFFECTUEE' } })
+      ? await getPendingMovements()
       : 0
 
   return (

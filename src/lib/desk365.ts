@@ -140,7 +140,7 @@ export type Desk365Ticket = {
   conversation_count: number
 }
 
-export async function fetchDesk365Tickets(maxPages = 3): Promise<Desk365Ticket[]> {
+async function _fetchDesk365Tickets(maxPages: number): Promise<Desk365Ticket[]> {
   const base = BASE_URL()
   const apiKey = process.env.DESK365_API_KEY
   if (!base || !apiKey) return []
@@ -166,3 +166,11 @@ export async function fetchDesk365Tickets(maxPages = 3): Promise<Desk365Ticket[]
 
   return all
 }
+
+import { unstable_cache } from 'next/cache'
+
+export const fetchDesk365Tickets = unstable_cache(
+  _fetchDesk365Tickets,
+  ['desk365-tickets'],
+  { revalidate: 300 },
+)
