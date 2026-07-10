@@ -5,12 +5,11 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { ClientSelector } from '@/components/dashboard/client-selector'
 import { fetchDesk365Tickets, desk365Configured, type Desk365Ticket } from '@/lib/desk365'
-import { fetchWasabiStats, wasabiConfigured, fmtBytes } from '@/lib/wasabi'
 import {
   Users, Contact, Monitor, AlertTriangle,
   Globe, ShieldCheck, Server, LayoutGrid,
   Cloud, Phone, Building2, AlertCircle,
-  MessageSquare, HardDrive, Database,
+  MessageSquare,
 } from 'lucide-react'
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -75,18 +74,6 @@ function TicketStatusCard({ label, count, cls, icon: Icon }: { label: string; co
   )
 }
 
-function WasabiStatCard({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
-  return (
-    <div className="bg-card border border-border rounded-lg px-3.5 py-3 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon size={13} className="flex-shrink-0 text-foreground/55" />
-        <span className="text-xs truncate text-foreground/55">{label}</span>
-      </div>
-      <span className="text-sm font-bold tabular-nums flex-shrink-0">{value}</span>
-    </div>
-  )
-}
-
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
@@ -122,7 +109,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     allClients,
     lastCronSetting,
     allTickets,
-    wasabiStats,
   ] = await Promise.all([
     prisma.client.count({ where: clientFilter }),
     prisma.contact.count({ where: { ...clientWhere, visible: true } }),
@@ -145,7 +131,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       : Promise.resolve([] as { id: string; name: string }[]),
     prisma.appSetting.findUnique({ where: { key: 'last_cron_run' } }),
     desk365Configured() ? fetchDesk365Tickets(3) : Promise.resolve([]),
-    wasabiConfigured() && !isClient && !selectedClientId ? fetchWasabiStats() : Promise.resolve(null),
   ])
 
   // Chart data
@@ -218,18 +203,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <InfraItem label="VoIP"             value={voipCount}        icon={Phone} />
             <InfraItem label="SSL exp. < 30j"   value={certsExpiringSoon}    icon={AlertTriangle} alert />
             <InfraItem label="Dom. exp. < 30j"  value={domainsExpiringSoon}  icon={AlertCircle}   alert />
-          </div>
-        </div>
-      )}
-
-      {/* ── Wasabi (vue globale, aucun client sélectionné) ── */}
-      {!isClient && wasabiConfigured() && !selectedClientId && (
-        <div className="mb-6">
-          <SectionLabel>Stockage — Wasabi</SectionLabel>
-          <div className="grid grid-cols-3 gap-2.5">
-            <WasabiStatCard label="Buckets"  value={wasabiStats ? String(wasabiStats.bucketCount) : '—'}                      icon={Database} />
-            <WasabiStatCard label="Objets"   value={wasabiStats ? wasabiStats.totalObjects.toLocaleString('fr-FR') : '—'}     icon={HardDrive} />
-            <WasabiStatCard label="Stockage" value={wasabiStats ? fmtBytes(wasabiStats.totalBytes) : '—'}                     icon={Cloud} />
           </div>
         </div>
       )}
