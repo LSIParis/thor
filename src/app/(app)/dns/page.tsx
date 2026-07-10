@@ -1,12 +1,15 @@
 import { requireAuth } from '@/lib/access'
 import { prisma } from '@/lib/db'
-import Link from 'next/link'
-import { Globe, Shield, AlertTriangle, CheckCircle, XCircle, TriangleAlert } from 'lucide-react'
-import { ZoneCheckButton } from '@/components/dns/dns-check-panel'
+import { Globe, Shield, AlertTriangle, XCircle } from 'lucide-react'
 import { AddDnsZoneDialog } from '@/components/dns/add-dns-zone-dialog'
-import { DeleteDnsZoneButton } from '@/components/dns/delete-dns-zone-button'
 import { ClientSelector } from '@/components/dashboard/client-selector'
-import { computeScore, scoreColor } from '@/lib/dns/score'
+import { DnsZoneTable } from '@/components/dns/dns-zone-table'
+import Link from 'next/link'
+
+function fmt(d: Date | null) {
+  if (!d) return '—'
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
 
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
   return (
@@ -20,29 +23,6 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
   )
 }
 
-function fmt(d: Date | null) {
-  if (!d) return '—'
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
-
-function CheckBadge({ status, checkedAt }: { status: string; checkedAt: Date }) {
-  const date = checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-  if (status === 'OK') return (
-    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium" title={`Vérifié le ${date}`}>
-      <CheckCircle size={12} /> OK
-    </span>
-  )
-  if (status === 'WARNING') return (
-    <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium" title={`Vérifié le ${date}`}>
-      <TriangleAlert size={12} /> Avertissement
-    </span>
-  )
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-destructive font-medium" title={`Vérifié le ${date}`}>
-      <XCircle size={12} /> Erreur
-    </span>
-  )
-}
 
 export default async function DnsPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   const session = await requireAuth()
@@ -74,7 +54,7 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
         checkResults: {
           orderBy: { checkedAt: 'desc' },
           take: 1,
-          select: { globalStatus: true, checkedAt: true, spfValid: true, dmarcValid: true, dmarcPolicy: true, dkimFound: true, blacklistClean: true, blacklistMinorCount: true },
+          select: { globalStatus: true, checkedAt: true, spfValid: true, dmarcValid: true, dmarcPolicy: true, dkimFound: true, blacklistClean: true, blacklistMinorCount: true, details: true },
         },
       },
     }),
@@ -121,87 +101,7 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
           Aucune zone DNS
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-2 text-left">Domaine</th>
-                  {isAdmin && !selectedClientId && <th className="px-4 py-2 text-left hidden md:table-cell">Client</th>}
-                  <th className="px-4 py-2 text-left hidden md:table-cell">Nameservers</th>
-                  <th className="px-4 py-2 text-left">Expiration</th>
-                  <th className="px-4 py-2 text-center hidden sm:table-cell">Auto</th>
-                  <th className="px-4 py-2 text-left">Dernière vérif.</th>
-                  <th className="px-4 py-2 text-right">Vérifier</th>
-                  <th className="px-4 py-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {zones.map(z => {
-                  const isExpired  = z.expiryDate && z.expiryDate < now
-                  const isExpiring = z.expiryDate && z.expiryDate >= now && z.expiryDate <= in90
-                  const lastCheck  = z.checkResults[0] ?? null
-                  return (
-                    <tr key={z.id} className="hover:bg-muted/20 align-middle">
-                      <td className="px-4 py-2 font-mono text-xs font-medium">{z.domain}</td>
-                      {isAdmin && !selectedClientId && (
-                        <td className="px-4 py-2 text-xs hidden md:table-cell">
-                          <Link href={`/clients/${z.client.id}?tab=dns`} className="hover:text-primary transition-colors">
-                            {z.client.name}
-                          </Link>
-                        </td>
-                      )}
-                      <td className="px-4 py-2 text-xs text-muted-foreground font-mono truncate max-w-[160px] hidden md:table-cell">{z.nameservers ?? '—'}</td>
-                      <td className={`px-4 py-2 text-xs ${isExpired ? 'text-destructive font-medium' : isExpiring ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                        {fmt(z.expiryDate)}
-                      </td>
-                      <td className="px-4 py-2 text-center text-xs text-muted-foreground hidden sm:table-cell">
-                        {z.autoRenew ? '✓' : '—'}
-                      </td>
-                      <td className="px-4 py-2 text-xs">
-                        {lastCheck ? (() => {
-                          const score = lastCheck.dmarcPolicy !== undefined
-                            ? computeScore({
-                                spfValid:           lastCheck.spfValid,
-                                dmarcPolicy:        lastCheck.dmarcPolicy,
-                                dkimFound:          lastCheck.dkimFound,
-                                blacklistClean:     lastCheck.blacklistClean,
-                                blacklistMinorCount: lastCheck.blacklistMinorCount,
-                              })
-                            : Math.round(([lastCheck.spfValid, lastCheck.dmarcValid, lastCheck.dkimFound, lastCheck.blacklistClean].filter(Boolean).length / 4) * 100)
-                          return (
-                            <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-2">
-                                <CheckBadge status={lastCheck.globalStatus} checkedAt={lastCheck.checkedAt} />
-                                <span className={`text-xs font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground">
-                                {lastCheck.checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                                {' '}
-                                {!lastCheck.spfValid && <span className="text-destructive">SPF </span>}
-                                {!lastCheck.dmarcValid && <span className="text-destructive">DMARC </span>}
-                                {!lastCheck.dkimFound && <span className="text-amber-600">DKIM </span>}
-                                {!lastCheck.blacklistClean && <span className="text-destructive">BL </span>}
-                              </span>
-                            </div>
-                          )
-                        })() : (
-                          <span className="text-xs text-muted-foreground/50">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <ZoneCheckButton domain={z.domain} />
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <DeleteDnsZoneButton zoneId={z.id} domain={z.domain} />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DnsZoneTable zones={zones} isAdmin={isAdmin} selectedClientId={selectedClientId} />
       )}
 
       {/* ── Certificats SSL ── */}
