@@ -98,6 +98,7 @@ export async function createEquipment(clientId: string, formData: FormData) {
     },
   })
   revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
   redirect(`/clients/${clientId}`)
 }
 
@@ -134,6 +135,7 @@ export async function deleteEquipment(equipmentId: string, clientId: string) {
   await requireAdmin()
   await prisma.equipment.delete({ where: { id: equipmentId } })
   revalidatePath(`/clients/${clientId}`)
+  revalidatePath('/parc'); revalidateTag('parc', { expire: 0 })
   redirect(`/clients/${clientId}`)
 }
 
