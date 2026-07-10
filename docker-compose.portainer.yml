@@ -97,6 +97,7 @@ services:
         printf '%s\n' \
           "*/15 * * * * wget -qO- $$APP_URL/api/cron/check-movements?secret=$$CRON_SECRET >> /var/log/cron.log 2>&1" \
           "0 2,14 * * * wget -qO- $$APP_URL/api/cron/sync-m365?secret=$$CRON_SECRET >> /var/log/cron.log 2>&1" \
+          "0 3 * * 1 wget -qO- $$APP_URL/api/cron/check-dns?secret=$$CRON_SECRET >> /var/log/cron.log 2>&1" \
           | crontab - && crond -f -d 8
     depends_on:
       - app
