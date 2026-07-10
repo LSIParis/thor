@@ -309,16 +309,18 @@ model DnsZone {
 }
 
 model DnsCheckResult {
-  id             String   @id @default(cuid())
-  zoneId         String
-  zone           DnsZone  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  checkedAt      DateTime @default(now())
-  spfValid       Boolean
-  dmarcValid     Boolean
-  dkimFound      Boolean
-  blacklistClean Boolean
-  globalStatus   String
-  details        Json
+  id                  String   @id @default(cuid())
+  zoneId              String
+  zone                DnsZone  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  checkedAt           DateTime @default(now())
+  spfValid            Boolean
+  dmarcValid          Boolean
+  dmarcPolicy         String?
+  dkimFound           Boolean
+  blacklistClean      Boolean
+  blacklistMinorCount Int?
+  globalStatus        String
+  details             Json
 
   @@index([zoneId])
   @@index([checkedAt])

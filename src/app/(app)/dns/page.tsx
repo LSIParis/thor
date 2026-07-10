@@ -2,10 +2,11 @@ import { requireAuth } from '@/lib/access'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { Globe, Shield, AlertTriangle, CheckCircle, XCircle, TriangleAlert } from 'lucide-react'
-import { DnsCheckPanel, ZoneCheckButton } from '@/components/dns/dns-check-panel'
+import { ZoneCheckButton } from '@/components/dns/dns-check-panel'
 import { AddDnsZoneDialog } from '@/components/dns/add-dns-zone-dialog'
 import { DeleteDnsZoneButton } from '@/components/dns/delete-dns-zone-button'
 import { ClientSelector } from '@/components/dashboard/client-selector'
+import { computeScore, scoreColor } from '@/lib/dns/score'
 
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
   return (
@@ -73,7 +74,7 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
         checkResults: {
           orderBy: { checkedAt: 'desc' },
           take: 1,
-          select: { globalStatus: true, checkedAt: true, spfValid: true, dmarcValid: true, dkimFound: true, blacklistClean: true },
+          select: { globalStatus: true, checkedAt: true, spfValid: true, dmarcValid: true, dmarcPolicy: true, dkimFound: true, blacklistClean: true, blacklistMinorCount: true },
         },
       },
     }),
@@ -111,12 +112,6 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
         <StatCard label="Zones exp. <30j"  value={zonesExpiringSoon} icon={<AlertTriangle size={18} />} color="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" />
         <StatCard label="Certifs SSL"      value={certs.length}      icon={<Shield size={18} />}        color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" />
         <StatCard label="Problèmes DNS"    value={zonesWithIssues}   icon={<XCircle size={18} />}       color="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" />
-      </div>
-
-      {/* ── Vérificateur email/DNS ── */}
-      <div className="bg-card border border-border rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-semibold mb-3">Vérifier un domaine (SPF · DMARC · DKIM · Blacklists · BIMI · MTA-STS · TLS-RPT)</h2>
-        <DnsCheckPanel />
       </div>
 
       {/* ── Tableau plat des zones DNS ── */}
@@ -164,19 +159,33 @@ export default async function DnsPage({ searchParams }: { searchParams: Promise<
                         {z.autoRenew ? '✓' : '—'}
                       </td>
                       <td className="px-4 py-2 text-xs">
-                        {lastCheck ? (
-                          <div className="flex flex-col gap-0.5">
-                            <CheckBadge status={lastCheck.globalStatus} checkedAt={lastCheck.checkedAt} />
-                            <span className="text-[10px] text-muted-foreground">
-                              {lastCheck.checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                              {' '}
-                              {!lastCheck.spfValid && <span className="text-destructive">SPF </span>}
-                              {!lastCheck.dmarcValid && <span className="text-destructive">DMARC </span>}
-                              {!lastCheck.dkimFound && <span className="text-amber-600">DKIM </span>}
-                              {!lastCheck.blacklistClean && <span className="text-destructive">BL </span>}
-                            </span>
-                          </div>
-                        ) : (
+                        {lastCheck ? (() => {
+                          const score = lastCheck.dmarcPolicy !== undefined
+                            ? computeScore({
+                                spfValid:           lastCheck.spfValid,
+                                dmarcPolicy:        lastCheck.dmarcPolicy,
+                                dkimFound:          lastCheck.dkimFound,
+                                blacklistClean:     lastCheck.blacklistClean,
+                                blacklistMinorCount: lastCheck.blacklistMinorCount,
+                              })
+                            : Math.round(([lastCheck.spfValid, lastCheck.dmarcValid, lastCheck.dkimFound, lastCheck.blacklistClean].filter(Boolean).length / 4) * 100)
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <CheckBadge status={lastCheck.globalStatus} checkedAt={lastCheck.checkedAt} />
+                                <span className={`text-xs font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">
+                                {lastCheck.checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                                {' '}
+                                {!lastCheck.spfValid && <span className="text-destructive">SPF </span>}
+                                {!lastCheck.dmarcValid && <span className="text-destructive">DMARC </span>}
+                                {!lastCheck.dkimFound && <span className="text-amber-600">DKIM </span>}
+                                {!lastCheck.blacklistClean && <span className="text-destructive">BL </span>}
+                              </span>
+                            </div>
+                          )
+                        })() : (
                           <span className="text-xs text-muted-foreground/50">—</span>
                         )}
                       </td>

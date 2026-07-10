@@ -17,15 +17,18 @@ export async function GET(req: NextRequest) {
   for (const zone of zones) {
     try {
       const result = await runFullCheck(zone.domain)
+      const minorCount = result.blacklists.listed.filter(r => r.listed && !r.major).length
       await prisma.dnsCheckResult.create({
         data: {
-          zoneId:        zone.id,
-          spfValid:      result.spf.valid,
-          dmarcValid:    result.dmarc.valid,
-          dkimFound:     result.dkim.anyFound,
-          blacklistClean: !result.blacklists.hasMajorListing,
-          globalStatus:  result.globalStatus,
-          details:       result as object,
+          zoneId:             zone.id,
+          spfValid:           result.spf.valid,
+          dmarcValid:         result.dmarc.valid,
+          dmarcPolicy:        result.dmarc.policy,
+          dkimFound:          result.dkim.anyFound,
+          blacklistClean:     !result.blacklists.hasMajorListing,
+          blacklistMinorCount: minorCount,
+          globalStatus:       result.globalStatus,
+          details:            result as object,
         },
       })
       if (result.globalStatus === 'OK')      ok++
