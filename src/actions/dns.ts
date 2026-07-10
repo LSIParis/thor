@@ -4,41 +4,78 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { lookupNs, lookupExpiryDate } from '@/lib/dns/lookup'
 
 // ── DNS Zones ─────────────────────────────────────────────
 
 export async function createDnsZoneFromPage(formData: FormData) {
   await requireAdmin()
   const clientId = formData.get('clientId') as string
-  const exp = formData.get('expiryDate') as string
-  await prisma.dnsZone.create({
+  const domain   = (formData.get('domain') as string).toLowerCase().trim()
+  const exp      = formData.get('expiryDate') as string
+
+  const zone = await prisma.dnsZone.create({
     data: {
       clientId,
-      domain: formData.get('domain') as string,
+      domain,
       nameservers: (formData.get('nameservers') as string) || null,
-      expiryDate: exp ? new Date(exp) : null,
-      autoRenew: formData.get('autoRenew') === 'on',
-      notes: (formData.get('notes') as string) || null,
+      expiryDate:  exp ? new Date(exp) : null,
+      autoRenew:   formData.get('autoRenew') === 'on',
+      notes:       (formData.get('notes') as string) || null,
     },
   })
+
+  const [ns, expiry] = await Promise.all([
+    lookupNs(domain),
+    exp ? Promise.resolve(null) : lookupExpiryDate(domain),
+  ])
+
+  if (ns || expiry) {
+    await prisma.dnsZone.update({
+      where: { id: zone.id },
+      data: {
+        ...(ns     ? { nameservers: ns }      : {}),
+        ...(expiry ? { expiryDate:  expiry }  : {}),
+      },
+    })
+  }
+
   revalidatePath('/dns')
 }
 
 export async function createDnsZone(clientId: string, formData: FormData) {
   await requireAdmin()
-  const reg = formData.get('registrationDate') as string
-  const exp = formData.get('expiryDate') as string
-  await prisma.dnsZone.create({
+  const domain = (formData.get('domain') as string).toLowerCase().trim()
+  const reg    = formData.get('registrationDate') as string
+  const exp    = formData.get('expiryDate') as string
+
+  const zone = await prisma.dnsZone.create({
     data: {
       clientId,
-      domain: formData.get('domain') as string,
-      nameservers: (formData.get('nameservers') as string) || null,
+      domain,
+      nameservers:      (formData.get('nameservers') as string) || null,
       registrationDate: reg ? new Date(reg) : null,
-      expiryDate: exp ? new Date(exp) : null,
-      autoRenew: formData.get('autoRenew') === 'on',
-      notes: (formData.get('notes') as string) || null,
+      expiryDate:       exp ? new Date(exp) : null,
+      autoRenew:        formData.get('autoRenew') === 'on',
+      notes:            (formData.get('notes') as string) || null,
     },
   })
+
+  const [ns, expiry] = await Promise.all([
+    lookupNs(domain),
+    exp ? Promise.resolve(null) : lookupExpiryDate(domain),
+  ])
+
+  if (ns || expiry) {
+    await prisma.dnsZone.update({
+      where: { id: zone.id },
+      data: {
+        ...(ns     ? { nameservers: ns }     : {}),
+        ...(expiry ? { expiryDate:  expiry } : {}),
+      },
+    })
+  }
+
   revalidatePath(`/clients/${clientId}`)
   redirect(`/clients/${clientId}?tab=dns`)
 }
