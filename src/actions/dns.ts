@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { requireAdmin } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { lookupNs, lookupExpiryDate } from '@/lib/dns/lookup'
+import { lookupNs, lookupExpiryDate, lookupSslCert } from '@/lib/dns/lookup'
 
 // ── DNS Zones ─────────────────────────────────────────────
 
@@ -25,20 +25,27 @@ export async function createDnsZoneFromPage(formData: FormData) {
     },
   })
 
-  const [ns, expiry] = await Promise.all([
+  const [ns, expiry, ssl] = await Promise.all([
     lookupNs(domain),
     exp ? Promise.resolve(null) : lookupExpiryDate(domain),
+    lookupSslCert(domain),
   ])
 
-  if (ns || expiry) {
-    await prisma.dnsZone.update({
+  await Promise.all([
+    (ns || expiry) ? prisma.dnsZone.update({
       where: { id: zone.id },
       data: {
-        ...(ns     ? { nameservers: ns }      : {}),
-        ...(expiry ? { expiryDate:  expiry }  : {}),
+        ...(ns     ? { nameservers: ns }     : {}),
+        ...(expiry ? { expiryDate:  expiry } : {}),
       },
-    })
-  }
+    }) : Promise.resolve(),
+
+    ssl ? prisma.sslCertificate.upsert({
+      where: { clientId_domain: { clientId, domain } },
+      create: { clientId, domain, issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
+      update: { issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
+    }).catch(() => null) : Promise.resolve(),
+  ])
 
   revalidatePath('/dns')
 }
@@ -61,20 +68,27 @@ export async function createDnsZone(clientId: string, formData: FormData) {
     },
   })
 
-  const [ns, expiry] = await Promise.all([
+  const [ns, expiry, ssl] = await Promise.all([
     lookupNs(domain),
     exp ? Promise.resolve(null) : lookupExpiryDate(domain),
+    lookupSslCert(domain),
   ])
 
-  if (ns || expiry) {
-    await prisma.dnsZone.update({
+  await Promise.all([
+    (ns || expiry) ? prisma.dnsZone.update({
       where: { id: zone.id },
       data: {
         ...(ns     ? { nameservers: ns }     : {}),
         ...(expiry ? { expiryDate:  expiry } : {}),
       },
-    })
-  }
+    }) : Promise.resolve(),
+
+    ssl ? prisma.sslCertificate.upsert({
+      where: { clientId_domain: { clientId, domain } },
+      create: { clientId, domain, issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
+      update: { issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
+    }).catch(() => null) : Promise.resolve(),
+  ])
 
   revalidatePath(`/clients/${clientId}`)
   redirect(`/clients/${clientId}?tab=dns`)

@@ -351,6 +351,8 @@ model SslCertificate {
   notes      String?
   createdAt  DateTime  @default(now())
   client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, domain])
 }
 
 model Hosting {

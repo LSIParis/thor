@@ -1,5 +1,6 @@
 import { resolveNs } from 'dns/promises'
 import { createConnection } from 'net'
+import { connect as tlsConnect } from 'tls'
 
 export async function lookupNs(domain: string): Promise<string | null> {
   try {
@@ -56,4 +57,41 @@ export async function lookupExpiryDate(domain: string): Promise<Date | null> {
   } catch {
     return null
   }
+}
+
+export interface SslCertInfo {
+  issuer: string | null
+  issuedDate: Date | null
+  expiryDate: Date | null
+}
+
+export async function lookupSslCert(domain: string): Promise<SslCertInfo | null> {
+  return new Promise(resolve => {
+    const socket = tlsConnect({
+      host: domain,
+      port: 443,
+      servername: domain,
+      rejectUnauthorized: false,
+    })
+    const timer = setTimeout(() => { socket.destroy(); resolve(null) }, 8000)
+    socket.on('secureConnect', () => {
+      clearTimeout(timer)
+      try {
+        const cert = socket.getPeerCertificate()
+        socket.destroy()
+        if (!cert?.subject) { resolve(null); return }
+        resolve({
+          issuer:     (Array.isArray(cert.issuer?.O) ? cert.issuer.O[0] : cert.issuer?.O)
+                        ?? (Array.isArray(cert.issuer?.CN) ? cert.issuer.CN[0] : cert.issuer?.CN)
+                        ?? null,
+          issuedDate: cert.valid_from ? new Date(cert.valid_from) : null,
+          expiryDate: cert.valid_to   ? new Date(cert.valid_to)   : null,
+        })
+      } catch {
+        socket.destroy()
+        resolve(null)
+      }
+    })
+    socket.on('error', () => { clearTimeout(timer); resolve(null) })
+  })
 }
