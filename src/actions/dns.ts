@@ -1,10 +1,11 @@
 'use server'
 
 import { prisma } from '@/lib/db'
-import { requireAdmin } from '@/lib/access'
+import { requireAdmin, requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { lookupNs, lookupExpiryDate, lookupSslCert } from '@/lib/dns/lookup'
+import type { CheckPayload } from '@/lib/dns/types'
 
 // ── DNS Zones ─────────────────────────────────────────────
 
@@ -92,6 +93,25 @@ export async function createDnsZone(clientId: string, formData: FormData) {
 
   revalidatePath(`/clients/${clientId}`)
   redirect(`/clients/${clientId}?tab=dns`)
+}
+
+export async function saveCheckResult(zoneId: string, payload: CheckPayload) {
+  await requireAuth()
+  const minorCount = payload.blacklists.listed.filter(r => r.listed && !r.major).length
+  await prisma.dnsCheckResult.create({
+    data: {
+      zoneId,
+      spfValid:            payload.spf.valid,
+      dmarcValid:          payload.dmarc.valid,
+      dmarcPolicy:         payload.dmarc.policy,
+      dkimFound:           payload.dkim.anyFound,
+      blacklistClean:      !payload.blacklists.hasMajorListing,
+      blacklistMinorCount: minorCount,
+      globalStatus:        payload.globalStatus,
+      details:             payload as object,
+    },
+  })
+  revalidatePath('/dns')
 }
 
 export async function deleteDnsZoneFromPage(zoneId: string) {

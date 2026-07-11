@@ -163,7 +163,7 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                       )}
                     </td>
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
-                      <ZoneCheckButton domain={z.domain} />
+                      <ZoneCheckButton domain={z.domain} zoneId={z.id} />
                     </td>
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
                       <DeleteDnsZoneButton zoneId={z.id} domain={z.domain} />

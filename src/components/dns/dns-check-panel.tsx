@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckResultCard } from './check-result-card'
 import { RefreshCw, Search } from 'lucide-react'
 import type { CheckPayload } from '@/lib/dns/types'
+import { saveCheckResult } from '@/actions/dns'
 
 export function DnsCheckPanel({ initialDomain }: { initialDomain?: string }) {
   const [domain, setDomain]           = useState(initialDomain ?? '')
@@ -110,7 +112,8 @@ export function DnsCheckPanel({ initialDomain }: { initialDomain?: string }) {
 }
 
 // Lightweight button used per-row in the zone table
-export function ZoneCheckButton({ domain }: { domain: string }) {
+export function ZoneCheckButton({ domain, zoneId }: { domain: string; zoneId: string }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<CheckPayload | null>(null)
@@ -130,6 +133,8 @@ export function ZoneCheckButton({ domain }: { domain: string }) {
       if (!res.ok) { setError(data.error ?? 'Erreur'); setLoading(false); return }
       setResult(data)
       setOpen(true)
+      await saveCheckResult(zoneId, data)
+      router.refresh()
     } catch {
       setError('Erreur réseau')
     }
