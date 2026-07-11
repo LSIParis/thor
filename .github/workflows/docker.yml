@@ -43,16 +43,26 @@ jobs:
           TOKEN=$(curl -s -X POST "${{ secrets.PORTAINER_URL }}/api/auth" \
             -H "Content-Type: application/json" \
             -d "{\"username\":\"${{ secrets.PORTAINER_USER }}\",\"password\":\"${{ secrets.PORTAINER_PASSWORD }}\"}" \
-            | jq -r '.jwt')
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['jwt'])")
 
-          STACK=$(curl -s -X GET "${{ secrets.PORTAINER_URL }}/api/stacks/103" \
-            -H "Authorization: Bearer $TOKEN")
+          COMPOSE=$(curl -s "${{ secrets.PORTAINER_URL }}/api/stacks/103/file" \
+            -H "Authorization: Bearer $TOKEN" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['StackFileContent'])")
 
-          COMPOSE=$(echo "$STACK" | jq -r '.StackFileContent')
-          ENV=$(echo "$STACK" | jq '.Env // []')
+          ENV=$(curl -s "${{ secrets.PORTAINER_URL }}/api/stacks/103" \
+            -H "Authorization: Bearer $TOKEN" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d.get('Env') or []))")
 
-          curl -s -X PUT "${{ secrets.PORTAINER_URL }}/api/stacks/103?endpointId=13" \
+          PAYLOAD=$(python3 -c "
+          import json, sys
+          compose = open('/dev/stdin').read()
+          env = json.loads('$ENV')
+          print(json.dumps({'StackFileContent': compose, 'Env': env, 'PullImage': True}))
+          " <<< "$COMPOSE")
+
+          RESULT=$(curl -s -X PUT "${{ secrets.PORTAINER_URL }}/api/stacks/103?endpointId=13" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"StackFileContent\":$(echo "$COMPOSE" | jq -Rs .),\"Env\":$ENV,\"PullImage\":true}" \
-            | jq '{status: .Status, updated: .UpdateDate}'
+            -d "$PAYLOAD")
+
+          echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('Status:', d.get('Status'), '| Name:', d.get('Name'))"
