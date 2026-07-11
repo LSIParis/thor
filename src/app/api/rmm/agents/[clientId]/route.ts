@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import axios from 'axios'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { fetchRmmClients, fetchRmmAgents, rmmAgentToEquipmentType, getRmmConfig } from '@/lib/rmm-client'
@@ -212,6 +213,7 @@ export async function POST(
       }
     }
 
+    revalidateTag('parc')
     return NextResponse.json({ created, updated, unchanged, deleted, total: agents.length })
   } catch (err: any) {
     console.error('[RMM agents import]', err)
