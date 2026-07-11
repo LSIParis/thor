@@ -37,3 +37,22 @@ jobs:
             ghcr.io/lsiparis/thor:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Redeploy via Portainer
+        run: |
+          TOKEN=$(curl -s -X POST "${{ secrets.PORTAINER_URL }}/api/auth" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${{ secrets.PORTAINER_USER }}\",\"password\":\"${{ secrets.PORTAINER_PASSWORD }}\"}" \
+            | jq -r '.jwt')
+
+          STACK=$(curl -s -X GET "${{ secrets.PORTAINER_URL }}/api/stacks/103" \
+            -H "Authorization: Bearer $TOKEN")
+
+          COMPOSE=$(echo "$STACK" | jq -r '.StackFileContent')
+          ENV=$(echo "$STACK" | jq '.Env // []')
+
+          curl -s -X PUT "${{ secrets.PORTAINER_URL }}/api/stacks/103?endpointId=13" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"StackFileContent\":$(echo "$COMPOSE" | jq -Rs .),\"Env\":$ENV,\"PullImage\":true}" \
+            | jq '{status: .Status, updated: .UpdateDate}'
