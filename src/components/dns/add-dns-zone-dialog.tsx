@@ -47,7 +47,7 @@ export function AddDnsZoneDialog({
     <>
       <Button size="sm" onClick={handleOpen}>
         <Plus size={14} className="mr-1.5" />
-        Ajouter un DNS
+        Ajout domaine
       </Button>
 
       {open && (
