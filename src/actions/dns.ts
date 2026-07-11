@@ -5,6 +5,7 @@ import { requireAdmin, requireAuth } from '@/lib/access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { lookupNs, lookupExpiryDate, lookupSslCert } from '@/lib/dns/lookup'
+import { runFullCheck } from '@/lib/dns/checker'
 import type { CheckPayload } from '@/lib/dns/types'
 
 // ── DNS Zones ─────────────────────────────────────────────
@@ -26,10 +27,11 @@ export async function createDnsZoneFromPage(formData: FormData) {
     },
   })
 
-  const [ns, expiry, ssl] = await Promise.all([
+  const [ns, expiry, ssl, check] = await Promise.all([
     lookupNs(domain),
     exp ? Promise.resolve(null) : lookupExpiryDate(domain),
     lookupSslCert(domain),
+    runFullCheck(domain).catch(() => null),
   ])
 
   await Promise.all([
@@ -46,6 +48,20 @@ export async function createDnsZoneFromPage(formData: FormData) {
       create: { clientId, domain, issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
       update: { issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
     }).catch(() => null) : Promise.resolve(),
+
+    check ? prisma.dnsCheckResult.create({
+      data: {
+        zoneId:              zone.id,
+        spfValid:            check.spf.valid,
+        dmarcValid:          check.dmarc.valid,
+        dmarcPolicy:         check.dmarc.policy,
+        dkimFound:           check.dkim.anyFound,
+        blacklistClean:      !check.blacklists.hasMajorListing,
+        blacklistMinorCount: check.blacklists.listed.filter(r => r.listed && !r.major).length,
+        globalStatus:        check.globalStatus,
+        details:             check as object,
+      },
+    }) : Promise.resolve(),
   ])
 
   revalidatePath('/dns')
@@ -69,10 +85,11 @@ export async function createDnsZone(clientId: string, formData: FormData) {
     },
   })
 
-  const [ns, expiry, ssl] = await Promise.all([
+  const [ns, expiry, ssl, check] = await Promise.all([
     lookupNs(domain),
     exp ? Promise.resolve(null) : lookupExpiryDate(domain),
     lookupSslCert(domain),
+    runFullCheck(domain).catch(() => null),
   ])
 
   await Promise.all([
@@ -89,6 +106,20 @@ export async function createDnsZone(clientId: string, formData: FormData) {
       create: { clientId, domain, issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
       update: { issuer: ssl.issuer, issuedDate: ssl.issuedDate, expiryDate: ssl.expiryDate },
     }).catch(() => null) : Promise.resolve(),
+
+    check ? prisma.dnsCheckResult.create({
+      data: {
+        zoneId:              zone.id,
+        spfValid:            check.spf.valid,
+        dmarcValid:          check.dmarc.valid,
+        dmarcPolicy:         check.dmarc.policy,
+        dkimFound:           check.dkim.anyFound,
+        blacklistClean:      !check.blacklists.hasMajorListing,
+        blacklistMinorCount: check.blacklists.listed.filter(r => r.listed && !r.major).length,
+        globalStatus:        check.globalStatus,
+        details:             check as object,
+      },
+    }) : Promise.resolve(),
   ])
 
   revalidatePath(`/clients/${clientId}`)
