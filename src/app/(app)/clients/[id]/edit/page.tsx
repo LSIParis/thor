@@ -16,7 +16,7 @@ export default async function EditClientPage({ params }: Props) {
   await requireAdmin()
   const t = await getTranslations('clients')
 
-  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, cometUsername: true, cometPassword: true } })
+  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, hasM365: true, cometUsername: true, cometPassword: true } })
   if (!client) notFound()
 
   const updateWithId = updateClient.bind(null, id)
@@ -69,6 +69,10 @@ export default async function EditClientPage({ params }: Props) {
               autoComplete="new-password"
               placeholder={client.cometPassword ? '(inchangé si vide)' : 'Nouveau mot de passe'}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="hasM365" type="checkbox" name="hasM365" value="true" defaultChecked={client.hasM365} className="rounded border-input" />
+            <Label htmlFor="hasM365" className="text-sm font-normal cursor-pointer">Compte Microsoft 365 (M365)</Label>
           </div>
           <div className="flex items-center gap-2">
             <input id="noSync" type="checkbox" name="noSync" value="true" defaultChecked={client.noSync} className="rounded border-input" />

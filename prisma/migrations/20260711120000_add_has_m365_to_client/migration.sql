@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Client" ADD COLUMN "hasM365" BOOLEAN NOT NULL DEFAULT false;
