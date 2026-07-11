@@ -89,6 +89,7 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                 <th className="px-4 py-2 text-left">Expiration</th>
                 <th className="px-4 py-2 text-center hidden sm:table-cell">Auto</th>
                 <th className="px-4 py-2 text-left">Dernière vérif.</th>
+                <th className="px-4 py-2 text-left hidden sm:table-cell">Note</th>
                 <th className="px-4 py-2 text-right">Vérifier</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -132,34 +133,34 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                       {z.autoRenew ? '✓' : '—'}
                     </td>
                     <td className="px-4 py-2 text-xs">
-                      {lastCheck ? (() => {
-                        const score = lastCheck.dmarcPolicy !== undefined
-                          ? computeScore({
-                              spfValid:            lastCheck.spfValid,
-                              dmarcPolicy:         lastCheck.dmarcPolicy,
-                              dkimFound:           lastCheck.dkimFound,
-                              blacklistClean:      lastCheck.blacklistClean,
-                              blacklistMinorCount: lastCheck.blacklistMinorCount,
-                            })
-                          : Math.round(([lastCheck.spfValid, lastCheck.dmarcValid, lastCheck.dkimFound, lastCheck.blacklistClean].filter(Boolean).length / 4) * 100)
-                        return (
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                              <CheckBadge status={lastCheck.globalStatus} checkedAt={lastCheck.checkedAt} />
-                              <span className={`text-xs font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
-                            </div>
-                            <span className="text-[10px] text-muted-foreground">
-                              {lastCheck.checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                              {' '}
-                              {!lastCheck.spfValid && <span className="text-destructive">SPF </span>}
-                              {!lastCheck.dmarcValid && <span className="text-destructive">DMARC </span>}
-                              {!lastCheck.dkimFound && <span className="text-amber-600">DKIM </span>}
-                              {!lastCheck.blacklistClean && <span className="text-destructive">BL </span>}
-                            </span>
-                          </div>
-                        )
-                      })() : (
+                      {lastCheck ? (
+                        <div className="flex flex-col gap-0.5">
+                          <CheckBadge status={lastCheck.globalStatus} checkedAt={lastCheck.checkedAt} />
+                          <span className="text-[10px] text-muted-foreground">
+                            {lastCheck.checkedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                            {' '}
+                            {!lastCheck.spfValid && <span className="text-destructive">SPF </span>}
+                            {!lastCheck.dmarcValid && <span className="text-destructive">DMARC </span>}
+                            {!lastCheck.dkimFound && <span className="text-amber-600">DKIM </span>}
+                            {!lastCheck.blacklistClean && <span className="text-destructive">BL </span>}
+                          </span>
+                        </div>
+                      ) : (
                         <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-xs hidden sm:table-cell">
+                      {lastCheck ? (() => {
+                        const score = computeScore({
+                          spfValid:            lastCheck.spfValid,
+                          dmarcPolicy:         lastCheck.dmarcPolicy,
+                          dkimFound:           lastCheck.dkimFound,
+                          blacklistClean:      lastCheck.blacklistClean,
+                          blacklistMinorCount: lastCheck.blacklistMinorCount,
+                        })
+                        return <span className={`font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
+                      })() : (
+                        <span className="text-muted-foreground/50">—</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
