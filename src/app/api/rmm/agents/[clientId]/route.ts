@@ -139,8 +139,9 @@ export async function POST(
       if (!agent.agent_id) continue
       const type   = rmmAgentToEquipmentType(agent)
       const localIp = agent.local_ips?.split(',')[0]?.trim() || agent.public_ip || null
-      const brand   = agent.make_model?.split(' ')[0] || null
-      const model   = agent.make_model || agent.hostname
+      const mmParts = agent.make_model?.trim().split(/\s+/) ?? []
+      const brand   = mmParts[0] || null
+      const model   = mmParts.length > 1 ? mmParts.slice(1).join(' ') : (agent.make_model || agent.hostname)
       const siteId  = agent.site_name ? (siteMap.get(agent.site_name.toLowerCase()) ?? null) : null
       const assignedToId = matchContactFromDescription(agent.description)
 
