@@ -2,10 +2,11 @@ export interface ScoreInput {
   spfValid: boolean
   dmarcPolicy: string | null | undefined
   dkimFound: boolean
-  blacklistClean: boolean        // no major BL listing
+  blacklistClean: boolean
   blacklistMinorCount: number | null | undefined
 }
 
+/** Score délivrabilité pondéré (max 100). */
 export function computeScore(input: ScoreInput): number {
   let score = 0
 
@@ -26,6 +27,19 @@ export function computeScore(input: ScoreInput): number {
   }
 
   return score
+}
+
+export interface GlobalScoreInput extends ScoreInput {
+  bimiValid: boolean
+  mtaStsValid: boolean
+  tlsRptValid: boolean
+}
+
+/** Note globale = délivrabilité − 5 pts par option absente (BIMI, MTA-STS, TLS-RPT). */
+export function computeGlobalScore(input: GlobalScoreInput): number {
+  const deliverability = computeScore(input)
+  const absentOptionals = [input.bimiValid, input.mtaStsValid, input.tlsRptValid].filter(v => !v).length
+  return Math.max(0, deliverability - absentOptionals * 5)
 }
 
 export function scoreColor(score: number): string {

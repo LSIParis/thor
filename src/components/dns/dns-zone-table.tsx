@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, TriangleAlert, X } from 'lucide-react'
 import { CheckResultCard } from './check-result-card'
 import { ZoneCheckButton } from './dns-check-panel'
 import { DeleteDnsZoneButton } from './delete-dns-zone-button'
-import { computeScore, scoreColor } from '@/lib/dns/score'
+import { computeGlobalScore, scoreColor } from '@/lib/dns/score'
 import type { CheckPayload } from '@/lib/dns/types'
 
 function fmt(d: Date | null) {
@@ -89,7 +89,7 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                 <th className="px-4 py-2 text-left">Expiration</th>
                 <th className="px-4 py-2 text-center hidden sm:table-cell">Auto</th>
                 <th className="px-4 py-2 text-left">Dernière vérif.</th>
-                <th className="px-4 py-2 text-left hidden sm:table-cell">Note</th>
+                <th className="px-4 py-2 text-left hidden sm:table-cell">Note globale</th>
                 <th className="px-4 py-2 text-right">Vérifier</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -151,12 +151,16 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                     </td>
                     <td className="px-4 py-2 text-xs hidden sm:table-cell">
                       {lastCheck ? (() => {
-                        const score = computeScore({
+                        const details = lastCheck.details as CheckPayload | undefined
+                        const score = computeGlobalScore({
                           spfValid:            lastCheck.spfValid,
                           dmarcPolicy:         lastCheck.dmarcPolicy,
                           dkimFound:           lastCheck.dkimFound,
                           blacklistClean:      lastCheck.blacklistClean,
                           blacklistMinorCount: lastCheck.blacklistMinorCount,
+                          bimiValid:           details?.bimi?.valid ?? false,
+                          mtaStsValid:         details?.mtaSts?.valid ?? false,
+                          tlsRptValid:         details?.tlsRpt?.valid ?? false,
                         })
                         return <span className={`font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
                       })() : (

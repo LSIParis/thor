@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CheckPayload } from '@/lib/dns/types'
-import { computeScore, scoreColor } from '@/lib/dns/score'
+import { computeScore, computeGlobalScore, scoreColor } from '@/lib/dns/score'
 
 type IconStatus = 'OK' | 'WARNING' | 'ERROR' | 'UNKNOWN'
 
@@ -24,12 +24,15 @@ function StatusIcon({ status }: { status: IconStatus }) {
   )
 }
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, label }: { score: number; label: string }) {
   const borderCls = score >= 80 ? 'border-emerald-400' : score >= 50 ? 'border-amber-400' : 'border-red-400'
   return (
-    <span className={`inline-flex items-center justify-center w-14 h-14 rounded-full border-2 text-base font-bold ${borderCls} ${scoreColor(score)}`}>
-      {score}%
-    </span>
+    <div className="flex flex-col items-center gap-1">
+      <span className={`inline-flex items-center justify-center w-14 h-14 rounded-full border-2 text-base font-bold ${borderCls} ${scoreColor(score)}`}>
+        {score}%
+      </span>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</span>
+    </div>
   )
 }
 
@@ -48,12 +51,19 @@ function Section({ title, status, children }: { title: string; status: IconStatu
 export function CheckResultCard({ payload }: { payload: CheckPayload }) {
   const [showAllRbls, setShowAllRbls] = useState(false)
   const minorCount = payload.blacklists.listed.filter(r => r.listed && !r.major).length
-  const score = computeScore({
+  const scoreInput = {
     spfValid:            payload.spf.valid,
     dmarcPolicy:         payload.dmarc.policy,
     dkimFound:           payload.dkim.anyFound,
     blacklistClean:      !payload.blacklists.hasMajorListing,
     blacklistMinorCount: minorCount,
+  }
+  const deliverabilityScore = computeScore(scoreInput)
+  const globalScore = computeGlobalScore({
+    ...scoreInput,
+    bimiValid:    payload.bimi.valid,
+    mtaStsValid:  payload.mtaSts.valid,
+    tlsRptValid:  payload.tlsRpt.valid,
   })
 
   const spfStatus: IconStatus    = payload.spf.valid    ? 'OK' : payload.spf.found    ? 'WARNING' : 'ERROR'
@@ -68,9 +78,12 @@ export function CheckResultCard({ payload }: { payload: CheckPayload }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6 flex-wrap">
         <h2 className="text-base font-semibold font-mono">{payload.domain}</h2>
-        <ScoreRing score={score} />
+        <div className="flex items-end gap-4">
+          <ScoreRing score={deliverabilityScore} label="Délivrabilité" />
+          <ScoreRing score={globalScore} label="Note globale" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
