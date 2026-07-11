@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CheckPayload } from '@/lib/dns/types'
+import { computeScore, scoreColor } from '@/lib/dns/score'
 
 type IconStatus = 'OK' | 'WARNING' | 'ERROR' | 'UNKNOWN'
 
@@ -24,13 +25,9 @@ function StatusIcon({ status }: { status: IconStatus }) {
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const cls = score >= 80
-    ? 'text-emerald-600 border-emerald-400'
-    : score >= 50
-    ? 'text-amber-600 border-amber-400'
-    : 'text-red-600 border-red-400'
+  const borderCls = score >= 80 ? 'border-emerald-400' : score >= 50 ? 'border-amber-400' : 'border-red-400'
   return (
-    <span className={`inline-flex items-center justify-center w-14 h-14 rounded-full border-2 text-base font-bold ${cls}`}>
+    <span className={`inline-flex items-center justify-center w-14 h-14 rounded-full border-2 text-base font-bold ${borderCls} ${scoreColor(score)}`}>
       {score}%
     </span>
   )
@@ -48,18 +45,16 @@ function Section({ title, status, children }: { title: string; status: IconStatu
   )
 }
 
-function computeScore(p: CheckPayload): number {
-  const checks = [
-    p.spf.valid, p.dmarc.valid, p.dkim.anyFound,
-    p.blacklists.ip !== null && p.blacklists.listedCount === 0,
-    p.mtaSts.valid, p.tlsRpt.valid,
-  ]
-  return Math.round(checks.filter(Boolean).length / checks.length * 100)
-}
-
 export function CheckResultCard({ payload }: { payload: CheckPayload }) {
   const [showAllRbls, setShowAllRbls] = useState(false)
-  const score = computeScore(payload)
+  const minorCount = payload.blacklists.listed.filter(r => r.listed && !r.major).length
+  const score = computeScore({
+    spfValid:            payload.spf.valid,
+    dmarcPolicy:         payload.dmarc.policy,
+    dkimFound:           payload.dkim.anyFound,
+    blacklistClean:      !payload.blacklists.hasMajorListing,
+    blacklistMinorCount: minorCount,
+  })
 
   const spfStatus: IconStatus    = payload.spf.valid    ? 'OK' : payload.spf.found    ? 'WARNING' : 'ERROR'
   const dmarcStatus: IconStatus  = payload.dmarc.valid  ? 'OK' : payload.dmarc.found  ? 'WARNING' : 'ERROR'
