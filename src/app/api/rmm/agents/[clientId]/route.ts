@@ -213,7 +213,7 @@ export async function POST(
       }
     }
 
-    revalidateTag('parc')
+    revalidateTag('parc', { expire: 0 })
     return NextResponse.json({ created, updated, unchanged, deleted, total: agents.length })
   } catch (err: any) {
     console.error('[RMM agents import]', err)
