@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, TriangleAlert, X } from 'lucide-react'
 import { CheckResultCard } from './check-result-card'
 import { ZoneCheckButton } from './dns-check-panel'
 import { DeleteDnsZoneButton } from './delete-dns-zone-button'
-import { computeGlobalScore, scoreColor } from '@/lib/dns/score'
+import { computeScore, computeGlobalScore, scoreColor } from '@/lib/dns/score'
 import type { CheckPayload } from '@/lib/dns/types'
 
 function fmt(d: Date | null) {
@@ -89,7 +89,7 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                 <th className="px-4 py-2 text-left">Expiration</th>
                 <th className="px-4 py-2 text-center hidden sm:table-cell">Auto</th>
                 <th className="px-4 py-2 text-left">Dernière vérif.</th>
-                <th className="px-4 py-2 text-left hidden sm:table-cell">Note globale</th>
+                <th className="px-4 py-2 text-left hidden sm:table-cell">Notes</th>
                 <th className="px-4 py-2 text-right">Vérifier</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -152,17 +152,32 @@ export function DnsZoneTable({ zones, isAdmin, selectedClientId }: DnsZoneTableP
                     <td className="px-4 py-2 text-xs hidden sm:table-cell">
                       {lastCheck ? (() => {
                         const details = lastCheck.details as CheckPayload | undefined
-                        const score = computeGlobalScore({
+                        const base = {
                           spfValid:            lastCheck.spfValid,
                           dmarcPolicy:         lastCheck.dmarcPolicy,
                           dkimFound:           lastCheck.dkimFound,
                           blacklistClean:      lastCheck.blacklistClean,
                           blacklistMinorCount: lastCheck.blacklistMinorCount,
-                          bimiValid:           details?.bimi?.valid ?? false,
-                          mtaStsValid:         details?.mtaSts?.valid ?? false,
-                          tlsRptValid:         details?.tlsRpt?.valid ?? false,
+                        }
+                        const delivScore  = computeScore(base)
+                        const globalScore = computeGlobalScore({
+                          ...base,
+                          bimiValid:   details?.bimi?.valid ?? false,
+                          mtaStsValid: details?.mtaSts?.valid ?? false,
+                          tlsRptValid: details?.tlsRpt?.valid ?? false,
                         })
-                        return <span className={`font-semibold tabular-nums ${scoreColor(score)}`}>{score}%</span>
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground w-16">Délivrab.</span>
+                              <span className={`font-semibold tabular-nums ${scoreColor(delivScore)}`}>{delivScore}%</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground w-16">Globale</span>
+                              <span className={`font-semibold tabular-nums ${scoreColor(globalScore)}`}>{globalScore}%</span>
+                            </div>
+                          </div>
+                        )
                       })() : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
