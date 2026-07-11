@@ -1,54 +1,76 @@
-﻿import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { notFound } from 'next/navigation'
 import { requireAuth, canAccessClient } from '@/lib/access'
 import { prisma } from '@/lib/db'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { deleteClient } from '@/actions/clients'
-import { Settings } from 'lucide-react'
+import { ClientHeader } from '@/components/clients/client-header'
+import { ClientDetailTabs } from '@/components/clients/client-detail-tabs'
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function ClientDetailPage({ params }: Props) {
   const { id } = await params
   const session = await requireAuth()
-  const t = await getTranslations('clients')
 
   const accessible = await canAccessClient(session.user.id, session.user.role, id)
   if (!accessible) notFound()
 
-  const client = await prisma.client.findUnique({ where: { id } })
+  const client = await prisma.client.findUnique({
+    where: { id },
+    include: {
+      contacts: true,
+      equipment: { include: { assignedTo: true } },
+      dnsZones: { include: { records: true } },
+      sslCertificates: true,
+      hostings: true,
+      nextcloudServices: { include: { servers: true } },
+      voipServices: {
+        include: { equipment: true, trunks: true, extensions: true },
+      },
+      personnelMovements: true,
+    },
+  })
   if (!client) notFound()
 
   const isAdmin = session.user.role === 'ADMIN'
-  const deleteWithId = deleteClient.bind(null, id)
+  const canEdit = session.user.role === 'ADMIN' || session.user.role === 'TECH'
+  const hasRmmLink = client.tacticalRmmId !== null
+
+  const dnsTotal = client.dnsZones.length + client.sslCertificates.length + client.hostings.length
+
+  const headerClient = {
+    id:            client.id,
+    name:          client.name,
+    phone:         client.phone,
+    email:         client.email,
+    address:       client.address,
+    hasM365:       client.hasM365,
+    cometUsername: client.cometUsername,
+    noSync:        client.noSync,
+    _counts: {
+      contacts:  client.contacts.length,
+      equipment: client.equipment.length,
+      dnsTotal,
+      nextcloud: client.nextcloudServices.length,
+      voip:      client.voipServices.length,
+      movements: client.personnelMovements.length,
+    },
+  }
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">{client.name}</h1>
-          {client.phone && <p className="text-muted-foreground text-sm">{client.phone}</p>}
-          {client.email && <p className="text-muted-foreground text-sm">{client.email}</p>}
-          {client.address && <p className="text-muted-foreground text-sm">{client.address}</p>}
-          {client.notes && <p className="text-muted-foreground text-sm mt-2 max-w-xl">{client.notes}</p>}
-        </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/clients/${id}/parametres`}>
-                <Settings size={14} className="mr-1.5" /> Paramètres
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/clients/${id}/edit`}>{t('edit')}</Link>
-            </Button>
-            <form action={deleteWithId}>
-              <Button variant="destructive" type="submit">{t('delete')}</Button>
-            </form>
-          </div>
-        )}
-      </div>
+      <ClientHeader client={headerClient} isAdmin={isAdmin} />
+      <ClientDetailTabs
+        clientId={id}
+        contacts={client.contacts}
+        equipment={client.equipment}
+        nextcloudServices={client.nextcloudServices}
+        voipServices={client.voipServices}
+        dnsZones={client.dnsZones}
+        sslCerts={client.sslCertificates}
+        hostings={client.hostings}
+        movements={client.personnelMovements}
+        canEdit={canEdit}
+        hasRmmLink={hasRmmLink}
+      />
     </>
   )
 }
