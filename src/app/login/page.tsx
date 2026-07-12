@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: Props) {
     : undefined
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center gap-3">
           <Image
@@ -35,6 +35,7 @@ export default async function LoginPage({ searchParams }: Props) {
           <LoginForm />
         </CardContent>
       </Card>
+      <p className="text-xs text-muted-foreground">© LSI-Maintenance 2026</p>
     </div>
   )
 }
