@@ -78,11 +78,14 @@ export function ClientList({ clients, isAdmin = false }: { clients: Client[]; is
                   {!client.phone && client.email && (
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">{client.email}</p>
                   )}
-                  <div className="mt-1.5">
+                  <div className="mt-1.5 flex items-center gap-1 flex-wrap">
                     {client.noSync
                       ? <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">Pas de synchro</span>
                       : <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Synchro</span>
                     }
+                    {client.hasM365 && (
+                      <span className="inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20">M365</span>
+                    )}
                   </div>
                 </div>
               </Link>
