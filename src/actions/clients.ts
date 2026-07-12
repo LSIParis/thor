@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { fetchDesk365Companies, createDesk365Company, desk365Configured } from '@/lib/desk365'
 import { encrypt } from '@/lib/crypto'
+import { mkdir, writeFile } from 'fs/promises'
+import { join } from 'path'
 
 export async function createClient(formData: FormData) {
   await requireAdmin()
@@ -35,6 +37,17 @@ export async function updateClient(clientId: string, formData: FormData) {
     ? encrypt(newPassword)
     : current?.cometPassword ?? null
 
+  // Handle logo file upload
+  const logoFile = formData.get('logo') as File | null
+  let logoPath = (formData.get('existingLogoPath') as string) || null
+  if (logoFile && logoFile.size > 0) {
+    const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? 'png'
+    const dir = join(process.cwd(), 'public', 'uploads', 'clients', clientId, 'images')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, `logo.${ext}`), Buffer.from(await logoFile.arrayBuffer()))
+    logoPath = `/uploads/clients/${clientId}/images/logo.${ext}`
+  }
+
   await prisma.client.update({
     where: { id: clientId },
     data: {
@@ -45,7 +58,7 @@ export async function updateClient(clientId: string, formData: FormData) {
       notes:         (formData.get('notes') as string) || null,
       cometUsername: (formData.get('cometUsername') as string) || null,
       cometPassword,
-      logoPath:      (formData.get('logoPath') as string) || null,
+      logoPath,
       hasM365:       formData.get('hasM365') === 'true',
       noSync,
     },

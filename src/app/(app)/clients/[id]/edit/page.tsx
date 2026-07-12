@@ -104,9 +104,27 @@ export default async function EditClientPage({ params }: Props) {
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="logoPath">Logo (URL)</Label>
-            <Input id="logoPath" name="logoPath" type="url" defaultValue={client.logoPath ?? ''} placeholder="https://…" />
+          <div className="space-y-2">
+            <Label>Logo client</Label>
+            {client.logoPath && (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={client.logoPath}
+                  alt="Logo actuel"
+                  className="h-12 w-auto max-w-[120px] object-contain rounded border border-border bg-muted/30 p-1"
+                />
+                <span className="text-xs text-muted-foreground">Logo actuel</span>
+              </div>
+            )}
+            <input type="hidden" name="existingLogoPath" value={client.logoPath ?? ''} />
+            <input
+              type="file"
+              name="logo"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+              className="text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-border file:text-xs file:font-medium file:bg-background file:text-foreground hover:file:bg-muted cursor-pointer w-full"
+            />
+            <p className="text-xs text-muted-foreground">PNG, JPG, WebP, SVG — stocké dans le dossier fichiers du client</p>
           </div>
         </SectionCard>
 
