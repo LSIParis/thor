@@ -316,8 +316,6 @@ export async function syncContactsFromM365(
   return { created, updated, skipped }
 }
 
-type ContactRef = { name: string; email: string; company: string }
-
 export async function importOrphanContacts(contacts: ContactRef[], clientId?: string) {
   await requireAdmin()
   let created = 0
