@@ -10,6 +10,9 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  experimental: {
+    serverActions: { bodySizeLimit: '50mb' },
+  },
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_BUILD_SHA: buildSha,

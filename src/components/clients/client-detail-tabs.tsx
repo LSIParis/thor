@@ -9,6 +9,7 @@ import { NextcloudPanel } from '@/components/nextcloud/nextcloud-panel'
 import { VoipPanel } from '@/components/voip/voip-panel'
 import { DnsPanel } from '@/components/dns/dns-panel'
 import { MovementList } from '@/components/movements/movement-list'
+import { ClientFilesTab } from '@/components/clients/client-files-tab'
 import type {
   Contact, Equipment,
   NextcloudService, NextcloudServer,
@@ -60,6 +61,7 @@ export function ClientDetailTabs({
         <TabsTrigger value="nextcloud">Nextcloud ({nextcloudServices.length})</TabsTrigger>
         <TabsTrigger value="voip">VoIP ({voipServices.length})</TabsTrigger>
         <TabsTrigger value="movements">Entrées/Sorties ({movements.length})</TabsTrigger>
+        <TabsTrigger value="files">Fichiers</TabsTrigger>
       </TabsList>
       <TabsContent value="contacts" className="mt-4">
         <ContactList contacts={contacts} clientId={clientId} canEdit={canEdit} />
@@ -84,6 +86,9 @@ export function ClientDetailTabs({
       </TabsContent>
       <TabsContent value="movements" className="mt-4">
         <MovementList movements={movements} clientId={clientId} canEdit={canEdit} isClient={isClient} />
+      </TabsContent>
+      <TabsContent value="files" className="mt-4">
+        <ClientFilesTab clientId={clientId} canEdit={canEdit} />
       </TabsContent>
     </Tabs>
   )
