@@ -316,3 +316,28 @@ export async function syncContactsFromM365(
   return { created, updated, skipped }
 }
 
+type ContactRef = { name: string; email: string; company: string }
+
+export async function importOrphanContacts(contacts: ContactRef[], clientId?: string) {
+  await requireAdmin()
+  let created = 0
+  for (const c of contacts) {
+    let targetClientId = clientId
+    if (!targetClientId) {
+      const client = await prisma.client.findFirst({ where: { name: c.company } })
+      if (!client) continue
+      targetClientId = client.id
+    }
+    if (c.email) {
+      const exists = await prisma.contact.findFirst({ where: { clientId: targetClientId, email: c.email } })
+      if (exists) continue
+    }
+    const parts = c.name.trim().split(/\s+/)
+    const firstName = parts[0] ?? c.name
+    const lastName = parts.slice(1).join(' ') || ''
+    await prisma.contact.create({ data: { clientId: targetClientId, firstName, lastName, email: c.email || null } })
+    created++
+  }
+  revalidatePath(clientId ? `/clients/${clientId}` : '/contacts')
+  return { created }
+}
