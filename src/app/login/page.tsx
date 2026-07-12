@@ -15,7 +15,16 @@ export default async function LoginPage({ searchParams }: Props) {
     : undefined
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+    <div className="relative min-h-screen flex flex-col items-center justify-center gap-4">
+      {/* Background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/accueil.png')" }}
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/60" />
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center gap-3">
           <Image
@@ -35,7 +44,8 @@ export default async function LoginPage({ searchParams }: Props) {
           <LoginForm />
         </CardContent>
       </Card>
-      <p className="text-xs text-muted-foreground">© LSI-Maintenance 2026</p>
+      <p className="text-xs text-white/60">© LSI-Maintenance 2026</p>
+      </div>
     </div>
   )
 }
