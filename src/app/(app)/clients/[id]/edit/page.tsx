@@ -53,7 +53,7 @@ export default async function EditClientPage({ params }: Props) {
 
   const client = await prisma.client.findUnique({
     where: { id },
-    select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, hasM365: true, cometUsername: true, cometPassword: true },
+    select: { id: true, name: true, address: true, phone: true, email: true, notes: true, noSync: true, hasM365: true, cometUsername: true, cometPassword: true, logoPath: true },
   })
   if (!client) notFound()
 
@@ -103,6 +103,10 @@ export default async function EditClientPage({ params }: Props) {
               defaultValue={client.notes ?? ''}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="logoPath">Logo (URL)</Label>
+            <Input id="logoPath" name="logoPath" type="url" defaultValue={client.logoPath ?? ''} placeholder="https://…" />
           </div>
         </SectionCard>
 

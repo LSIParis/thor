@@ -45,6 +45,7 @@ export async function updateClient(clientId: string, formData: FormData) {
       notes:         (formData.get('notes') as string) || null,
       cometUsername: (formData.get('cometUsername') as string) || null,
       cometPassword,
+      logoPath:      (formData.get('logoPath') as string) || null,
       hasM365:       formData.get('hasM365') === 'true',
       noSync,
     },
