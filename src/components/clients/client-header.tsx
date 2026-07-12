@@ -7,6 +7,7 @@ type ClientWithCounts = {
   phone: string | null
   email: string | null
   address: string | null
+  logoPath: string | null
   hasM365: boolean
   cometUsername: string | null
   noSync: boolean
@@ -41,7 +42,17 @@ export function ClientHeader({ client, isAdmin }: ClientHeaderProps) {
     <div className="bg-card border border-border rounded-lg mb-6 overflow-hidden">
       {/* Ligne titre */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border/60">
-        <h1 className="text-xl font-semibold tracking-tight">{client.name}</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          {client.logoPath && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={client.logoPath}
+              alt={`Logo ${client.name}`}
+              className="h-10 w-auto max-w-[100px] object-contain rounded"
+            />
+          )}
+          <h1 className="text-xl font-semibold tracking-tight truncate">{client.name}</h1>
+        </div>
         {isAdmin && <ClientMenu clientId={client.id} clientName={client.name} />}
       </div>
 

@@ -42,6 +42,7 @@ export default async function ClientDetailPage({ params }: Props) {
     phone:         client.phone,
     email:         client.email,
     address:       client.address,
+    logoPath:      client.logoPath,
     hasM365:       client.hasM365,
     cometUsername: client.cometUsername,
     noSync:        client.noSync,
