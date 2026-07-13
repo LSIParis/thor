@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { syncContactsFromM365 } from '@/actions/contacts'
 import { RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
-type Result = { created: number; updated: number; skipped: number; error?: string }
+type Result = { created: number; updated: number; skipped: number; reset: number; error?: string }
 
 export function SyncM365Button({ clientId }: { clientId: string }) {
   const [result, setResult]    = useState<Result | null>(null)
@@ -30,6 +30,7 @@ export function SyncM365Button({ clientId }: { clientId: string }) {
           {result.created} créé{result.created !== 1 ? 's' : ''}
           {result.updated > 0 && `, ${result.updated} mis à jour`}
           {result.skipped > 0 && `, ${result.skipped} ignoré${result.skipped !== 1 ? 's' : ''}`}
+          {result.reset > 0 && `, ${result.reset} sorti${result.reset !== 1 ? 's' : ''} de M365`}
         </span>
       )}
       {result?.error && (

@@ -245,12 +245,12 @@ export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
 
 export async function syncContactsFromM365(
   clientId: string
-): Promise<{ created: number; updated: number; skipped: number; error?: string }> {
+): Promise<{ created: number; updated: number; skipped: number; reset: number; error?: string }> {
   await requireAdmin()
 
   const clientCheck = await prisma.client.findUnique({ where: { id: clientId }, select: { noSync: true } })
   if (clientCheck?.noSync) {
-    return { created: 0, updated: 0, skipped: 0, error: 'Synchronisation désactivée pour ce client.' }
+    return { created: 0, updated: 0, skipped: 0, reset: 0, error: 'Synchronisation désactivée pour ce client.' }
   }
 
   const [accounts, defaultSite] = await Promise.all([
@@ -265,7 +265,7 @@ export async function syncContactsFromM365(
   ])
 
   if (accounts.length === 0) {
-    return { created: 0, updated: 0, skipped: 0, error: "Aucun compte M365 actif trouvé. Synchronisez d'abord les tenants M365." }
+    return { created: 0, updated: 0, skipped: 0, reset: 0, error: "Aucun compte M365 actif trouvé. Synchronisez d'abord les tenants M365." }
   }
 
   const defaultSiteId = defaultSite?.id ?? null
@@ -273,6 +273,9 @@ export async function syncContactsFromM365(
   let created = 0
   let updated = 0
   let skipped = 0
+
+  // Track IDs of contacts matched to an M365 account this run
+  const touchedIds = new Set<string>()
 
   for (const acc of accounts) {
     if (!acc.displayName?.trim()) { skipped++; continue }
@@ -297,27 +300,37 @@ export async function syncContactsFromM365(
             ...(existing.siteId === null && defaultSiteId ? { siteId: defaultSiteId } : {}),
           },
         })
+        touchedIds.add(existing.id)
         updated++
       } else {
-        await prisma.contact.create({ data: { clientId, firstName, lastName, email, role, siteId: defaultSiteId, inM365: true } })
+        const created_ = await prisma.contact.create({ data: { clientId, firstName, lastName, email, role, siteId: defaultSiteId, inM365: true } })
+        touchedIds.add(created_.id)
         created++
       }
     } else {
       const existing = await prisma.contact.findFirst({ where: { clientId, firstName, lastName } })
       if (!existing) {
-        await prisma.contact.create({ data: { clientId, firstName, lastName, role, siteId: defaultSiteId, inM365: true } })
+        const created_ = await prisma.contact.create({ data: { clientId, firstName, lastName, role, siteId: defaultSiteId, inM365: true } })
+        touchedIds.add(created_.id)
         created++
       } else {
         if (!existing.inM365) {
           await prisma.contact.update({ where: { id: existing.id }, data: { inM365: true } })
         }
+        touchedIds.add(existing.id)
         skipped++
       }
     }
   }
 
+  // Contacts présents dans Thor mais absents de M365 → inM365 = false
+  const { count: reset } = await prisma.contact.updateMany({
+    where: { clientId, inM365: true, id: { notIn: [...touchedIds] } },
+    data: { inM365: false },
+  })
+
   revalidatePath('/contacts')
-  return { created, updated, skipped }
+  return { created, updated, skipped, reset }
 }
 
 export async function importOrphanContacts(contacts: ContactRef[], clientId?: string) {
