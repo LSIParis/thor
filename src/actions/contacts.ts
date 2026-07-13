@@ -293,20 +293,24 @@ export async function syncContactsFromM365(
           where: { id: existing.id },
           data: {
             firstName, lastName, role,
+            inM365: true,
             ...(existing.siteId === null && defaultSiteId ? { siteId: defaultSiteId } : {}),
           },
         })
         updated++
       } else {
-        await prisma.contact.create({ data: { clientId, firstName, lastName, email, role, siteId: defaultSiteId } })
+        await prisma.contact.create({ data: { clientId, firstName, lastName, email, role, siteId: defaultSiteId, inM365: true } })
         created++
       }
     } else {
       const existing = await prisma.contact.findFirst({ where: { clientId, firstName, lastName } })
       if (!existing) {
-        await prisma.contact.create({ data: { clientId, firstName, lastName, role, siteId: defaultSiteId } })
+        await prisma.contact.create({ data: { clientId, firstName, lastName, role, siteId: defaultSiteId, inM365: true } })
         created++
       } else {
+        if (!existing.inM365) {
+          await prisma.contact.update({ where: { id: existing.id }, data: { inM365: true } })
+        }
         skipped++
       }
     }
