@@ -30,7 +30,7 @@ export default async function ContactsPage({
   const [allClients, allSites] = await Promise.all([
     prisma.client.findMany({
       where: accessFilter,
-      select: { id: true, name: true },
+      select: { id: true, name: true, hasM365: true },
       orderBy: { name: 'asc' },
     }),
     prisma.site.findMany({
@@ -62,7 +62,9 @@ export default async function ContactsPage({
       }),
     ])
 
-    const clientName = allClients.find(c => c.id === selectedClientId)?.name ?? ''
+    const selectedClient = allClients.find(c => c.id === selectedClientId)
+    const clientName = selectedClient?.name ?? ''
+    const clientHasM365 = selectedClient?.hasM365 ?? false
     const clientSites = allSites.filter(s => s.clientId === selectedClientId)
     const total = sites.reduce((a, s) => a + s.contacts.length, 0) + unsited.length
 
@@ -83,7 +85,7 @@ export default async function ContactsPage({
             >
               <Download size={13} /> CSV
             </a>
-            {isAdmin && <SyncM365Button clientId={selectedClientId} />}
+            {isAdmin && clientHasM365 && <SyncM365Button clientId={selectedClientId} />}
             {isAdmin && <SyncDesk365ContactsButton clientId={selectedClientId} />}
             {isAdmin && <AddContactDialog clients={allClients} sites={allSites} selectedClientId={selectedClientId} />}
           </div>
