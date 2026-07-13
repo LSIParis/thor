@@ -138,7 +138,7 @@ export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
   try {
     const clientFilter = clientId ? { clientId } : {}
 
-    const [thorVisible, thorNoSync, thorAllEmails, desk365Contacts, clientInfo] = await Promise.all([
+    const [thorVisible, thorNoSync, thorAllContacts, desk365Contacts, clientInfo] = await Promise.all([
       prisma.contact.findMany({
         where: { visible: true, ...clientFilter },
         select: {
@@ -157,7 +157,7 @@ export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
       }),
       prisma.contact.findMany({
         where: { email: { not: null }, ...clientFilter },
-        select: { email: true },
+        select: { id: true, email: true, inDesk365: true },
       }),
       fetchDesk365Contacts(),
       clientId
@@ -169,7 +169,7 @@ export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
       desk365Contacts.map(c => c.primary_email?.toLowerCase().trim()).filter(Boolean)
     )
     const thorEmails = new Set(
-      thorAllEmails.map(c => c.email!.toLowerCase().trim())
+      thorAllContacts.map(c => c.email!.toLowerCase().trim())
     )
 
     let created = 0
@@ -233,6 +233,15 @@ export async function syncVisibleContactsToDesk365(clientId?: string): Promise<{
         company: c.company_name ?? '',
       }))
       .sort(byName)
+
+    // Mise à jour inDesk365 pour tous les contacts Thor avec email
+    const inDesk365Ids    = thorAllContacts.filter(c => existingEmails.has(c.email!.toLowerCase().trim())).map(c => c.id)
+    const notInDesk365Ids = thorAllContacts.filter(c => !existingEmails.has(c.email!.toLowerCase().trim()) && c.inDesk365).map(c => c.id)
+
+    await Promise.all([
+      inDesk365Ids.length    > 0 && prisma.contact.updateMany({ where: { id: { in: inDesk365Ids } },    data: { inDesk365: true } }),
+      notInDesk365Ids.length > 0 && prisma.contact.updateMany({ where: { id: { in: notInDesk365Ids } }, data: { inDesk365: false } }),
+    ])
 
     return { created, skipped, toDelete, orphans }
   } catch (e) {
@@ -345,12 +354,15 @@ export async function importOrphanContacts(contacts: ContactRef[], clientId?: st
     }
     if (c.email) {
       const exists = await prisma.contact.findFirst({ where: { clientId: targetClientId, email: c.email } })
-      if (exists) continue
+      if (exists) {
+        if (!exists.inDesk365) await prisma.contact.update({ where: { id: exists.id }, data: { inDesk365: true } })
+        continue
+      }
     }
     const parts = c.name.trim().split(/\s+/)
     const firstName = parts[0] ?? c.name
     const lastName = parts.slice(1).join(' ') || ''
-    await prisma.contact.create({ data: { clientId: targetClientId, firstName, lastName, email: c.email || null } })
+    await prisma.contact.create({ data: { clientId: targetClientId, firstName, lastName, email: c.email || null, inDesk365: true } })
     created++
   }
   revalidatePath(clientId ? `/clients/${clientId}` : '/contacts')
